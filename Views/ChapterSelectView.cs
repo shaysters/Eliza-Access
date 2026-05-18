@@ -146,7 +146,7 @@ namespace ElizaAccess.Views
             if (total == 0) return $"Chapter {chapterIdx + 1}.";
             if (chapterIdx == selectedCh)
                 return $"Chapter {chapterIdx + 1}, expanded. {total} episodes.";
-            return $"Chapter {chapterIdx + 1}. {total} episodes.";
+            return $"Chapter {chapterIdx + 1}, collapsed. {total} episodes.";
         }
 
         private string FormatEpisode(int chapterIdx, int episodeIdx, object? ep)

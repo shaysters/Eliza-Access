@@ -148,6 +148,16 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // release axis suppression on a re-entry without OnLeave (safety
         // belt for the lifecycle).
         private bool _axesSuppressed;
+        // Scene-ready gate. Entries register their hotspots in list_0
+        // only after their fade-in finishes (WorldScreen.cs:1879 — the
+        // `num4 == texture_50.Length` guard around smethod_7). Letting
+        // the user navigate before all entries are interactable is
+        // misleading: they hear an item announced, press Enter, and
+        // nothing happens because there's no hotspot at the cursor
+        // yet. _ready flips true once we see N entry-matched hotspots
+        // in list_0 (or the safety deadline elapses).
+        private bool     _ready;
+        private DateTime _readyDeadline;
 
         private struct NavItem
         {
@@ -276,6 +286,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
             SuppressAxes();
             _kbUp.Reset();
             _kbDown.Reset();
+            _ready = false;
+            _readyDeadline = DateTime.UtcNow.AddSeconds(5);
 
             var entries = ReadEntries();
             int n = entries?.Count ?? 0;
@@ -286,21 +298,22 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 _ => $"Look around. {n} things to interact with."
             };
 
-            RebuildNavList();
-            if (_navList.Count > 0)
+            // Announce the count up front so the user gets feedback that
+            // the screen has loaded — but DON'T announce the focused
+            // item or process input until the hotspots have registered.
+            Speech.Speak(countPart);
+
+            if (n == 0)
             {
-                _navIdx = 0;
-                _focusedLabel = _navList[0].Label;
-                SnapCursorToFocused();
-                Speech.Speak($"{countPart} {_navList[_navIdx].Label}.");
-                Log($"[ExplorationSubView] enter: {n} entries, focus → [0] \"{_focusedLabel}\"");
+                // Nothing to wait for.
+                _ready = true;
+                _navIdx = -1;
+                _focusedLabel = null;
+                Log("[ExplorationSubView] enter: no entries, ready immediately");
             }
             else
             {
-                _navIdx = -1;
-                _focusedLabel = null;
-                Speech.Speak(countPart);
-                Log($"[ExplorationSubView] enter: {n} entries (nothing to focus)");
+                Log($"[ExplorationSubView] enter: {n} entries, waiting for hotspots to register");
             }
         }
 
@@ -317,6 +330,25 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         public override void OnUpdate()
         {
+            if (!_ready)
+            {
+                if (!TryAdvanceReady()) return;
+                _ready = true;
+                // Just became ready — build the nav list, snap cursor
+                // to the first item, and speak it. From here on,
+                // OnUpdate processes input normally.
+                RebuildNavList();
+                if (_navList.Count > 0)
+                {
+                    _navIdx = 0;
+                    _focusedLabel = _navList[0].Label;
+                    SnapCursorToFocused();
+                    Speech.Speak(_focusedLabel);
+                    Log($"[ExplorationSubView] ready, focus → [0] \"{_focusedLabel}\"");
+                }
+                return;
+            }
+
             // Side hotspots (Continue) appear partway through and may
             // shift between polls; entries don't change once IsActive
             // is true. Cheap to rebuild, keeps the list current.
@@ -369,6 +401,69 @@ namespace ElizaAccess.Views.WorldScreenSubs
             if (up)   Move(-1, "up");
         }
 
+        /// <summary>
+        /// Returns true once the scene is interactable. The engine
+        /// only registers an entry's hotspot in <c>list_0</c> after
+        /// the entry's fade-in completes (WorldScreen.cs:1879 — the
+        /// <c>num4 == texture_50.Length</c> guard). When all N data-
+        /// model entries have a matching hotspot, the scene is ready.
+        ///
+        /// Bails out (returns true) after <see cref="_readyDeadline"/>
+        /// regardless of hotspot count — if the count-match check is
+        /// broken (entry positions don't quite line up with hotspot
+        /// centers under some scene variant), the user should still
+        /// be able to navigate after a few seconds rather than stay
+        /// frozen forever.
+        /// </summary>
+        private bool TryAdvanceReady()
+        {
+            if (DateTime.UtcNow >= _readyDeadline)
+            {
+                Log("[ExplorationSubView] ready deadline elapsed; advancing without hotspot match");
+                return true;
+            }
+            var entries = ReadEntries();
+            int expected = entries?.Count ?? 0;
+            if (expected == 0) return true;
+            int matched = CountEntryHotspotsInList0(entries!);
+            return matched >= expected;
+        }
+
+        private int CountEntryHotspotsInList0(List<object> entries)
+        {
+            if (_hotspotListField == null || _hotspotBoundsField == null) return 0;
+            IList? list;
+            try { list = _hotspotListField.GetValue(null) as IList; }
+            catch { return 0; }
+            if (list == null || list.Count == 0) return 0;
+
+            if (!_entryReflectDone && entries.Count > 0) ReflectEntry(entries[0]);
+            const float Match = 4f;
+            int matched = 0;
+            foreach (object entry in entries)
+            {
+                if (!TryGetEntryBoundsCenter(entry, out float ex, out float ey)) continue;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    object? h;
+                    try { h = list[i]; } catch { break; }
+                    if (h == null) continue;
+                    object? b;
+                    try { b = _hotspotBoundsField.GetValue(h); } catch { continue; }
+                    if (b == null) continue;
+                    if (!TryReadBounds(b, out float mnX, out float mnY, out float mxX, out float mxY)) continue;
+                    float cx = (mnX + mxX) * 0.5f;
+                    float cy = (mnY + mxY) * 0.5f;
+                    if (Math.Abs(cx - ex) <= Match && Math.Abs(cy - ey) <= Match)
+                    {
+                        matched++;
+                        break;
+                    }
+                }
+            }
+            return matched;
+        }
+
         private void Move(int delta, string direction)
         {
             int newIdx = _navIdx + delta;
@@ -392,6 +487,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
             _navIdx = -1;
             _focusedLabel = null;
             _lastListShape = "";
+            _ready = false;
             // Don't clear ExplorationState.CurrentSessionLabel here. The
             // label tracks the whole chapter, not the look-around step —
             // RefreshSessionLabel() in OnPoll updates / nulls it based on
