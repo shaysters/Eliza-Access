@@ -1,0 +1,135 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>ElizaAccessDll</AssemblyName>
+    <RootNamespace>ElizaAccess</RootNamespace>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <Optimize>true</Optimize>
+
+    <!--
+      Auto-deploy to the game directory after every build.
+
+      GameDir defaults to the standard Steam install path. Override with
+      /p:GameDir='<path>' on the command line, or set GameDir as an
+      environment variable, when Eliza is installed elsewhere.
+
+      Set /p:SkipDeploy=true to opt out (CI, builds on machines without
+      the game installed). Deploy is also auto-skipped if GameDir does
+      not exist, so a fresh clone on a non-gaming machine builds cleanly.
+
+      If Eliza.exe is running, the DLL file in the game directory is
+      locked and the Copy will fail with a "file in use" error. Close
+      the game and re-run.
+    -->
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Eliza</GameDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Lib.Harmony — runtime method patching. Used to hook the game's
+      VirtualInput / ScreenStack / IScreen methods so the mod runs in
+      response to game events instead of polling.
+    -->
+    <PackageReference Include="Lib.Harmony" Version="2.3.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      prism.dll is the native screen-reader abstraction library
+      P/Invoked by SpeechEngine. Vendored from the Prismatoid NuGet
+      package's runtimes/win-x64/native/ folder because the managed
+      Prismatoid wrapper targets net10.0 only and we're on net472.
+    -->
+    <None Include="prism.dll" Condition="Exists('prism.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="DeployToGameDir" AfterTargets="Build"
+          Condition="'$(SkipDeploy)' != 'true' AND Exists('$(GameDir)')">
+    <Message Importance="high" Text="Deploying $(AssemblyName).dll to $(GameDir)" />
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(GameDir)"
+          OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb"
+          DestinationFolder="$(GameDir)"
+          OverwriteReadOnlyFiles="true"
+          Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+    <!--
+      0Harmony.dll is the runtime-patching engine. It must sit next to
+      ElizaAccessDll.dll in the game directory so the mod's assembly
+      resolver can find it when Main bootstraps Harmony.
+    -->
+    <Copy SourceFiles="$(TargetDir)0Harmony.dll"
+          DestinationFolder="$(GameDir)"
+          OverwriteReadOnlyFiles="true"
+          Condition="Exists('$(TargetDir)0Harmony.dll')" />
+    <!--
+      prism.dll is the native screen-reader abstraction library
+      P/Invoked from SpeechEngine. Must sit next to ElizaAccessDll.dll
+      so the default DLL resolver finds it on first P/Invoke call.
+    -->
+    <Copy SourceFiles="$(TargetDir)prism.dll"
+          DestinationFolder="$(GameDir)"
+          OverwriteReadOnlyFiles="true"
+          Condition="Exists('$(TargetDir)prism.dll')" />
+  </Target>
+
+  <!--
+    Release-build redistributable bundle. Stages every file an end-
+    user needs to install the mod into a fresh Eliza directory, then
+    zips them flat so the user can drop the archive's contents
+    straight into the game folder.
+
+    Contents:
+      ElizaAccessDll.dll  — this project's build output
+      0Harmony.dll        — Harmony runtime, from Lib.Harmony NuGet
+      prism.dll           — native screen-reader abstraction
+      libvorbisfile.dll   — patched proxy DLL that bootstraps the CLR
+                            and calls ElizaAccess.Entry.Initialize.
+                            The proxy isn't built by this project; we
+                            copy whatever is currently installed in
+                            $(GameDir). Set /p:ProxyDll='<path>' to
+                            override.
+
+    Skipped automatically when libvorbisfile.dll isn't available
+    (so a fresh clone on a non-gaming machine still builds Release
+    cleanly — it just doesn't produce a zip).
+
+    Set /p:SkipBundle=true to opt out explicitly.
+  -->
+  <PropertyGroup>
+    <ProxyDll Condition="'$(ProxyDll)' == ''">$(GameDir)\libvorbisfile.dll</ProxyDll>
+  </PropertyGroup>
+
+  <Target Name="BundleRelease" AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' AND '$(SkipBundle)' != 'true' AND Exists('$(ProxyDll)')">
+    <!-- Evaluate paths inside the target so $(TargetDir) is fully
+         resolved by Build's preceding tasks. Using these at property-
+         group time gives an empty / project-relative result. -->
+    <PropertyGroup>
+      <BundleStageDir>$(TargetDir)bundle</BundleStageDir>
+      <BundleZipPath>$(TargetDir)Eliza-Accessibility.zip</BundleZipPath>
+    </PropertyGroup>
+    <Message Importance="high" Text="Bundling release zip → $(BundleZipPath)" />
+    <RemoveDir Directories="$(BundleStageDir)" Condition="Exists('$(BundleStageDir)')" />
+    <MakeDir Directories="$(BundleStageDir)" />
+    <Copy SourceFiles="$(TargetPath)"             DestinationFolder="$(BundleStageDir)" />
+    <Copy SourceFiles="$(TargetDir)0Harmony.dll"  DestinationFolder="$(BundleStageDir)" />
+    <Copy SourceFiles="$(TargetDir)prism.dll"     DestinationFolder="$(BundleStageDir)" />
+    <Copy SourceFiles="$(ProxyDll)"               DestinationFolder="$(BundleStageDir)" />
+    <Delete Files="$(BundleZipPath)" Condition="Exists('$(BundleZipPath)')" />
+    <ZipDirectory SourceDirectory="$(BundleStageDir)"
+                  DestinationFile="$(BundleZipPath)" />
+  </Target>
+
+  <Target Name="BundleReleaseSkipped" AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' AND '$(SkipBundle)' != 'true' AND !Exists('$(ProxyDll)')">
+    <Message Importance="high"
+             Text="Skipping release bundle: proxy DLL not found at '$(ProxyDll)'. Set /p:ProxyDll=&lt;path&gt; to override." />
+  </Target>
+</Project>
