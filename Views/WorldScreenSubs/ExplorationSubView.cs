@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using ElizaAccess.Common;
@@ -36,12 +37,26 @@ namespace ElizaAccess.Views.WorldScreenSubs
     /// instead of going through HotspotLabelCapture.
     ///
     /// Activation: <c>IsActive ⇔ currentStep.method_22()</c>.
+    ///
+    /// Navigation: the engine's controller-cursor snap-to-nearest-hotspot
+    /// nav is too erratic on this screen to be useful (the hotspot
+    /// layout is sparse and visually-arranged, not arranged by the
+    /// engine's bounds-translation heuristic). We take over: suppress
+    /// both axes via <see cref="InputSuppressor"/> so neither real
+    /// controller input nor our keyboard injection reaches the engine,
+    /// then drive an ordered nav list ourselves with the Up/Down arrow
+    /// keys. The list contains every interactable entry plus the
+    /// side-rendered Continue button, sorted top-to-bottom then
+    /// left-to-right so the reading order matches what a sighted
+    /// player sees.
+    ///
     /// Lifecycle:
-    /// - <c>OnEnter</c>: enumerate entries, speak
-    ///   "Look around. N things to interact with."
-    /// - <c>OnUpdate</c>: find the entry whose bounds contains the cursor,
-    ///   announce its label on change.
-    /// - <c>OnLeave</c>: clear tracked focus.
+    /// - <c>OnEnter</c>: suppress axes, build nav list, snap cursor to
+    ///   the first item, speak entry-count + first-item label.
+    /// - <c>OnUpdate</c>: poll Up/Down rising edges; on press, move
+    ///   focus index (clamped), snap engine cursor to that item, speak
+    ///   the new item's label.
+    /// - <c>OnLeave</c>: release axis suppression, clear nav state.
     /// </summary>
     internal sealed class ExplorationSubView : SubView
     {
@@ -99,15 +114,47 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // Cursor getter (same one CursorFocus uses)
         private MethodInfo? _cursorPosMethod;
 
+        // Cursor setter + Vector2 ctor (for snapping the engine cursor
+        // to the focused nav item). Same shape as SolitaireView's
+        // bootstrap-cursor plumbing.
+        private const string SetCursorMethodName = "#=qT_SlnKGmQty0k3OLe9Ydng==";
+        private MethodInfo? _setCursorMethod;
+        private Type?       _tVector2;
+
+        // VirtualInput.list_0 + hotspot bounds field, for enumerating
+        // side hotspots (Continue button) that aren't part of the
+        // entry data model.
+        private FieldInfo?  _hotspotListField;
+        private FieldInfo?  _hotspotBoundsField;
+
         // ── Per-activation state ───────────────────────────────────────
-        private int _lastFocusedIdx = -1;
-        // Independent tracker for non-entry hotspots in the same scene
-        // (notably the Continue button at WorldScreen.cs:1849). When the
-        // cursor leaves the entries and lands on a labeled hotspot, we
-        // pick its label up from HotspotLabelCapture and announce it.
-        // Tracked separately so navigating entries→Continue→entry doesn't
-        // re-announce the same label twice.
-        private int _lastSideHotspotIdx = -1;
+        private readonly KeyEdge _kbUp   = new KeyEdge(Keyboard.VK_UP);
+        private readonly KeyEdge _kbDown = new KeyEdge(Keyboard.VK_DOWN);
+        // Ordered navigation list, rebuilt each tick from current entries
+        // plus current side hotspots. Sort order is (Y desc, X asc) so
+        // reading goes top-to-bottom then left-to-right.
+        private readonly List<NavItem> _navList = new List<NavItem>();
+        private int _navIdx = -1;
+        // Label of the currently-focused item. The nav list can change
+        // shape between polls (the Continue button's hotspot drops in
+        // and out of list_0, and its HotspotLabelCapture pairing fails
+        // intermittently), so tracking focus by index alone causes a
+        // silent reclamp that the user can't perceive — they press DOWN
+        // again and hear the same item, or press UP and skip an entry.
+        // Tracking by label lets us re-anchor _navIdx to the same item
+        // even when its position in the list moved.
+        private string? _focusedLabel;
+        // True between OnEnter and OnLeave, used to decide whether to
+        // release axis suppression on a re-entry without OnLeave (safety
+        // belt for the lifecycle).
+        private bool _axesSuppressed;
+
+        private struct NavItem
+        {
+            public float  CenterX;
+            public float  CenterY;
+            public string Label;
+        }
 
         public override void OnInit()
         {
@@ -148,8 +195,43 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 }
             }
 
+            // SetCursor + Vector2 type for snapping the engine cursor to
+            // the focused nav item.
+            _tVector2 = Nagoya.FindType("Vector2");
+            if (tVI != null && _tVector2 != null)
+            {
+                _setCursorMethod = tVI.GetMethod(SetCursorMethodName,
+                    BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly,
+                    null, new[] { _tVector2 }, null);
+            }
+
+            // list_0 (hotspot list) for enumerating side hotspots
+            // (the Continue button). Same signature-based lookup as
+            // CursorFocus.
+            if (tVI != null)
+            {
+                foreach (FieldInfo f in tVI.GetFields(BindingFlags.NonPublic | BindingFlags.Static))
+                {
+                    if (!f.FieldType.IsGenericType) continue;
+                    if (f.FieldType.GetGenericTypeDefinition() != typeof(List<>)) continue;
+                    Type elem = f.FieldType.GetGenericArguments()[0];
+                    if (elem.Name == "VirtualInputHotspot") { _hotspotListField = f; break; }
+                }
+            }
+            Type? tHotspot = Nagoya.FindType("VirtualInputHotspot");
+            if (tHotspot != null)
+            {
+                foreach (FieldInfo f in tHotspot.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    if (f.FieldType.Name == "Bounds2") { _hotspotBoundsField = f; break; }
+                }
+            }
+
             Log($"[ExplorationSubView] init: currentStep={(_currentStepMethod != null)} " +
-                $"cursorGet={(_cursorPosMethod != null)}");
+                $"cursorGet={(_cursorPosMethod != null)} " +
+                $"setCursor={(_setCursorMethod != null)} " +
+                $"hotspotList={(_hotspotListField != null)} " +
+                $"hotspotBounds={(_hotspotBoundsField != null)}");
         }
 
         private static int CountBoolNoArgMethods(Type t)
@@ -187,17 +269,39 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         public override void OnEnter()
         {
-            _lastFocusedIdx = -1;
+            // Take exclusive control of the cursor for the duration of
+            // this look-around step. Engine's own controller-cursor
+            // nav doesn't reach reliably between sparse hotspots; we
+            // drive it ourselves via the ordered nav list.
+            SuppressAxes();
+            _kbUp.Reset();
+            _kbDown.Reset();
+
             var entries = ReadEntries();
             int n = entries?.Count ?? 0;
-            string ann = n switch
+            string countPart = n switch
             {
-                0 => "Look around.",
+                0 => "Look around. Nothing to interact with.",
                 1 => "Look around. One thing to interact with.",
                 _ => $"Look around. {n} things to interact with."
             };
-            Speech.Speak(ann);
-            Log($"[ExplorationSubView] enter: {n} entries");
+
+            RebuildNavList();
+            if (_navList.Count > 0)
+            {
+                _navIdx = 0;
+                _focusedLabel = _navList[0].Label;
+                SnapCursorToFocused();
+                Speech.Speak($"{countPart} {_navList[_navIdx].Label}.");
+                Log($"[ExplorationSubView] enter: {n} entries, focus → [0] \"{_focusedLabel}\"");
+            }
+            else
+            {
+                _navIdx = -1;
+                _focusedLabel = null;
+                Speech.Speak(countPart);
+                Log($"[ExplorationSubView] enter: {n} entries (nothing to focus)");
+            }
         }
 
         public override void OnPoll()
@@ -205,60 +309,293 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // Runs every tick regardless of IsActive — keeps the shared
             // ExplorationState.CurrentSessionLabel fresh throughout the
             // whole chapter (e.g., "light-rail01"), not just during the
-            // brief ShowExploration look-around bursts. V2PhoneObserver
-            // reads it from arbitrary screens (e.g., the phone home grid
+            // brief ShowExploration look-around bursts. Other observers
+            // read it from arbitrary screens (e.g., the phone home grid
             // opened mid-chapter) and would otherwise see null.
             RefreshSessionLabel();
         }
 
         public override void OnUpdate()
         {
-            var entries = ReadEntries();
-            if (entries == null || entries.Count == 0) return;
+            // Side hotspots (Continue) appear partway through and may
+            // shift between polls; entries don't change once IsActive
+            // is true. Cheap to rebuild, keeps the list current.
+            RebuildNavList();
+            if (_navList.Count == 0) return;
 
-            int idx = FindEntryUnderCursor(entries);
-            if (idx >= 0)
+            // Re-anchor _navIdx to the previously-focused label. The
+            // list can change shape between polls — Continue's hotspot
+            // pairing is fragile (the button text is drawn with
+            // EnableMeasuring=false so HotspotLabelCapture sees zero-
+            // size bounds and the pair-by-containment match misses).
+            // If we naïvely clamped to the new list size, the user
+            // would silently slide to a lower index between key
+            // presses, then press a key and hear the wrong item.
+            if (_focusedLabel != null)
             {
-                // Cursor is on an entry. Announce if it's a new one;
-                // reset the side-hotspot tracker so re-entering Continue
-                // later re-announces it.
-                _lastSideHotspotIdx = -1;
-                if (idx == _lastFocusedIdx) return;
-                _lastFocusedIdx = idx;
-                string? label = ReadEntryLabel(entries[idx]);
-                if (!string.IsNullOrEmpty(label))
+                int found = _navList.FindIndex(n => n.Label == _focusedLabel);
+                if (found >= 0)
                 {
-                    Speech.Speak(label!);
-                    Log($"[ExplorationSubView] focus → [{idx}] \"{label}\"");
+                    _navIdx = found;
                 }
-                return;
+                else
+                {
+                    // Focused item really is gone (not just temporarily
+                    // missing this poll — could be a scene-state change).
+                    // Fall back to clamping by old idx and re-anchor on
+                    // whatever's at that position now.
+                    if (_navIdx >= _navList.Count) _navIdx = _navList.Count - 1;
+                    if (_navIdx < 0)               _navIdx = 0;
+                    _focusedLabel = _navList[_navIdx].Label;
+                }
+            }
+            else
+            {
+                if (_navIdx >= _navList.Count) _navIdx = _navList.Count - 1;
+                if (_navIdx < 0)               _navIdx = 0;
+                _focusedLabel = _navList[_navIdx].Label;
             }
 
-            // Cursor isn't on any entry. Might be on Continue (or any
-            // other labeled hotspot the game renders alongside the
-            // exploration icons — Continue is the only one in practice).
-            // Pick up its label from HotspotLabelCapture so the user can
-            // tell when D-pad navigation has carried them off the
-            // exploration list.
-            int hotspotIdx = CursorFocus.FindHotspotIndex();
-            if (hotspotIdx < 0) return;          // cursor between hotspots — preserve last
-            if (hotspotIdx == _lastSideHotspotIdx) return;
-            string? sideLabel = HotspotLabelCapture.GetLabel(hotspotIdx);
-            if (string.IsNullOrEmpty(sideLabel)) return;  // unlabeled hotspot (another entry slot we didn't match by center); ignore
-            _lastSideHotspotIdx = hotspotIdx;
-            _lastFocusedIdx = -1;       // re-announce next entry on return
-            Speech.Speak(sideLabel!);
-            Log($"[ExplorationSubView] focus → side[{hotspotIdx}] \"{sideLabel}\"");
+            bool up   = _kbUp.Pressed();
+            bool down = _kbDown.Pressed();
+            if (!up && !down) return;
+
+            // Apply each direction independently rather than picking one,
+            // so a poll that sees BOTH edges (a fast down-then-up tap
+            // pair landing in the same 5 ms window) doesn't silently
+            // drop one of them. Speech is interruptible, so back-to-back
+            // Speak calls just truncate the first announcement.
+            if (down) Move(+1, "down");
+            if (up)   Move(-1, "up");
+        }
+
+        private void Move(int delta, string direction)
+        {
+            int newIdx = _navIdx + delta;
+            if (newIdx < 0)               newIdx = 0;
+            if (newIdx >= _navList.Count) newIdx = _navList.Count - 1;
+            if (newIdx == _navIdx) return;
+            _navIdx = newIdx;
+            _focusedLabel = _navList[_navIdx].Label;
+            SnapCursorToFocused();
+            Speech.Speak(_focusedLabel);
+            Log($"[ExplorationSubView] {direction} → [{_navIdx}] \"{_focusedLabel}\"");
         }
 
         public override void OnLeave()
         {
-            _lastFocusedIdx = -1;
-            _lastSideHotspotIdx = -1;
+            ReleaseAxes();
+            InputSuppressor.ClearCursorLock();
+            _navList.Clear();
+            _stableNavList.Clear();
+            _stableNavListTime = DateTime.MinValue;
+            _navIdx = -1;
+            _focusedLabel = null;
+            _lastListShape = "";
             // Don't clear ExplorationState.CurrentSessionLabel here. The
             // label tracks the whole chapter, not the look-around step —
             // RefreshSessionLabel() in OnPoll updates / nulls it based on
             // whether the live scriptState still has exploration data.
+        }
+
+        // ── Axis suppression lifecycle ─────────────────────────────────
+
+        private void SuppressAxes()
+        {
+            if (_axesSuppressed) return;
+            InputSuppressor.SuppressAxis(InputSuppressor.AxisHorizontal);
+            InputSuppressor.SuppressAxis(InputSuppressor.AxisVertical);
+            _axesSuppressed = true;
+        }
+
+        private void ReleaseAxes()
+        {
+            if (!_axesSuppressed) return;
+            InputSuppressor.ReleaseAxis(InputSuppressor.AxisHorizontal);
+            InputSuppressor.ReleaseAxis(InputSuppressor.AxisVertical);
+            _axesSuppressed = false;
+        }
+
+        // ── Nav list build + cursor snap ───────────────────────────────
+
+        private string _lastListShape = "";
+        // Stable nav list — kept around so transient drops in the
+        // candidate list (most commonly: the Continue button's hotspot
+        // is mid-frame and not yet re-registered, or its label-pair
+        // failed for this poll) don't churn _navIdx underneath the user.
+        private readonly List<NavItem> _stableNavList = new List<NavItem>();
+        private DateTime _stableNavListTime = DateTime.MinValue;
+
+        private void RebuildNavList()
+        {
+            // Build the candidate from current entries + side hotspots
+            // into _navList, then decide whether to keep it or roll
+            // back to the stable list.
+            BuildCandidateNavList();
+
+            // If the candidate is a STRICT SUBSET of the stable list
+            // (every item in the candidate exists in the stable list,
+            // but the stable list has more items) and the stable list
+            // is recent, keep the stable list. This swallows the
+            // single-poll flicker where Continue drops out without
+            // anything else changing. If items are added, reordered,
+            // or differ from the stable list, accept the candidate.
+            const double StaleAfterMs = 500.0;
+            bool stableIsFresh = (DateTime.UtcNow - _stableNavListTime).TotalMilliseconds < StaleAfterMs;
+            bool candidateIsStrictSubset = stableIsFresh
+                && _navList.Count < _stableNavList.Count
+                && _navList.TrueForAll(c => _stableNavList.Exists(s => s.Label == c.Label));
+
+            if (candidateIsStrictSubset)
+            {
+                _navList.Clear();
+                _navList.AddRange(_stableNavList);
+            }
+            else
+            {
+                _stableNavList.Clear();
+                _stableNavList.AddRange(_navList);
+                _stableNavListTime = DateTime.UtcNow;
+            }
+
+            // Log only when the list shape changes — useful for
+            // verifying the stabilizer is doing its job.
+            string shape = string.Join(",", _navList.ConvertAll(n => n.Label));
+            if (shape != _lastListShape)
+            {
+                Log($"[ExplorationSubView] navlist shape: [{shape}]");
+                _lastListShape = shape;
+            }
+        }
+
+        private void BuildCandidateNavList()
+        {
+            _navList.Clear();
+
+            // Entries (icons in the scene). Read label + bounds-center
+            // from the data model so we don't depend on HotspotLabel-
+            // Capture for the icon labels (icons are sprite-only — no
+            // text drawn alongside).
+            var entries = ReadEntries();
+            var entryCenters = new List<(float X, float Y)>();
+            if (entries != null && entries.Count > 0)
+            {
+                if (!_entryReflectDone) ReflectEntry(entries[0]);
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    if (!TryGetEntryBoundsCenter(entries[i], out float cx, out float cy)) continue;
+                    string? label = ReadEntryLabel(entries[i]);
+                    if (string.IsNullOrWhiteSpace(label)) continue;
+                    entryCenters.Add((cx, cy));
+                    _navList.Add(new NavItem { CenterX = cx, CenterY = cy, Label = label! });
+                }
+            }
+
+            // Side hotspots — anything in list_0 whose center doesn't
+            // line up with an entry's bounds center. In practice this
+            // is the Continue button at the bottom of the scene.
+            // We pull its label from HotspotLabelCapture since the
+            // engine draws "Continue" text near it.
+            AppendSideHotspots(entryCenters);
+
+            // Top-to-bottom, then left-to-right. Engine Y grows up
+            // (Bounds2.Bottom == Min.Y per the clean decompile), so
+            // "top" = higher Y. Sort Y descending, X ascending.
+            _navList.Sort((a, b) =>
+            {
+                int dy = b.CenterY.CompareTo(a.CenterY);
+                if (dy != 0) return dy;
+                return a.CenterX.CompareTo(b.CenterX);
+            });
+        }
+
+        private bool TryGetEntryBoundsCenter(object entry, out float cx, out float cy)
+        {
+            cx = cy = 0f;
+            if (_entryVisualField == null || _visualBoundsField == null) return false;
+            object? visual;
+            try { visual = _entryVisualField.GetValue(entry); }
+            catch { return false; }
+            if (visual == null) return false;
+            object? bounds;
+            try { bounds = _visualBoundsField.GetValue(visual); }
+            catch { return false; }
+            if (bounds == null) return false;
+            if (!TryReadBounds(bounds, out float minX, out float minY, out float maxX, out float maxY))
+                return false;
+            cx = (minX + maxX) * 0.5f;
+            cy = (minY + maxY) * 0.5f;
+            return true;
+        }
+
+        private void AppendSideHotspots(List<(float X, float Y)> entryCenters)
+        {
+            if (_hotspotListField == null || _hotspotBoundsField == null) return;
+            IList? list;
+            try { list = _hotspotListField.GetValue(null) as IList; }
+            catch { return; }
+            if (list == null) return;
+
+            const float Match = 4f; // px tolerance for "is this hotspot one of our entries"
+            for (int i = 0; i < list.Count; i++)
+            {
+                object? hotspot;
+                try { hotspot = list[i]; }
+                catch { break; }
+                if (hotspot == null) continue;
+                object? bounds;
+                try { bounds = _hotspotBoundsField.GetValue(hotspot); }
+                catch { continue; }
+                if (bounds == null) continue;
+                if (!TryReadBounds(bounds, out float minX, out float minY, out float maxX, out float maxY))
+                    continue;
+                float cx = (minX + maxX) * 0.5f;
+                float cy = (minY + maxY) * 0.5f;
+
+                bool matchesEntry = false;
+                foreach (var (ex, ey) in entryCenters)
+                {
+                    if (Math.Abs(cx - ex) <= Match && Math.Abs(cy - ey) <= Match)
+                    {
+                        matchesEntry = true;
+                        break;
+                    }
+                }
+                if (matchesEntry) continue;
+
+                string? label = HotspotLabelCapture.GetLabel(i);
+                if (string.IsNullOrWhiteSpace(label)) continue;
+                _navList.Add(new NavItem { CenterX = cx, CenterY = cy, Label = label! });
+            }
+        }
+
+        private void SnapCursorToFocused()
+        {
+            if (_navIdx < 0 || _navIdx >= _navList.Count) return;
+            var item = _navList[_navIdx];
+
+            // Set the per-frame lock first so the CursorSnapLock postfix
+            // on VirtualInput.smethod_9 re-asserts this position every
+            // frame from here on. Without the lock, the engine's per-
+            // frame cursor-snap (smethod_9 lines 329-347) would relocate
+            // the cursor on the next frame whenever it drifts off our
+            // 20×20 hotspot — caused by transient mouse-mode flips or
+            // any other source of cursor jitter.
+            InputSuppressor.SetCursorLock(item.CenterX, item.CenterY);
+
+            // Also call SetCursor directly now so the cursor is correct
+            // on this same frame (the postfix only fires on the NEXT
+            // smethod_9 invocation, which may be a frame away).
+            if (_setCursorMethod == null || _tVector2 == null) return;
+            try
+            {
+                object pos = Activator.CreateInstance(_tVector2, new object[] { item.CenterX, item.CenterY })!;
+                _setCursorMethod.Invoke(null, new[] { pos });
+            }
+            catch (Exception ex)
+            {
+                Log($"[ExplorationSubView] SetCursor error: {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         // ── Session label (path A: scriptState → exploration data → label) ──
@@ -460,7 +797,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // is what plays when you click). Fall back to the first
             // dialogue line if the texture has no name set.
             string? texName = ReadEntryTextureName(entry);
-            Log($"[ExplorationSubView] label-source: texName=\"{texName ?? "<null>"}\"");
             if (!string.IsNullOrEmpty(texName))
             {
                 return CleanTextureName(texName!);
@@ -612,76 +948,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 $"maybeStr.Has={_maybeStringHasValue != null} Get={_maybeStringGetValue != null}");
         }
 
-        private int FindEntryUnderCursor(List<object> entries)
-        {
-            if (_cursorPosMethod == null) return -1;
-            if (entries.Count == 0) return -1;
-            // First-time entry-shape reflection. We need to know the
-            // entry's visual/bounds fields before we can test cursor
-            // containment — without this call, we'd bail out below before
-            // ReadEntryLabel ever runs the reflection itself.
-            if (!_entryReflectDone) ReflectEntry(entries[0]);
-            if (_entryVisualField == null || _visualBoundsField == null) return -1;
-
-            object? cursor;
-            try { cursor = _cursorPosMethod.Invoke(null, null); }
-            catch { return -1; }
-            if (cursor == null) return -1;
-
-            if (!TryReadVector2(cursor, out float cx, out float cy)) return -1;
-
-            // Each entry's stored bounds (gclass13_0.bounds2_0) is a large
-            // "interaction zone" — much wider than the icon itself, and
-            // wide enough to overlap with sibling UI (notably the
-            // Continue button below the icons). The game compensates in
-            // controller mode by overriding the hotspot to a 20x20 region
-            // at the bounds' center (WorldScreen.cs:1890), so the cursor
-            // only ever snaps to that center point. We match the same
-            // logic — cursor must be within ±10 units of the entry's
-            // bounds center — so D-pad navigation onto Continue doesn't
-            // falsely register as one of the entries.
-            const float Tolerance = 10f;
-            for (int i = 0; i < entries.Count; i++)
-            {
-                object? visual;
-                try { visual = _entryVisualField.GetValue(entries[i]); }
-                catch { continue; }
-                if (visual == null) continue;
-
-                object? bounds;
-                try { bounds = _visualBoundsField.GetValue(visual); }
-                catch { continue; }
-                if (bounds == null) continue;
-
-                if (TryReadBounds(bounds, out float minX, out float minY, out float maxX, out float maxY))
-                {
-                    float centerX = (minX + maxX) * 0.5f;
-                    float centerY = (minY + maxY) * 0.5f;
-                    if (Math.Abs(cx - centerX) <= Tolerance &&
-                        Math.Abs(cy - centerY) <= Tolerance)
-                    {
-                        return i;
-                    }
-                }
-            }
-            return -1;
-        }
-
         // ── Bounds2 / Vector2 reflection (same trick HotspotLabelCapture uses) ──
-
-        private bool TryReadVector2(object vec, out float x, out float y)
-        {
-            x = y = 0f;
-            EnsureBoundsFieldsCached(vec);
-            if (_vec2XField == null || _vec2YField == null) return false;
-            try
-            {
-                x = (float)_vec2XField.GetValue(vec)!;
-                y = (float)_vec2YField.GetValue(vec)!;
-                return true;
-            }
-            catch { return false; }
-        }
 
         private bool TryReadBounds(object bounds,
             out float minX, out float minY, out float maxX, out float maxY)

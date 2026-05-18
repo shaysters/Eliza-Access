@@ -57,6 +57,7 @@ namespace ElizaAccess.Common
                 log($"[Harmony] CursorDiag     Target() = {CursorDiag.Target()?.Name     ?? "<NULL — NOT PATCHED>"}");
                 log($"[Harmony] KeyInjectDiag  Target() = {KeyInjectDiag.Target()?.Name  ?? "<NULL — NOT PATCHED>"}");
                 log($"[Harmony] CtrlModeLock   Target() = {ControllerModeLock.Target()?.Name ?? "<NULL — NOT PATCHED>"}");
+                log($"[Harmony] CursorSnapLock Target() = {CursorSnapLock.Target()?.Name ?? "<NULL — NOT PATCHED>"}");
                 log($"[Harmony] InputFlipGuard Target() = {InputFlipGuard.Target()?.Name ?? "<NULL — NOT PATCHED>"}");
                 log($"[Harmony] LabelCapture/TextDraw Target() = {HotspotLabelCapture.TextDrawPatch.Target()?.Name ?? "<NULL>"}");
                 log($"[Harmony] LabelCapture/Hotspot  Target() = {HotspotLabelCapture.HotspotRegisterPatch.Target()?.Name ?? "<NULL>"}");

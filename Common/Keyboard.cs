@@ -25,6 +25,21 @@ namespace ElizaAccess.Common
         /// <summary>True iff the given virtual key is currently held down.</summary>
         public static bool IsHeld(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
 
+        /// <summary>Raw <c>GetAsyncKeyState</c> return — bit 0x8000 means
+        /// "currently held", bit 0x0001 means "was pressed since the last
+        /// call to <c>GetAsyncKeyState</c> for this key." Used by
+        /// <see cref="KeyEdge"/> to catch presses that happen entirely
+        /// between two polls — at 200 Hz polling, a fast tap can be
+        /// shorter than 5 ms and would otherwise be missed by an
+        /// IsHeld-only check.
+        ///
+        /// MSDN warns the "recently pressed" bit can be consumed by
+        /// other processes that also call <c>GetAsyncKeyState</c> for
+        /// the same key — so this is best-effort, not guaranteed. In
+        /// practice the mod is the only thing in-process polling these
+        /// virtual keys at this rate, so it works.</summary>
+        public static short GetRawState(int vk) => GetAsyncKeyState(vk);
+
         // ── Virtual key codes used by observers ─────────────────────────────
         // (Avoids each file redeclaring the same constants.)
         public const int VK_BACK   = 0x08;
@@ -79,12 +94,31 @@ namespace ElizaAccess.Common
         /// <summary>
         /// Returns true on the poll where the key transitions from not-held
         /// to held. Updates internal state — call once per poll iteration.
+        ///
+        /// Also fires when the key was pressed and released entirely
+        /// between this poll and the previous one (Windows reports
+        /// "key was pressed since last call" via the low bit of
+        /// <c>GetAsyncKeyState</c>). Without this, a fast tap shorter
+        /// than the 5 ms poll interval is silently dropped — which
+        /// shows up to the user as a navigation key that didn't take.
+        /// Counterintuitively, fast navigation gets WORSE if this
+        /// isn't handled, because a "down then up" tap pair where one
+        /// of the two ends in the gap between polls registers as a
+        /// single press in the opposite direction.
         /// </summary>
         public bool Pressed()
         {
-            bool now = IsHeld;
-            bool rising = now && !_wasHeld;
-            _wasHeld = now;
+            short state = Keyboard.GetRawState(_vk);
+            bool nowHeld = (state & 0x8000) != 0;
+            bool pressedSinceLast = (state & 0x0001) != 0;
+            // Rising edge if either the key is currently held (and wasn't
+            // last poll), or it was pressed since the last call (catches
+            // sub-poll-interval taps where currently-held is false but
+            // the key fired).
+            bool rising = (nowHeld || pressedSinceLast) && !_wasHeld;
+            // Only carry forward "currently held" — so a brief tap that
+            // already released doesn't block the next rising edge.
+            _wasHeld = nowHeld;
             return rising;
         }
 

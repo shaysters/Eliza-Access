@@ -73,6 +73,12 @@ namespace ElizaAccess.Common.Patches
             /// __0 is the axis enum (GEnum5). 0 = horizontal, 1 = vertical.
             /// __result is the controller-derived value; we add keyboard
             /// contribution and re-clamp.
+            ///
+            /// If a view has registered this axis with
+            /// <see cref="InputSuppressor"/>, zero the result outright
+            /// (engine sees no input on this axis from any source) and
+            /// skip our keyboard injection too. The view will read the
+            /// keyboard itself via <see cref="KeyEdge"/>.
             /// </summary>
             [HarmonyPostfix]
             private static void Postfix(object __0, ref float __result)
@@ -80,6 +86,12 @@ namespace ElizaAccess.Common.Patches
                 int axis;
                 try { axis = Convert.ToInt32(__0); }
                 catch { return; }
+
+                if (InputSuppressor.IsAxisSuppressed(axis))
+                {
+                    __result = 0f;
+                    return;
+                }
 
                 float kb = 0f;
                 if (axis == 0)
@@ -144,10 +156,20 @@ namespace ElizaAccess.Common.Patches
             [HarmonyPostfix]
             private static void Postfix(object __0, ref bool __result)
             {
-                if (__result) return;   // already held from controller
                 int btn;
                 try { btn = Convert.ToInt32(__0); }
                 catch { return; }
+
+                // Suppression check runs BEFORE the early-return on
+                // __result so a real controller's button press also gets
+                // masked when the view has claimed exclusive control.
+                if (InputSuppressor.IsButtonSuppressed(btn))
+                {
+                    __result = false;
+                    return;
+                }
+
+                if (__result) return;   // already held from controller
 
                 switch (btn)
                 {
