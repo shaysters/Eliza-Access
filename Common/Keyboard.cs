@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 
 namespace ElizaAccess.Common
@@ -21,9 +22,46 @@ namespace ElizaAccess.Common
     {
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-        /// <summary>True iff the given virtual key is currently held down.</summary>
-        public static bool IsHeld(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
+        private static readonly int _myPid = System.Diagnostics.Process.GetCurrentProcess().Id;
+
+        /// <summary>True iff the foreground window belongs to the game
+        /// process. Used as a focus gate on every keyboard read so that
+        /// keys pressed in other apps after alt-tabbing out don't
+        /// inject into the game.
+        ///
+        /// <c>GetAsyncKeyState</c> reads hardware state regardless of
+        /// which window has focus — without this gate, pressing Enter
+        /// in a Notepad window would fire the in-game confirm action.
+        ///
+        /// Fails CLOSED (returns false) on error — better to drop a
+        /// stray keystroke than to inject one when we can't be sure
+        /// the game is focused. This is the opposite trade-off from
+        /// SpeechEngine's identical check, where missing speech is
+        /// worse than speaking when the user might be away.</summary>
+        public static bool IsGameFocused()
+        {
+            try
+            {
+                IntPtr fg = GetForegroundWindow();
+                if (fg == IntPtr.Zero) return false;
+                GetWindowThreadProcessId(fg, out uint pid);
+                return (int)pid == _myPid;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>True iff the given virtual key is currently held
+        /// down AND the game window has focus.</summary>
+        public static bool IsHeld(int vk)
+        {
+            if (!IsGameFocused()) return false;
+            return (GetAsyncKeyState(vk) & 0x8000) != 0;
+        }
 
         /// <summary>Raw <c>GetAsyncKeyState</c> return — bit 0x8000 means
         /// "currently held", bit 0x0001 means "was pressed since the last
@@ -33,12 +71,21 @@ namespace ElizaAccess.Common
         /// shorter than 5 ms and would otherwise be missed by an
         /// IsHeld-only check.
         ///
+        /// Returns 0 when the game is not foregrounded — KeyEdge then
+        /// sees no held bit, no recently-pressed bit, and treats the
+        /// key as inactive. Without this, alt-tabbing to another app
+        /// and pressing keys there would still drive in-game navigation.
+        ///
         /// MSDN warns the "recently pressed" bit can be consumed by
         /// other processes that also call <c>GetAsyncKeyState</c> for
         /// the same key — so this is best-effort, not guaranteed. In
         /// practice the mod is the only thing in-process polling these
         /// virtual keys at this rate, so it works.</summary>
-        public static short GetRawState(int vk) => GetAsyncKeyState(vk);
+        public static short GetRawState(int vk)
+        {
+            if (!IsGameFocused()) return 0;
+            return GetAsyncKeyState(vk);
+        }
 
         // ── Virtual key codes used by observers ─────────────────────────────
         // (Avoids each file redeclaring the same constants.)

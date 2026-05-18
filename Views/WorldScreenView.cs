@@ -31,7 +31,6 @@ namespace ElizaAccess.Views
 
         protected override void OnAdded(object screen)
         {
-            _subs.Add(new ChoiceSubView());
             _subs.Add(new ExplorationSubView());
             // Drive order matters — each sub below reads state that an
             // earlier sub wrote this same tick. The chain:
@@ -70,6 +69,14 @@ namespace ElizaAccess.Views
             _subs.Add(new DialogueSubView());
             _subs.Add(new NotificationSubView());
             _subs.Add(new NarrationSubView());
+            // ChoiceSubView runs AFTER NarrationSubView so when both
+            // fire in the same tick — the engine appends a narration
+            // line (e.g. "Set phase: INTERVENTION") and sets the
+            // DialogueChoice script step at the same time — the
+            // narration speaks first and "Make a choice." speaks
+            // second. Without this order the player hears the prompt
+            // before the log entry that prompted it.
+            _subs.Add(new ChoiceSubView());
             _subs.Add(new SessionResultsSubView());
             _subs.Add(new ChapterTitleSubView());
 

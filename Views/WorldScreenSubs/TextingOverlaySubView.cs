@@ -334,6 +334,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 }
                 string speaker = isPlayer ? PlayerName : partnerName;
                 Speech.Speak($"{speaker}: {text}");
+                TextingState.LastMessageTick = Environment.TickCount;
                 Log($"[TextingOverlay] msg: {speaker}: \"{text}\"");
             }
             catch (Exception ex)

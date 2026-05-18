@@ -124,6 +124,14 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // "Evelyn's thoughts" mixed into the convo.
             if (TextingState.IsActive) return;
 
+            // Post-session results overlay owns the screen until the
+            // player presses Continue. The engine leaves the in-session
+            // dialogue line field set (and may append a closing line
+            // during EndTherapy itself), so without this gate
+            // DialogueSub speaks a stray Eliza line right after
+            // SessionResultsSub announces "Session Results."
+            if (SessionResultsState.IsActive) return;
+
             try
             {
                 object? maybeDl = _currentDialogueLineField!.GetValue(Parent);

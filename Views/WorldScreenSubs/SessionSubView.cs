@@ -671,8 +671,14 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 string spoken = string.IsNullOrWhiteSpace(charName)
                     ? $"Session results: {rating}."
                     : $"Session results with {charName}: {rating}.";
-                Speech.Speak(spoken);
-                Log($"[SessionSub] results announced: \"{spoken}\" (added={added}, listCount={count})");
+                // Don't speak — SessionResultsSubView reads the full
+                // results panel during the EndTherapy screen, and that
+                // fires for every session end. This list-growth path
+                // was the V2 backstop before the panel dump existed;
+                // keeping it active double-announces after Continue is
+                // pressed. Tracking is preserved so the log still
+                // shows when the list grew.
+                Log($"[SessionSub] results (suppressed — covered by SessionResultsSub): \"{spoken}\" (added={added}, listCount={count})");
             }
             catch (Exception ex)
             {

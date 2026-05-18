@@ -46,6 +46,14 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         // ── WorldScreen-level reflection (OnInit) ──────────────────────
         private FieldInfo? _narrationListField;
+        // Engine throttles narration appends via a Queue<string>
+        // (WorldScreen.queue_0, dequeued one item every 250ms — see
+        // WorldScreen.cs:1968-1976, with float_4 = 0.25). "Set phase"
+        // lines go into this queue first and don't reach the visible
+        // list_3 until their slot comes up. We expose its count so
+        // ChoiceSubView can defer the "Make a choice" announcement
+        // while phase changes are still in flight.
+        private FieldInfo? _narrationQueueField;
 
         // ── Per-activation state ───────────────────────────────────────
         // PlayerFacing covers everything visible on the AR console panel —
@@ -76,6 +84,47 @@ namespace ElizaAccess.Views.WorldScreenSubs
         /// readout. Defaults true; F8 / R3 flip it.</summary>
         public static bool AnalyzerEnabled = true;
 
+        /// <summary><c>Environment.TickCount</c> of the most recent
+        /// narration line this sub spoke. Read by
+        /// <see cref="ChoiceSubView"/> so it can defer the "Make a
+        /// choice" announcement briefly when a session-narration line
+        /// (e.g. "Set phase: INTERVENTION") fires within a few ticks
+        /// of the choice opening — without this, the player hears the
+        /// choice prompt before the log entry that prompted it.</summary>
+        public static int LastSpokenTick;
+
+        /// <summary>Current size of the engine's narration list,
+        /// updated every poll regardless of <see cref="IsActive"/>.
+        /// Read by <see cref="ChoiceSubView"/> as a deferral signal:
+        /// if the count grew since the choice's OnEnter snapshot, the
+        /// engine has appended something the user should hear first,
+        /// so the choice prompt waits for the narration to actually
+        /// speak (or hits a hard cap). Robust to any engine timing —
+        /// a fixed time deadline can't tell the difference between
+        /// "nothing appended" and "appended slowly."</summary>
+        public static int CurrentListCount;
+
+        /// <summary>Current size of the engine's narration queue
+        /// (WorldScreen.queue_0) — the per-line throttled append
+        /// buffer. Updated every poll. Items here haven't reached the
+        /// visible list_3 yet but represent pending narration that
+        /// will be spoken; ChoiceSubView includes this in its
+        /// "narration pending" decision so the prompt waits even
+        /// while the queue is draining.</summary>
+        public static int PendingQueueCount;
+
+        /// <summary>How many entries this sub has read out of the
+        /// engine's narration list (either spoken or filtered).
+        /// Published as a cross-observer counter so ChoiceSubView can
+        /// detect "catch-up" — at choice OnEnter it snapshots
+        /// <see cref="CurrentListCount"/> + <see cref="PendingQueueCount"/>
+        /// as the target, then waits for <see cref="LastReadCount"/>
+        /// to reach it before announcing. Robust to the engine
+        /// queueing "Set phase" lines in the same frame the choice
+        /// activates — we wait for the already-pending items to
+        /// drain, not for new ones to appear.</summary>
+        public static int LastReadCount;
+
         public override void OnInit()
         {
             Type tWS = Parent.GetType();
@@ -84,7 +133,48 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
             _narrationListField = tWS.GetField(NarrationListFieldName, inst);
             if (_narrationListField == null)
+            {
                 Log("[NarrationSub] narrationListField NOT FOUND — sub disabled");
+                return;
+            }
+
+            // Find the Queue<string> field on WorldScreen by signature
+            // (there's exactly one — queue_0 in the clean decompile).
+            foreach (FieldInfo f in tWS.GetFields(inst))
+            {
+                if (!f.FieldType.IsGenericType) continue;
+                if (f.FieldType.GetGenericTypeDefinition() != typeof(Queue<>)) continue;
+                Type[] args = f.FieldType.GetGenericArguments();
+                if (args.Length == 1 && args[0] == typeof(string))
+                {
+                    _narrationQueueField = f;
+                    break;
+                }
+            }
+            Log($"[NarrationSub] narrationQueueField={(_narrationQueueField != null ? _narrationQueueField.Name : "<not found>")}");
+
+            // OnInit fires once per WorldScreen lifecycle, so the list
+            // count we see here represents everything that existed
+            // before our mod attached.
+            //
+            // Fresh game start: list is empty (count == 0), seed stays
+            // at 0, and the BeginTherapy bootloader text reads in full
+            // when the session begins.
+            //
+            // Save-loaded mid-session: list is already populated with
+            // hundreds of saved entries (full bootloader + every
+            // sentiment line + phase changes + perf instrumentation
+            // from before the save). Reading them all is overwhelming
+            // and not what the player wants to hear when continuing.
+            // Seed _lastNarrationCount close to the end so only the
+            // last few entries surface as context for "where am I
+            // right now", and everything appended after the load
+            // reads normally.
+            int now = ReadCurrentListCount();
+            const int ContextLines = 3;
+            _lastNarrationCount = Math.Max(0, now - ContextLines);
+            int skipped = now - _lastNarrationCount > ContextLines ? 0 : Math.Max(0, now - ContextLines);
+            Log($"[NarrationSub] OnInit seed: list count={now}, _lastNarrationCount={_lastNarrationCount} (skipped {skipped} pre-existing entries, will surface up to {ContextLines} as context)");
         }
 
         // The supplementary narration list (AR headset boot text,
@@ -123,6 +213,23 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         public override void OnPoll()
         {
+            // Keep the cross-observer counts fresh every poll, gated
+            // or not. ChoiceSubView reads them to decide whether to
+            // defer.
+            if (_narrationListField != null)
+            {
+                CurrentListCount = ReadCurrentListCount();
+            }
+            if (_narrationQueueField != null)
+            {
+                try
+                {
+                    if (_narrationQueueField.GetValue(Parent) is ICollection q)
+                        PendingQueueCount = q.Count;
+                }
+                catch { }
+            }
+
             // While the sub is gated off — no active session, or
             // Transparency / in-VN texting overlay covering the AR
             // display — silently advance the read pointer to the end
@@ -134,8 +241,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // replays the whole batch as soon as the gate reopens.
             if (!IsActive && _narrationListField != null)
             {
-                _lastNarrationCount = ReadCurrentListCount();
+                _lastNarrationCount = CurrentListCount;
             }
+            LastReadCount = _lastNarrationCount;
         }
 
         private int ReadCurrentListCount()
@@ -219,6 +327,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                         }
                         _lastAnalyzerSpoken = line;
                         Speech.Speak(line);
+                        LastSpokenTick = Environment.TickCount;
                         Log($"[NarrationSub] analyzer spoken: \"{Trunc(line, 60)}\"");
                         continue;
                     }
@@ -229,10 +338,12 @@ namespace ElizaAccess.Views.WorldScreenSubs
                         Log("[NarrationSub] category observed: supplementary (enter/exit, wait phrases)");
                     }
                     Speech.Speak(line);
+                    LastSpokenTick = Environment.TickCount;
                     Log($"[NarrationSub] supplementary spoken: \"{Trunc(line, 60)}\"");
                 }
 
                 _lastNarrationCount = count;
+                LastReadCount = count;
             }
             catch (Exception ex)
             {

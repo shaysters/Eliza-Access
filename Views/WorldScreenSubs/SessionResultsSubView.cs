@@ -256,6 +256,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         public override void OnEnter()
         {
+            // Cross-observer gate: DialogueSubView reads this and skips
+            // its dialogue-line speech path while we own the screen.
+            // Without this, the in-session dialogue field doesn't clear
+            // on EndTherapy and DialogueSub speaks a stray Eliza line
+            // right after "Session Results."
+            SessionResultsState.IsActive = true;
+
             _lastSideHotspotIdx = -1;
             _panelDumpDone = false;
             _initiallyNoValue.Clear();
@@ -282,11 +289,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
             }
             Log($"[SessionResultsSub] enter: announced \"Session Results.\" ({_initiallyNoValue.Count} Maybe<float> fields baseline no-value)");
 
-            // Queue, not interrupt. Speech.Stop is reserved for
-            // user-input interruption (InputInterrupter); spontaneous
-            // queue-flush from a state change leaves in-flight content
-            // unfinished even when the player wanted to hear it.
-            Speech.Speak("Session Results.");
+            // Interrupt anything in flight. On a save-resume parked on
+            // the post-session screen, there may be queued narration or
+            // a stale Eliza dialogue line from the load handler that
+            // would otherwise play right after "Session Results." The
+            // results overlay owns the screen at this point, so cutting
+            // off whatever was speaking matches the visual state.
+            Speech.Speak("Session Results.", interrupt: true);
             Log("[SessionResultsSub] enter: announced \"Session Results.\"");
         }
 
@@ -352,7 +361,20 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     {
                         Log("[SessionResultsSub] animation settled but no Session Results header drawn — skipping dump");
                     }
-                    Log($"[SessionResultsSub] dump triggered: {_panelTimerFields.Count} panel timers observed, last increment was {_pollsSinceLastIncrement} polls ago");
+
+                    // Pre-seed _lastSideHotspotIdx with whatever the
+                    // cursor is currently on so the focus tracker
+                    // below doesn't immediately speak a stale label.
+                    // The in-session AR-console session log keeps
+                    // registering hotspots (with labels like
+                    // "Proxy Response: Sentiment analyzer: …") behind
+                    // the results panel; the cursor sits wherever the
+                    // user left it during the session, often on one of
+                    // those. Only deliberate cursor movement (e.g. to
+                    // the Continue button) should speak.
+                    _lastSideHotspotIdx = CursorFocus.FindHotspotIndex();
+
+                    Log($"[SessionResultsSub] dump triggered: {_panelTimerFields.Count} panel timers observed, last increment was {_pollsSinceLastIncrement} polls ago, cursor seeded to hotspot [{_lastSideHotspotIdx}]");
                 }
             }
 
@@ -360,6 +382,18 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // registers. Same side-hotspot tracking pattern ExplorationSub
             // uses — pick up the label off HotspotLabelCapture when the
             // cursor moves onto it.
+            //
+            // Gated on _panelDumpDone: during the panel slide-in the
+            // hotspot table is still in flux from the previous (in-
+            // session) frame, and HotspotLabelCapture pairs whatever
+            // text was last drawn with whatever hotspot is at each
+            // index. Right after "Session Results" we'd otherwise
+            // speak something like "Proxy Response: Sentiment analyzer:
+            // terrible [neg]" — a stale session label paired with the
+            // first hotspot at that instant. Once the dump fires the
+            // panel is settled and the labels are valid.
+            if (!_panelDumpDone) return;
+
             int hotspotIdx = CursorFocus.FindHotspotIndex();
             if (hotspotIdx < 0) return;
             if (hotspotIdx == _lastSideHotspotIdx) return;
@@ -558,6 +592,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         public override void OnLeave()
         {
+            SessionResultsState.IsActive = false;
             _lastSideHotspotIdx = -1;
             _panelDumpDone = false;
         }

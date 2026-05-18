@@ -27,5 +27,16 @@ namespace ElizaAccess.Common
         /// in-VN texting overlay is up). False during normal gameplay
         /// and during therapy sessions.</summary>
         public static bool IsActive;
+
+        /// <summary><c>Environment.TickCount</c> of the most recent
+        /// chat message the overlay spoke. Used by
+        /// <see cref="Views.WorldScreenSubs.ChoiceSubView"/> to defer
+        /// the "Make a choice" announcement until the latest incoming
+        /// text has been read — otherwise the choice instruction fires
+        /// the moment the choice struct lands (immediately, in engine
+        /// time), but the message announce waits for the typing
+        /// animation to complete, so the player hears the prompt
+        /// before the message that prompted it.</summary>
+        public static int LastMessageTick;
     }
 }

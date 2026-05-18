@@ -86,6 +86,46 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // matching option gets the "(Proxy Response)" suffix.
         private string? _proxyText;
 
+        // Deferred-announce state. The choice struct can land just
+        // before another sub speaks something that should precede the
+        // prompt — typically a texting overlay's incoming message
+        // (typing animation hasn't completed) or a session-narration
+        // line that the engine queued in the same frame the choice
+        // activated.
+        //
+        // Texting case: 32ms time deadline. When no message is
+        // arriving we want the prompt immediately, not a noticeable
+        // pause; the typing animation is so long (seconds) that 32ms
+        // of "did the tick advance" is decisive.
+        //
+        // Session case: catch-up to a NARRATION TARGET. The engine
+        // walks through script steps synchronously inside one frame
+        // (WorldScreen.method_3), so when the choice activates, any
+        // "Set phase: …" line was already queued in queue_0 the
+        // moment we polled — checking for growth after OnEnter
+        // catches nothing because the growth happened just before.
+        // Instead we snapshot (CurrentListCount + PendingQueueCount)
+        // — the total narration entries the engine "knew about" —
+        // and wait for NarrationSub.LastReadCount to reach that
+        // target. By then every item pending at choice-activation
+        // has been processed (spoken or filtered). Hard cap is the
+        // safety net for the case where NarrationSub gets gated off
+        // mid-defer and never reads the target.
+        private string? _pendingPrompt;
+        private string? _pendingInstruction;
+        private int     _pendingTextingBaseline;
+        private int     _pendingNarrationTarget;       // -1 = unused
+        private int     _pendingGraceUntil;
+        private int     _pendingTextingDeadline;
+        private int     _pendingHardCap;
+        private const int PendingGraceMs           = 300;
+        private const int PendingTextingDeadlineMs =  32;
+        // Generous enough that even a moderately-deep queue of
+        // pending narration (a few items each throttled at 250ms)
+        // drains before the cap fires. Above 3s the player would
+        // notice the lag, so this is the upper bound.
+        private const int PendingSessionHardMs     = 3000;
+
         public override void OnInit()
         {
             Type tWS = Parent.GetType();
@@ -181,6 +221,42 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
             string? prompt = ReadPrompt(structVal);
             string instruction = BuildInstructionText(_texts.Length);
+
+            // Defer when something else might still need to speak
+            // first:
+            //   - Texting overlay: typing animation may not have
+            //     completed for the incoming message.
+            //   - Session narration: engine can append a "Set phase: …"
+            //     line a tick or two after the choice struct lands.
+            // We snapshot both event ticks and wait for either to
+            // advance past its baseline; whichever fires first
+            // triggers the grace delay and announce. Safety deadline
+            // is tight so non-deferred cases (no texting, no session,
+            // or simply nothing else queued) get the prompt
+            // immediately.
+            bool inTexting = TextingState.IsActive;
+            bool inSession = SessionState.IsActive;
+            if (inTexting || inSession)
+            {
+                int now = Environment.TickCount;
+                _pendingPrompt          = prompt;
+                _pendingInstruction     = instruction;
+                _pendingTextingBaseline = TextingState.LastMessageTick;
+                // Catch-up target: how many narration entries
+                // NarrationSub needs to have READ before we fire.
+                // = current visible list + items still throttled in
+                // the engine's queue. -1 if no session (texting-only
+                // case doesn't use this signal).
+                _pendingNarrationTarget = inSession
+                    ? NarrationSubView.CurrentListCount + NarrationSubView.PendingQueueCount
+                    : -1;
+                _pendingGraceUntil      = 0;
+                _pendingTextingDeadline = inTexting ? now + PendingTextingDeadlineMs : int.MaxValue;
+                _pendingHardCap         = now + PendingSessionHardMs;
+                Log($"[ChoiceSubView] enter: deferred (texting={inTexting} session={inSession} narrationTarget={_pendingNarrationTarget} list={NarrationSubView.CurrentListCount} queue={NarrationSubView.PendingQueueCount} read={NarrationSubView.LastReadCount}) prompt=\"{prompt ?? "<none>"}\" instruction=\"{instruction}\" count={_texts.Length}");
+                return;
+            }
+
             if (prompt != null)
             {
                 Speech.Speak(prompt);
@@ -192,6 +268,80 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 Speech.Speak(instruction);
                 Log($"[ChoiceSubView] enter: no prompt, instruction=\"{instruction}\" count={_texts.Length}");
             }
+        }
+
+        private void DrainPendingAnnouncement()
+        {
+            if (_pendingInstruction == null) return;
+            int now = Environment.TickCount;
+
+            // Texting-only case: short time deadline. Tick advance on
+            // TextingState.LastMessageTick means a message just spoke
+            // → start grace.
+            if (_pendingNarrationTarget < 0)
+            {
+                bool textingAdvanced = TextingState.LastMessageTick != _pendingTextingBaseline;
+                if (_pendingGraceUntil == 0 && textingAdvanced)
+                    _pendingGraceUntil = now + PendingGraceMs;
+
+                if (_pendingGraceUntil != 0 && now >= _pendingGraceUntil)
+                {
+                    Fire(now, "texting-grace");
+                    return;
+                }
+                if (now >= _pendingTextingDeadline)
+                {
+                    Fire(now, "texting-deadline");
+                    return;
+                }
+                return;
+            }
+
+            // Session case: wait for NarrationSub to catch up to the
+            // target (every narration entry that was already pending
+            // at choice OnEnter has been processed). Once caught up,
+            // add the small grace so the speech engine actually
+            // starts playing the last spoken line before our prompt
+            // queues behind it.
+            bool caughtUp = NarrationSubView.LastReadCount >= _pendingNarrationTarget;
+            if (_pendingGraceUntil == 0 && caughtUp)
+            {
+                _pendingGraceUntil = now + PendingGraceMs;
+            }
+
+            if (_pendingGraceUntil != 0 && now >= _pendingGraceUntil)
+            {
+                Fire(now, $"session-catchup (target={_pendingNarrationTarget} read={NarrationSubView.LastReadCount})");
+                return;
+            }
+
+            // Hard cap: fire regardless. Covers the case where
+            // NarrationSub gets gated off mid-defer and never reaches
+            // the target. Better to announce late than hang.
+            if (now >= _pendingHardCap)
+            {
+                Fire(now, $"hard-cap (target={_pendingNarrationTarget} read={NarrationSubView.LastReadCount})");
+            }
+        }
+
+        private void Fire(int now, string reason)
+        {
+            string? p = _pendingPrompt;
+            string  i = _pendingInstruction!;
+            _pendingPrompt      = null;
+            _pendingInstruction = null;
+            _pendingGraceUntil  = 0;
+
+            if (p != null)
+            {
+                Speech.Speak(p);
+                Speech.Speak(i);
+            }
+            else
+            {
+                Speech.Speak(i);
+            }
+            Log($"[ChoiceSubView] deferred announce drained ({reason})");
         }
 
         // Walks the engine's own proxy-response path: currentStep is the
@@ -280,6 +430,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         public override void OnUpdate()
         {
+            DrainPendingAnnouncement();
+
             if (_texts == null || _texts.Length == 0) return;
             if (_focusField == null || _selectedField == null) return;
             if (_maybeIntHasValue == null || _maybeIntGetValue == null) return;
@@ -341,6 +493,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
             _texts = null;
             _lastFocusedIdx  = -1;
             _lastSelectedIdx = -1;
+            _pendingPrompt      = null;
+            _pendingInstruction = null;
+            _pendingGraceUntil  = 0;
         }
 
         // ── Reflection helpers ─────────────────────────────────────────
