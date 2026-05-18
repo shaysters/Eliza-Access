@@ -132,6 +132,19 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         private FieldInfo?  _unlockedAchievementsField; // PhoneState.hashSet_0
         private MethodInfo? _setCursorMethod;           // VirtualInput.SetCursor(Vector2)
         private Type?       _tVector2;                  // Vector2 struct
+        // Profile-header data sources (resolved by signature off
+        // PhoneState — see ElizaApp.cs:103-111 for the original use).
+        // _playerCharMethod is PhoneState.method_10 — returns the
+        // active player ScriptCharacter (the inline transparency-mode
+        // proxy if one is set, otherwise GClass146.scriptCharacter_0).
+        // _proxyLevelMethod is method_16(out int level, out _, out _).
+        // _proxyRatingMethod is method_14() — Maybe<float> averaged
+        // across recorded sessions; "N/A" if no value.
+        private MethodInfo? _playerCharMethod;
+        private MethodInfo? _proxyLevelMethod;
+        private MethodInfo? _proxyRatingMethod;
+        private MethodInfo? _maybeFloatHasValue;
+        private MethodInfo? _maybeFloatGetValue;
 
         // ── Per-activation state ───────────────────────────────────────
         private int     _lastTab            = -1;
@@ -203,6 +216,37 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 }
                 _elizaInboxMethod    = tPhoneState.GetMethod(ElizaInboxMethod, inst);
                 _sessionsHolderField = tPhoneState.GetField(SessionsHolderField, inst);
+
+                // Profile-header methods, signature-resolved.
+                Type? tScriptCharacter = Nagoya.FindType("ScriptCharacter");
+                foreach (MethodInfo m in tPhoneState.GetMethods(
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+                {
+                    ParameterInfo[] p = m.GetParameters();
+                    if (p.Length == 0 && m.ReturnType == typeof(void)) continue;
+                    if (p.Length == 0 && tScriptCharacter != null && m.ReturnType == tScriptCharacter)
+                    {
+                        if (_playerCharMethod == null) _playerCharMethod = m;
+                    }
+                    else if (p.Length == 0 && m.ReturnType.IsGenericType
+                             && m.ReturnType.GetGenericArguments().Length == 1
+                             && m.ReturnType.GetGenericArguments()[0] == typeof(float))
+                    {
+                        if (_proxyRatingMethod == null)
+                        {
+                            _proxyRatingMethod = m;
+                            _maybeFloatHasValue = ResolveMaybeMethod(m.ReturnType, MaybeHasValueName);
+                            _maybeFloatGetValue = ResolveMaybeMethod(m.ReturnType, MaybeGetValueName);
+                        }
+                    }
+                    else if (p.Length == 3 && m.ReturnType == typeof(void)
+                             && p[0].IsOut && p[0].ParameterType == typeof(int).MakeByRefType()
+                             && p[1].IsOut && p[1].ParameterType == typeof(int).MakeByRefType()
+                             && p[2].IsOut && p[2].ParameterType == typeof(float).MakeByRefType())
+                    {
+                        if (_proxyLevelMethod == null) _proxyLevelMethod = m;
+                    }
+                }
 
                 Type? tTherapy = tPhoneState.GetNestedType(TherapyEntryNestedType,
                     BindingFlags.Public | BindingFlags.NonPublic);
@@ -306,7 +350,9 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 $"inboxMethod={(_elizaInboxMethod != null)} sessions={(_sessionsHolderField != null)} " +
                 $"therapy.char={(_therapyEntryCharField != null)} date={(_therapyEntryDateField != null)} " +
                 $"prog.has={(_therapyProgressHasValue != null)} get={(_therapyProgressGetValue != null)} " +
-                $"scriptEmail={(_emailSenderField != null)}");
+                $"scriptEmail={(_emailSenderField != null)} " +
+                $"playerChar={(_playerCharMethod != null)} proxyLevel={(_proxyLevelMethod != null)} " +
+                $"proxyRating={(_proxyRatingMethod != null)}");
         }
 
         public override bool IsActive
@@ -375,6 +421,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             {
                 case 0:
                     Speech.Speak("Profile tab.");
+                    AnnounceProfileHeader(phoneState);
                     AnnounceSessionCount(phoneState, prefix: "");
                     // Reset grid focus to the top-left achievement and
                     // announce it. The engine doesn't track focus for
@@ -408,6 +455,74 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         }
 
         // ── Profile tab ────────────────────────────────────────────────
+
+        /// <summary>
+        /// Speaks the visible header info on the profile tab — player
+        /// name, Proxy Level, Proxy Rating. Mirrors ElizaApp.cs:103-111.
+        /// Silently skips any field that couldn't be reflected (the
+        /// profile tab still works, just with that piece missing).
+        /// </summary>
+        private void AnnounceProfileHeader(object phoneState)
+        {
+            string? name   = ReadPlayerName(phoneState);
+            string? level  = ReadProxyLevel(phoneState);
+            string? rating = ReadProxyRating(phoneState);
+
+            var parts = new List<string>(3);
+            if (!string.IsNullOrWhiteSpace(name))   parts.Add(name!);
+            if (!string.IsNullOrWhiteSpace(level))  parts.Add($"Proxy Level {level}");
+            if (!string.IsNullOrWhiteSpace(rating)) parts.Add($"Proxy Rating {rating}");
+            if (parts.Count == 0) return;
+
+            string spoken = string.Join(". ", parts) + ".";
+            Speech.Speak(spoken);
+            Log($"[ElizaAppSub] profile header: \"{spoken}\"");
+        }
+
+        private string? ReadPlayerName(object phoneState)
+        {
+            if (_playerCharMethod == null) return null;
+            try
+            {
+                object? c = _playerCharMethod.Invoke(phoneState, null);
+                if (c == null) return null;
+                // ScriptCharacter.method_0 returns "{last}, {first}" —
+                // the same string the engine renders at vector+(671, -115).
+                return ResolveCharFullName(c);
+            }
+            catch { return null; }
+        }
+
+        private string? ReadProxyLevel(object phoneState)
+        {
+            if (_proxyLevelMethod == null) return null;
+            try
+            {
+                object[] args = new object[] { 0, 0, 0f };
+                _proxyLevelMethod.Invoke(phoneState, args);
+                return args[0]?.ToString();
+            }
+            catch { return null; }
+        }
+
+        private string? ReadProxyRating(object phoneState)
+        {
+            if (_proxyRatingMethod == null || _maybeFloatHasValue == null
+                || _maybeFloatGetValue == null) return "N/A";
+            try
+            {
+                object? maybe = _proxyRatingMethod.Invoke(phoneState, null);
+                if (maybe == null) return "N/A";
+                if (!(bool)_maybeFloatHasValue.Invoke(maybe, null)!) return "N/A";
+                float v = (float)_maybeFloatGetValue.Invoke(maybe, null)!;
+                // Engine formats the rating as a plain number (no
+                // decimals trimmed) via smethod_36 on the raw float.
+                // Round to one decimal for speech clarity.
+                return v.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+            }
+            catch { return "N/A"; }
+        }
+
 
         // The engine renders the 4×4 achievement grid using only mouse-
         // hover detection (ElizaApp.cs:120 — `bounds2_.Contains(cursor)`)

@@ -249,6 +249,35 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         {
             _focusedIdx = -1;
             _pendingIdx = -1;
+
+            // Announce the screen context so the user knows where they
+            // landed — whether they just opened the phone or just
+            // closed an app back to the grid.
+            Speech.Speak("Phone home screen.");
+
+            // Pre-seed _focusedIdx with whichever slot the cursor is
+            // currently over (without announcing the slot). The home
+            // grid becoming active means the user just closed an app
+            // or just opened the phone — the cursor is wherever it
+            // was left, not somewhere they actively navigated to. The
+            // engine's app-close animation also leaves the phone on
+            // screen for ~150 ms after activeApp clears, during which
+            // OnUpdate would otherwise settle on the stale cursor's
+            // slot and announce it. Seeding _focusedIdx suppresses
+            // that first slot announcement; only when the user
+            // actually moves the cursor to a different slot will we
+            // speak again.
+            if (!TryReadCursor(out float mouseX, out float mouseY)) return;
+            float localX = mouseX - _homeOffsetX;
+            float localY = PhoneHeightY - mouseY + _homeOffsetY;
+            for (int i = 0; i < 8; i++)
+            {
+                if (PointInPolygon(localX, localY, HomePolyX[i], HomePolyY[i]))
+                {
+                    _focusedIdx = i;
+                    break;
+                }
+            }
         }
 
         public override void OnLeave()
