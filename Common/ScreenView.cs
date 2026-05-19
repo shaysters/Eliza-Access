@@ -161,24 +161,41 @@ namespace ElizaAccess.Common
             // pre-element behaviour for non-opted-in screens, and
             // re-announces correctly even on the rare case where two
             // different hotspots happen to capture the same label.
-            UIElement? el = label != null ? Elements.GetByKey(label) : null;
+            string? composed = ResolveFocusLabel(label, label);
+            return ((object)idx, composed);
+        }
+
+        /// <summary>
+        /// Resolve a registry key to its element's composed focus
+        /// text (with container path-diff applied), falling back to
+        /// <paramref name="fallbackLabel"/> when no element is
+        /// registered under the key. Available to screens with
+        /// custom focus models so they can opt into the element
+        /// announcement pipeline without going through
+        /// <see cref="ReadFocusFromCursor"/>.
+        ///
+        /// Side effect: stages the resolved element so
+        /// <see cref="NotifyUpdate"/> can advance the container
+        /// path tracker after speaking. Passing a null key clears
+        /// the staged element (used when focus moves off any
+        /// known thing).
+        /// </summary>
+        protected string? ResolveFocusLabel(object? registryKey, string? fallbackLabel)
+        {
+            UIElement? el = registryKey != null ? Elements.GetByKey(registryKey) : null;
             _stagedFocusElement = el;
+            if (el == null) return fallbackLabel;
 
-            if (el == null) return ((object)idx, label);
-
-            // Container path-diff: prepend the labels of any
-            // containers the player just entered. Containers
-            // already in the last announced path (or all of them,
-            // on the first focus into the screen) don't repeat.
-            // _focusContext is updated in NotifyUpdate AFTER
-            // speaking, so the diff here always reflects the
-            // baseline from the last spoken announcement.
+            // Container path-diff: prepend labels of containers the
+            // player just entered. Already-entered containers (or
+            // all of them, on the very first focus into this
+            // screen) don't repeat. _focusContext is updated in
+            // NotifyUpdate AFTER speaking, so this diff always
+            // reflects the baseline from the last spoken focus.
             string elementText = el.ResolveFocusText();
             var newContainers = _focusContext.NewContainersOnPathTo(el);
-            if (newContainers.Count == 0)
-            {
-                return ((object)idx, elementText);
-            }
+            if (newContainers.Count == 0) return elementText;
+
             var sb = new System.Text.StringBuilder();
             foreach (Container c in newContainers)
             {
@@ -186,12 +203,9 @@ namespace ElizaAccess.Common
                 if (sb.Length > 0) sb.Append(' ');
                 sb.Append(c.Label).Append('.');
             }
-            if (sb.Length == 0) return ((object)idx, elementText);
-            if (!string.IsNullOrEmpty(elementText))
-            {
-                sb.Append(' ').Append(elementText);
-            }
-            return ((object)idx, sb.ToString());
+            if (sb.Length == 0) return elementText;
+            if (!string.IsNullOrEmpty(elementText)) sb.Append(' ').Append(elementText);
+            return sb.ToString();
         }
 
         // ── Manager-only entry points ──────────────────────────────────

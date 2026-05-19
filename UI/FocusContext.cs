@@ -38,10 +38,21 @@ namespace ElizaAccess.UI
 
         /// <summary>Update the tracked path. Call after the screen
         /// has spoken the focus announcement for <paramref name="element"/>
-        /// so the next diff compares against this baseline.</summary>
+        /// so the next diff compares against this baseline.
+        ///
+        /// If the focused element itself is a labeled
+        /// <see cref="Container"/>, it's added to the tracked path
+        /// — direct focus on the container counts as "we are now
+        /// inside it." Without this, moving from focus-on-the-row
+        /// to focus-on-a-child would re-announce the row's label
+        /// (already spoken in the parent's own focus text).</summary>
         public void UpdatePathTo(UIElement? element)
         {
-            _lastPath = element != null ? BuildPath(element) : new List<Container>();
+            if (element == null) { _lastPath = new List<Container>(); return; }
+            var path = BuildPath(element);
+            if (element is Container c && !string.IsNullOrEmpty(c.Label))
+                path.Add(c);
+            _lastPath = path;
         }
 
         /// <summary>Forget the tracked path entirely. The next

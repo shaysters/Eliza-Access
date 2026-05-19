@@ -1,8 +1,11 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using ElizaAccess.Common;
-using ElizaAccess.Common.Patches;
+using ElizaAccess.UI;
+using ElizaAccess.UI.Announcements;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views
 {
@@ -25,11 +28,14 @@ namespace ElizaAccess.Views
     ///     followed by ep[0], ep[1], … of chapter K,
     ///   then chapter K+1 row, …
     ///
-    /// Focus is read via <see cref="CursorFocus"/>; the focused hotspot
-    /// index is mapped back to (chapter, episode?) by walking the
-    /// chapter list in the same order the engine renders.
-    /// HotspotLabelCapture isn't reliable on this screen — V2 went the
-    /// data-model route and it worked, so we follow.
+    /// Each chapter is modelled as a <see cref="Container"/> whose
+    /// own focus speech is the rich row announcement ("Chapter 3.
+    /// Expanded, 4 episodes.") and whose children are its episodes
+    /// (registered as <see cref="ButtonElement"/>s). Moving from a
+    /// chapter row into one of its episodes leverages the container
+    /// path-diff so the chapter label doesn't re-announce inside
+    /// its own episode list. Moving to a different chapter row
+    /// announces it in full.
     /// </summary>
     internal sealed class ChapterSelectView : ScreenView
     {
@@ -45,9 +51,6 @@ namespace ElizaAccess.Views
         private FieldInfo? _chapterListField;     // List<List<EpisodeItem>>
         private FieldInfo? _selectedChapterField; // int
         private FieldInfo? _itemTitleField;       // LocString (.ToString gives the title)
-
-        // ── Per-activation state ───────────────────────────────────────
-        private int _lastSelectedChapter = -1;
 
         protected override void OnAdded(object screen)
         {
@@ -78,23 +81,19 @@ namespace ElizaAccess.Views
 
         protected override void OnFocus()
         {
+            // Rebuild the element registry from the live data model.
+            // Done on every OnFocus so that any data shifts since the
+            // last visit (a chapter unlocking, new episode added)
+            // get picked up. Lifecycle cost is negligible — at most
+            // a few dozen chapters × a handful of episodes each.
+            RegisterChapterElements();
+
             int chapters = ReadChapterCount();
             int sel = ReadSelectedChapter();
             string selPart = (sel >= 0 && sel < chapters)
                 ? $" Chapter {sel + 1} expanded."
                 : "";
             Speech.Speak($"Chapter Select. {chapters} chapters.{selPart}");
-            _lastSelectedChapter = sel;
-        }
-
-        protected override void OnUpdate()
-        {
-            int sel = ReadSelectedChapter();
-            if (sel != _lastSelectedChapter && sel >= 0)
-            {
-                _lastSelectedChapter = sel;
-                Log($"[ChapterSelectView] selectedChapter → {sel + 1}");
-            }
         }
 
         protected override (object? key, string? label) ReadCurrentFocus()
@@ -114,9 +113,8 @@ namespace ElizaAccess.Views
                     // Chapter row
                     if (remaining == 0)
                     {
-                        // Use (kind, i) so a (chapter,2) focus doesn't
-                        // collide with an episode (chapter=2,episode=0).
-                        return (("chapter", i), FormatChapterRow(i, outer, selectedCh));
+                        var key = ((object)"chapter", i);
+                        return (key, ResolveFocusLabel(key, FormatChapterRowFallback(i, outer, selectedCh)));
                     }
                     remaining--;
 
@@ -127,7 +125,10 @@ namespace ElizaAccess.Views
                         for (int j = 0; j < eps.Count; j++)
                         {
                             if (remaining == 0)
-                                return (("episode", i, j), FormatEpisode(i, j, eps[j]));
+                            {
+                                var key = ((object)"episode", i, j);
+                                return (key, ResolveFocusLabel(key, FormatEpisodeFallback(i, j, eps[j])));
+                            }
                             remaining--;
                         }
                     }
@@ -137,9 +138,70 @@ namespace ElizaAccess.Views
             catch { return (null, null); }
         }
 
+        // ── Element registration ───────────────────────────────────────
+
+        private void RegisterChapterElements()
+        {
+            Elements.Clear();
+            if (ScreenInstance == null || _chapterListField == null) return;
+            IList? outer;
+            try { outer = _chapterListField.GetValue(ScreenInstance) as IList; }
+            catch { return; }
+            if (outer == null) return;
+
+            for (int i = 0; i < outer.Count; i++)
+            {
+                int capturedChapterIdx = i;
+                var chapterContainer = new ChapterRowElement(
+                    label:        $"Chapter {i + 1}",
+                    isExpanded:   () => ReadSelectedChapter() == capturedChapterIdx,
+                    episodeCount: () => (outer[capturedChapterIdx] is IList eps) ? eps.Count : 0);
+                Elements.RegisterByKey(((object)"chapter", i), chapterContainer);
+
+                // Register episodes for EVERY chapter, not just the
+                // currently-expanded one. Cheap (just dictionary
+                // entries), and avoids needing to re-register when
+                // the player expands a different chapter — the
+                // engine reshuffles hotspots automatically and our
+                // tuple keys keep matching.
+                if (outer[i] is IList episodes)
+                {
+                    for (int j = 0; j < episodes.Count; j++)
+                    {
+                        string label = FormatEpisodeLabel(i, j, episodes[j]);
+                        var episodeBtn = new ButtonElement(label);
+                        chapterContainer.Add(episodeBtn);
+                        Elements.RegisterByKey(((object)"episode", i, j), episodeBtn);
+                    }
+                }
+            }
+            Log($"[ChapterSelectView] registered {Elements.Count} element(s) across {outer.Count} chapter(s)");
+        }
+
         // ── Label formatting ───────────────────────────────────────────
 
-        private string FormatChapterRow(int chapterIdx, IList outer, int selectedCh)
+        // Used as the ButtonElement label for an episode AND as the
+        // fallback when an element isn't registered for some reason.
+        // Format is short ("Episode 3: Title") because the container
+        // path-diff already announces "Chapter 3" when the player
+        // first enters this chapter's episode list.
+        private string FormatEpisodeLabel(int chapterIdx, int episodeIdx, object? ep)
+        {
+            string title = "";
+            if (ep != null && _itemTitleField != null)
+            {
+                try { title = _itemTitleField.GetValue(ep)?.ToString()?.Trim() ?? ""; }
+                catch { }
+            }
+            if (string.IsNullOrEmpty(title))
+                return $"Episode {episodeIdx + 1}";
+            return $"Episode {episodeIdx + 1}: {title}";
+        }
+
+        // Fallback text if a chapter row's element somehow isn't
+        // registered (shouldn't happen in normal use). Mirrors the
+        // pre-element format so behaviour degrades gracefully.
+        private string FormatChapterRowFallback(int chapterIdx, IList outer, int selectedCh)
         {
             int total = 0;
             if (outer[chapterIdx] is IList eps) total = eps.Count;
@@ -149,17 +211,15 @@ namespace ElizaAccess.Views
             return $"Chapter {chapterIdx + 1}, collapsed. {total} episodes.";
         }
 
-        private string FormatEpisode(int chapterIdx, int episodeIdx, object? ep)
+        // Fallback used when ReadCurrentFocus locates an episode the
+        // element registry can't resolve (shouldn't happen — every
+        // episode is registered in RegisterChapterElements). Keeps
+        // the chapter prefix since without the container path-diff
+        // the user wouldn't otherwise know the context.
+        private string FormatEpisodeFallback(int chapterIdx, int episodeIdx, object? ep)
         {
-            string title = "";
-            if (ep != null && _itemTitleField != null)
-            {
-                try { title = _itemTitleField.GetValue(ep)?.ToString()?.Trim() ?? ""; }
-                catch { }
-            }
-            if (string.IsNullOrEmpty(title))
-                return $"Chapter {chapterIdx + 1}, episode {episodeIdx + 1}.";
-            return $"Chapter {chapterIdx + 1}, episode {episodeIdx + 1}: {title}.";
+            string label = FormatEpisodeLabel(chapterIdx, episodeIdx, ep);
+            return $"Chapter {chapterIdx + 1}, {label.Substring(0, 1).ToLower() + label.Substring(1)}.";
         }
 
         // ── Helpers ────────────────────────────────────────────────────
@@ -180,6 +240,66 @@ namespace ElizaAccess.Views
             if (ScreenInstance == null || _selectedChapterField == null) return -1;
             try { return (int)_selectedChapterField.GetValue(ScreenInstance)!; }
             catch { return -1; }
+        }
+
+        // ── Nested chapter row element ─────────────────────────────────
+
+        /// <summary>
+        /// A chapter row that is also a container for its episodes.
+        /// Focus speech includes the expand/collapse state and the
+        /// episode count ("Chapter 3. Expanded, 4 episodes.").
+        /// Reactive announcement fires "Expanded." when the player
+        /// triggers an expansion (the simultaneous collapse of the
+        /// previously-expanded chapter is suppressed — same pattern
+        /// as RadioButtonElement; the user is focused on the new
+        /// selection, not the old one).
+        /// </summary>
+        private sealed class ChapterRowElement : Container
+        {
+            private readonly Func<bool> _isExpanded;
+            private readonly Func<int>  _episodeCount;
+            private bool _hasBaseline;
+            private bool _lastExpanded;
+
+            public ChapterRowElement(
+                string      label,
+                Func<bool>  isExpanded,
+                Func<int>   episodeCount)
+                : base(label)
+            {
+                _isExpanded   = isExpanded;
+                _episodeCount = episodeCount;
+            }
+
+            public override IEnumerable<Announcement> GetFocusAnnouncements()
+            {
+                yield return new LabelAnnouncement(Label);
+
+                bool exp;
+                try { exp = _isExpanded(); } catch { exp = false; }
+                int n;
+                try { n = _episodeCount(); } catch { n = 0; }
+
+                string state = exp ? "expanded" : "collapsed";
+                string status = n == 0 ? state
+                              : n == 1 ? $"{state}, 1 episode"
+                              :          $"{state}, {n} episodes";
+                yield return new StatusAnnouncement(status);
+            }
+
+            public override Announcement? PollReactiveChange()
+            {
+                bool now;
+                try { now = _isExpanded(); } catch { return null; }
+                if (!_hasBaseline) { _lastExpanded = now; _hasBaseline = true; return null; }
+                if (now == _lastExpanded) return null;
+                _lastExpanded = now;
+                // Suppress the collapse — only announce the gain.
+                // The user just expanded this chapter and is
+                // focused on it; the simultaneous deselection of
+                // the previously-expanded chapter is implicit.
+                return now ? new StatusAnnouncement("expanded") : null;
+            }
         }
     }
 }
