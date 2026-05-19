@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using ElizaAccess.Common;
+using ElizaAccess.UI;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.PhoneScreenSubs
 {
@@ -596,13 +598,12 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 bool unlocked = IsAchievementUnlocked(phoneState, ach);
                 string status = unlocked ? "unlocked" : "locked";
 
-                string utterance;
-                if (string.IsNullOrWhiteSpace(name))
-                    utterance = $"Achievement {_profileFocusIdx + 1}, {status}.";
-                else if (string.IsNullOrWhiteSpace(desc))
-                    utterance = $"{name}, {status}.";
-                else
-                    utterance = $"{name}, {status}. {desc}";
+                string label = !string.IsNullOrWhiteSpace(name)
+                    ? name
+                    : $"Achievement {_profileFocusIdx + 1}";
+                string? tooltip = !string.IsNullOrWhiteSpace(desc) ? desc : null;
+                string utterance = new ButtonElement(label, status: status, tooltip: tooltip)
+                    .ResolveFocusText();
 
                 Speech.Speak(utterance);
                 Log($"[ElizaAppSub] profile focus [{_profileFocusIdx}]: \"{utterance}\"");
@@ -716,8 +717,16 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 string sender  = _emailSenderField.GetValue(email)?.ToString() ?? "";
                 string subject = _emailSubjectField.GetValue(email)?.ToString() ?? "";
                 string date    = ReadEmailDate(email);
-                string suffix  = date.Length > 0 ? $" {date}." : "";
-                Speech.Speak($"{sender}. {subject}.{suffix}");
+
+                // Mirror MailAppSubView's inbox-row format: comma-
+                // joined fields wrapped in a ButtonElement so the
+                // type marker appends.
+                var labelParts = new List<string>(3);
+                if (!string.IsNullOrEmpty(sender))  labelParts.Add(sender);
+                if (!string.IsNullOrEmpty(subject)) labelParts.Add(subject);
+                if (!string.IsNullOrEmpty(date))    labelParts.Add(date);
+                string label = AnnouncementComposer.JoinSpeechParts(labelParts);
+                Speech.Speak(new ButtonElement(label).ResolveFocusText());
                 Log($"[ElizaAppSub] inbox focus: [{idx}] {sender} / {subject} / {date}");
             }
             catch (Exception ex)
@@ -748,6 +757,24 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 {
                     string line = raw.Trim();
                     if (line.Length == 0) continue;
+                    // Embedded image token — see MailAppSubView for
+                    // the full rationale. "{hedonic}" → "Image:
+                    // hedonic" so TTS doesn't read literal braces.
+                    if (line.StartsWith("{") && line.EndsWith("}") && line.Length > 2)
+                    {
+                        string key = line.Substring(1, line.Length - 2).Trim();
+                        string? desc = EmailImageDescriptions.TryGet(key);
+                        if (desc != null)
+                        {
+                            Speech.Speak($"Image: {desc}");
+                        }
+                        else if (key.Length > 0)
+                        {
+                            Speech.Speak($"Image: {key.Replace("_", " ")}");
+                        }
+                        spoken++;
+                        continue;
+                    }
                     if (line.StartsWith(":") && line.EndsWith(":") && line.Length > 2)
                         line = line.Substring(1, line.Length - 2);
                     Speech.Speak(line);

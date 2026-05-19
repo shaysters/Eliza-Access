@@ -76,10 +76,30 @@ namespace ElizaAccess
             // repeat queues into the now-empty queue.
             SpeechRepeater repeater = new SpeechRepeater(speech);
 
+            // Texture dumper: F9 triggers a one-shot dump of the
+            // email-image dictionary (GClass127.dictionary_0) to PNG
+            // files under {logdir}/TextureDumps/. Used once to
+            // produce visual descriptions for the screen-reader image
+            // announcements (now in EmailImageDescriptions). Hotkey
+            // is commented out so players don't trigger a dump by
+            // accident; the infrastructure stays in place for future
+            // uses (e.g. if Zachtronics adds new image tokens). To
+            // re-enable: uncomment the two `kbF9` lines plus the
+            // Pressed() block inside the loop.
+            TextureDumper.LogPath = _logPath;
+            TextureDumper.OutputDir = Path.Combine(
+                Path.GetDirectoryName(_logPath) ?? ".", "TextureDumps");
+            // KeyEdge kbF9 = new KeyEdge(Keyboard.VK_F9);
+
             _log("[Main] Entering poll loop (~200 Hz).");
 
             while (true)
             {
+                // if (kbF9.Pressed())
+                // {
+                //     TextureDumper.DumpRequested = true;
+                //     speech.Speak("Dumping email images.");
+                // }
                 // Keep IsControllerActive pinned true. The Harmony prefix on
                 // VirtualInput.smethod_1 doesn't catch flips because the
                 // setter is inlined by the JIT; the field-rewrite here is

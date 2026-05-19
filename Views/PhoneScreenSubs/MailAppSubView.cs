@@ -1,8 +1,11 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using ElizaAccess.Common;
+using ElizaAccess.UI;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.PhoneScreenSubs
 {
@@ -282,8 +285,18 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 string sender  = _emailSenderField.GetValue(email)?.ToString() ?? "";
                 string subject = _emailSubjectField.GetValue(email)?.ToString() ?? "";
                 string date    = ReadEmailDate(email);
-                string suffix  = date.Length > 0 ? $" {date}." : "";
-                Speech.Speak($"{sender}. {subject}.{suffix}");
+
+                // Build the email-row label as comma-joined parts
+                // (sender, subject, date) then wrap in ButtonElement
+                // so the type marker appends per the framework
+                // convention — "rainer, Re: your last session, Jan
+                // 8, button".
+                var labelParts = new List<string>(3);
+                if (!string.IsNullOrEmpty(sender))  labelParts.Add(sender);
+                if (!string.IsNullOrEmpty(subject)) labelParts.Add(subject);
+                if (!string.IsNullOrEmpty(date))    labelParts.Add(date);
+                string label = AnnouncementComposer.JoinSpeechParts(labelParts);
+                Speech.Speak(new ButtonElement(label).ResolveFocusText());
                 Log($"[MailAppSub] list focus: [{idx}] {sender} / {subject} / {date}");
             }
             catch (Exception ex)
@@ -335,6 +348,33 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 {
                     string line = raw.Trim();
                     if (line.Length == 0) continue;
+                    // MailApp.cs:195-204 — lines starting with "{"
+                    // are embedded image tokens (e.g. "{hedonic}").
+                    // The engine looks the key up in
+                    // GClass127.dictionary_0 and renders the
+                    // matching Texture inline (the HEDONIC email is
+                    // mostly an event-flyer image). For the screen
+                    // reader, announce "Image: {key}" so the player
+                    // knows there's a picture there and what it
+                    // depicts at a high level. Underscores in the
+                    // key get spaces.
+                    if (line.StartsWith("{") && line.EndsWith("}") && line.Length > 2)
+                    {
+                        string key = line.Substring(1, line.Length - 2).Trim();
+                        string? desc = EmailImageDescriptions.TryGet(key);
+                        if (desc != null)
+                        {
+                            Speech.Speak($"Image: {desc}");
+                        }
+                        else if (key.Length > 0)
+                        {
+                            // Unknown token — surface the key so we
+                            // know to add a description for it.
+                            Speech.Speak($"Image: {key.Replace("_", " ")}");
+                        }
+                        spoken++;
+                        continue;
+                    }
                     // MailApp.cs:195-204: lines like ":fire:" are emoji
                     // shortcodes the email author put in as expressive
                     // content (rendered as icons via a texture

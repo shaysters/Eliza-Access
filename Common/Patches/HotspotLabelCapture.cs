@@ -457,6 +457,14 @@ namespace ElizaAccess.Common.Patches
             [HarmonyPostfix]
             private static void Postfix(object __0, object __result)
             {
+                // Render-thread piggyback for the texture dumper:
+                // this hook fires DURING text rendering, when the
+                // GL context is guaranteed current. smethod_9 (where
+                // CursorSnapLock lives) isn't reliably on the
+                // render thread, so the GL readback there failed.
+                // Cheap volatile-flag check on the no-op path.
+                TextureDumper.DumpFromRenderThread();
+
                 // Filter to actual-draw calls; Measure() also goes here
                 // but with EnableDrawing=false and we don't want those.
                 if (__0 == null || TextField == null || EnableDrawField == null) return;

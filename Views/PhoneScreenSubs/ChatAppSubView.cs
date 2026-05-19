@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using ElizaAccess.Common;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.PhoneScreenSubs
 {
@@ -264,7 +265,11 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 if (idx < 0 || idx >= sortedKeys.Count) return;
 
                 string name = GetCharName(sortedKeys[idx]);
-                Speech.Speak(name);
+                // Each list row opens a conversation when clicked,
+                // so it's a button. Wrap in ButtonElement for the
+                // standard "name, button" focus format used
+                // everywhere else.
+                Speech.Speak(new ButtonElement(name).ResolveFocusText());
                 Log($"[ChatAppSub] list focus: [{idx}] {name}");
             }
             catch (Exception ex)
