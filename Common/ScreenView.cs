@@ -1,5 +1,7 @@
 using System;
 using ElizaAccess.Common.Patches;
+using ElizaAccess.UI;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Common
 {
@@ -46,6 +48,28 @@ namespace ElizaAccess.Common
         /// just before <see cref="OnAdded"/> and cleared in
         /// <see cref="OnRemoved"/>; null outside that window.</summary>
         protected object? ScreenInstance { get; private set; }
+
+        /// <summary>Per-screen registry of <see cref="UIElement"/>
+        /// descriptions. Subclasses register elements during
+        /// <see cref="OnAdded"/>; <see cref="ReadFocusFromCursor"/>
+        /// consults the registry to resolve a hotspot label into a
+        /// full focus announcement, and the manager-driven update
+        /// loop polls each registered element for reactive changes
+        /// (slider value, checkbox toggle). Default behaviour is
+        /// unchanged when the registry is empty — every existing
+        /// screen continues to speak bare labels until it opts in.</summary>
+        protected ElementRegistry Elements { get; } = new ElementRegistry();
+
+        // Container path tracker. ReadFocusFromCursor reads it to
+        // figure out which container labels to prepend; NotifyUpdate
+        // updates it AFTER speaking so the next diff compares
+        // against the just-announced path.
+        private readonly FocusContext _focusContext = new FocusContext();
+        // Element returned by the most recent ReadFocusFromCursor
+        // call — staged so NotifyUpdate can advance the focus
+        // context when focus actually changes (without changing the
+        // (key, label) tuple contract).
+        private UIElement? _stagedFocusElement;
 
         /// <summary>The <see cref="Type.Name"/> of the screen this view
         /// handles. Used by <see cref="ScreenViewManager"/> to pick the
@@ -107,15 +131,67 @@ namespace ElizaAccess.Common
         /// protected override (object?, string?) ReadCurrentFocus()
         ///     => ReadFocusFromCursor();
         /// </code>
-        /// Key is the hotspot index in <c>VirtualInput.list_0</c>; label
-        /// is whatever <see cref="HotspotLabelCapture"/> paired with that
-        /// hotspot this frame. Returns (null, null) if the cursor is
-        /// outside every hotspot.</summary>
-        protected static (object? key, string? label) ReadFocusFromCursor()
+        /// Focus diff key is the hotspot index in
+        /// <c>VirtualInput.list_0</c> — unchanged from the pre-element
+        /// behaviour, so no current screen sees any difference until it
+        /// opts in by registering elements.
+        ///
+        /// When a screen registers a <see cref="UIElement"/> under the
+        /// captured label string (the layout-robust identifier
+        /// <see cref="HotspotLabelCapture"/> already produces), the
+        /// element's composed focus text replaces the bare label.
+        /// Otherwise the bare label is spoken as before.
+        ///
+        /// Returns (null, null) when the cursor is outside every
+        /// hotspot.</summary>
+        protected (object? key, string? label) ReadFocusFromCursor()
         {
             int idx = CursorFocus.FindHotspotIndex();
-            if (idx < 0) return (null, null);
-            return ((object)idx, HotspotLabelCapture.GetLabel(idx));
+            if (idx < 0)
+            {
+                _stagedFocusElement = null;
+                return (null, null);
+            }
+            string? label = HotspotLabelCapture.GetLabel(idx);
+
+            // Registry lookup by label string. Screens register
+            // elements under the same label HotspotLabelCapture pairs;
+            // that key has already proven robust across layout shifts.
+            // Focus diff still keys on the hotspot index — preserves
+            // pre-element behaviour for non-opted-in screens, and
+            // re-announces correctly even on the rare case where two
+            // different hotspots happen to capture the same label.
+            UIElement? el = label != null ? Elements.GetByKey(label) : null;
+            _stagedFocusElement = el;
+
+            if (el == null) return ((object)idx, label);
+
+            // Container path-diff: prepend the labels of any
+            // containers the player just entered. Containers
+            // already in the last announced path (or all of them,
+            // on the first focus into the screen) don't repeat.
+            // _focusContext is updated in NotifyUpdate AFTER
+            // speaking, so the diff here always reflects the
+            // baseline from the last spoken announcement.
+            string elementText = el.ResolveFocusText();
+            var newContainers = _focusContext.NewContainersOnPathTo(el);
+            if (newContainers.Count == 0)
+            {
+                return ((object)idx, elementText);
+            }
+            var sb = new System.Text.StringBuilder();
+            foreach (Container c in newContainers)
+            {
+                if (string.IsNullOrEmpty(c.Label)) continue;
+                if (sb.Length > 0) sb.Append(' ');
+                sb.Append(c.Label).Append('.');
+            }
+            if (sb.Length == 0) return ((object)idx, elementText);
+            if (!string.IsNullOrEmpty(elementText))
+            {
+                sb.Append(' ').Append(elementText);
+            }
+            return ((object)idx, sb.ToString());
         }
 
         // ── Manager-only entry points ──────────────────────────────────
@@ -150,8 +226,12 @@ namespace ElizaAccess.Common
         {
             // Reset the change-detection key so re-focusing the screen
             // re-announces whatever's focused (the user lost speech
-            // context while the dialog above was up).
+            // context while the dialog above was up). Also clear the
+            // container path so re-entry re-announces the group
+            // labels, not just the inner element.
             _lastFocusKey = null;
+            _focusContext.Reset();
+            _stagedFocusElement = null;
             OnUnfocus();
         }
 
@@ -161,6 +241,26 @@ namespace ElizaAccess.Common
             catch (Exception ex)
             {
                 Log($"[{ScreenTypeName}View] OnUpdate threw: {ex.GetType().Name}: {ex.Message}");
+            }
+            // Reactive-change drain: each registered element decides
+            // whether its state shifted since the last poll and yields
+            // a bare-value announcement. No-op for screens that haven't
+            // registered any elements (every screen, today).
+            if (Elements.Count > 0)
+            {
+                foreach (UIElement el in Elements.All)
+                {
+                    Announcement? change;
+                    try { change = el.PollReactiveChange(); }
+                    catch (Exception ex)
+                    {
+                        Log($"[{ScreenTypeName}View] {el.GetType().Name} PollReactiveChange threw: {ex.GetType().Name}: {ex.Message}");
+                        continue;
+                    }
+                    if (change == null) continue;
+                    if (!string.IsNullOrWhiteSpace(change.Text))
+                        Speech.Speak(change.Text);
+                }
             }
             try
             {
@@ -175,6 +275,13 @@ namespace ElizaAccess.Common
                 _lastFocusKey = key;
                 if (!string.IsNullOrEmpty(label))
                     OnFocusChanged(key, label!);
+
+                // Focus actually changed — advance the container
+                // path tracker so the next focus's diff compares
+                // against the just-announced baseline. Resets the
+                // path when we land on a non-element hotspot so
+                // returning into a container re-announces it.
+                _focusContext.UpdatePathTo(_stagedFocusElement);
             }
             catch (Exception ex)
             {
