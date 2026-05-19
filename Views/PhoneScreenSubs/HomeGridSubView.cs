@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using ElizaAccess.Common;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.PhoneScreenSubs
 {
@@ -361,8 +362,8 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             if (variant != null)
             {
                 string? texture = TransparencyIcon(variant, slot);
-                if (texture != null) return IconLabel(texture);
-                return $"Slot {slot + 1}";
+                string name = texture != null ? IconLabel(texture) : $"Slot {slot + 1}";
+                return new ButtonElement(name).ResolveFocusText();
             }
 
             // Default (no Transparency Mode) layout. Slots 0/1/2 are
@@ -370,28 +371,37 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             // a real app (Fortune Teller / Solitaire) and a fake
             // placeholder (yokan / kabufuda textures) based on
             // extrasUnlocked. 4/6/7 are decorative-only.
+            string appName;
+            bool locked = false;
+            string? placeholderHint = null;
             switch (slot)
             {
-                case 0: return "Eliza";
-                case 1: return "Messages";
-                case 2: return "Mail";
+                case 0: appName = "Eliza";    break;
+                case 1: appName = "Messages"; break;
+                case 2: appName = "Mail";     break;
                 case 3:
-                    return extrasUnlocked
-                        ? "Fortune Teller"
-                        : (IsIntroChapter() && !string.IsNullOrWhiteSpace(_fakeAppNameSlot3Fallback)
-                            ? $"Fortune Teller, locked. Currently shown as {NormalizeAppText(_fakeAppNameSlot3Fallback)}"
-                            : "Fortune Teller, locked");
-                case 4: return "Zenny app"; // texture_32/33 = zenny
+                    appName = "Fortune Teller";
+                    locked  = !extrasUnlocked;
+                    if (locked && IsIntroChapter() && !string.IsNullOrWhiteSpace(_fakeAppNameSlot3Fallback))
+                        placeholderHint = $"currently shown as {NormalizeAppText(_fakeAppNameSlot3Fallback)}";
+                    break;
+                case 4: appName = "Zenny app"; break;
                 case 5:
-                    return extrasUnlocked
-                        ? "Solitaire"
-                        : (IsIntroChapter() && !string.IsNullOrWhiteSpace(_fakeAppNameSlot5Fallback)
-                            ? $"Solitaire, locked. Currently shown as {NormalizeAppText(_fakeAppNameSlot5Fallback)}"
-                            : "Solitaire, locked");
-                case 6: return "Bijoux app";          // texture_0/1 = bijoux
-                case 7: return "Skandha Wellness app"; // texture_28/29 = wellness
-                default: return $"Slot {slot + 1}";
+                    appName = "Solitaire";
+                    locked  = !extrasUnlocked;
+                    if (locked && IsIntroChapter() && !string.IsNullOrWhiteSpace(_fakeAppNameSlot5Fallback))
+                        placeholderHint = $"currently shown as {NormalizeAppText(_fakeAppNameSlot5Fallback)}";
+                    break;
+                case 6: appName = "Bijoux app";          break;
+                case 7: appName = "Skandha Wellness app"; break;
+                default: appName = $"Slot {slot + 1}";   break;
             }
+
+            var btn = new ButtonElement(
+                appName,
+                status:  locked ? "locked" : null,
+                tooltip: placeholderHint);
+            return btn.ResolveFocusText();
         }
 
         // ── Transparency-Mode slot maps (PhoneScreen.cs:483-505) ───────

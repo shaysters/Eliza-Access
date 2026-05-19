@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 using ElizaAccess.UI.Announcements;
 
 namespace ElizaAccess.UI
@@ -59,7 +60,32 @@ namespace ElizaAccess.UI
             }
 
             if (parts.Count == 0) return string.Empty;
-            return string.Join(". ", parts) + ".";
+            return JoinSpeechParts(parts);
+        }
+
+        /// <summary>
+        /// Join speech fragments with a comma when the previous
+        /// fragment ends in an alphanumeric character, or just a
+        /// space when it ends in punctuation. Some TTS engines
+        /// (notably Eloquence) read punctuation literally when
+        /// followed by a comma — "focused., Button" comes out as
+        /// "focused dot Button" — and the comma adds nothing
+        /// audible anyway when the previous fragment already
+        /// supplies its own pause. Empty / whitespace-only
+        /// fragments are skipped.
+        /// </summary>
+        public static string JoinSpeechParts(IEnumerable<string> parts)
+        {
+            var sb = new StringBuilder();
+            foreach (string part in parts)
+            {
+                if (string.IsNullOrWhiteSpace(part)) continue;
+                if (sb.Length == 0) { sb.Append(part); continue; }
+                char lastChar = sb[sb.Length - 1];
+                sb.Append(char.IsLetterOrDigit(lastChar) ? ", " : " ");
+                sb.Append(part);
+            }
+            return sb.ToString();
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using ElizaAccess.Common;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views
 {
@@ -46,29 +47,48 @@ namespace ElizaAccess.Views
         public override string ScreenTypeName => DialogTypeName;
 
         private string? _questionText;
+        private string? _confirmLabel;
 
         protected override void OnAdded(object screen)
         {
-            // The dialog's question is the first declared string instance
-            // field on the type (string_0 in source order). C# preserves
-            // declaration order in reflection metadata, so the first
-            // string field returned is reliably the question — no need to
-            // hardcode the obfuscated field name. (The other string field
-            // is string_1, the confirm button label, which we don't need
-            // because HotspotLabelCapture already labels its hotspot.)
+            // GClass169 has two declared string fields in source
+            // order: string_0 (the question) and string_1 (the
+            // confirm-button label — varies per caller: "Continue",
+            // "Okay", etc.). Reflection metadata preserves
+            // declaration order so the first string is the question
+            // and the second is the confirm label, no obfuscated
+            // name lookup needed.
             const BindingFlags inst =
                 BindingFlags.Public | BindingFlags.NonPublic |
                 BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
+            int stringFieldsSeen = 0;
             foreach (FieldInfo f in screen.GetType().GetFields(inst))
             {
                 if (f.FieldType != typeof(string)) continue;
-                try { _questionText = f.GetValue(screen) as string; }
-                catch { _questionText = null; }
-                break;
+                string? value;
+                try { value = f.GetValue(screen) as string; }
+                catch { value = null; }
+                if (stringFieldsSeen == 0)      _questionText = value;
+                else if (stringFieldsSeen == 1) _confirmLabel = value;
+                stringFieldsSeen++;
+                if (stringFieldsSeen >= 2) break;
             }
 
-            Log($"[ConfirmDialogView] added: question=\"{Trunc(_questionText, 80)}\"");
+            // Register the dialog's buttons. The caller-specified
+            // confirm label is whatever string_1 holds. "Cancel"
+            // (shown when bool_1 is true) and "Okay" (the message-
+            // only variant when bool_1 is false) are the two standard
+            // labels the dialog draws itself (GClass169.cs:59,76).
+            // Hidden buttons stay dormant — their labels never get
+            // paired by HotspotLabelCapture, so the registry entries
+            // just sit there.
+            if (!string.IsNullOrEmpty(_confirmLabel))
+                Elements.RegisterByKey(_confirmLabel!, new ButtonElement(_confirmLabel!));
+            Elements.RegisterByKey("Cancel", new ButtonElement("Cancel"));
+            Elements.RegisterByKey("Okay",   new ButtonElement("Okay"));
+
+            Log($"[ConfirmDialogView] added: question=\"{Trunc(_questionText, 80)}\" confirm=\"{_confirmLabel}\"");
         }
 
         protected override void OnFocus()

@@ -1,22 +1,27 @@
 using ElizaAccess.Common;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views
 {
     /// <summary>
-    /// Screen-reader view for the in-game pause / escape menu. First
-    /// real <see cref="ScreenView"/> implementation — proves the base
-    /// class shape on the simplest possible screen (vertical list of
-    /// buttons, focus tracked by cursor-on-hotspot).
-    ///
-    /// Behaviour: on focus, queue "Pause menu" so the focus-change
-    /// announcement (the currently-focused item's label) plays after
-    /// it. The queue is cleared by <c>InputInterrupter</c> when the
-    /// user pressed something to reach this screen, so there's no
-    /// stale speech to cut through.
+    /// Screen-reader view for the in-game pause / escape menu.
+    /// Three buttons in a vertical stack — History, Options, Title
+    /// Screen (EscapeMenuScreen.cs:193-243). The X / close icon at
+    /// top-right is hit-tested manually with bounds.Contains, not
+    /// registered as a hotspot, so it doesn't appear in our focus
+    /// tracking; pressing Escape directly is the keyboard
+    /// equivalent.
     /// </summary>
     internal sealed class EscapeMenuView : ScreenView
     {
         public override string ScreenTypeName => "EscapeMenuScreen";
+
+        protected override void OnAdded(object screen)
+        {
+            Elements.RegisterByKey("History",      new ButtonElement("History"));
+            Elements.RegisterByKey("Options",      new ButtonElement("Options"));
+            Elements.RegisterByKey("Title Screen", new ButtonElement("Title Screen"));
+        }
 
         protected override void OnFocus()
         {

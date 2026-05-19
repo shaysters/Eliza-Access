@@ -196,16 +196,17 @@ namespace ElizaAccess.Common
             var newContainers = _focusContext.NewContainersOnPathTo(el);
             if (newContainers.Count == 0) return elementText;
 
-            var sb = new System.Text.StringBuilder();
+            // Container labels join with the element text via the
+            // same punctuation-aware helper the announcement composer
+            // uses, so trailing periods/ellipses on one fragment
+            // don't get a stray ", " that TTS engines read literally.
+            var parts = new System.Collections.Generic.List<string>(newContainers.Count + 1);
             foreach (Container c in newContainers)
             {
-                if (string.IsNullOrEmpty(c.Label)) continue;
-                if (sb.Length > 0) sb.Append(' ');
-                sb.Append(c.Label).Append('.');
+                if (!string.IsNullOrEmpty(c.Label)) parts.Add(c.Label!);
             }
-            if (sb.Length == 0) return elementText;
-            if (!string.IsNullOrEmpty(elementText)) sb.Append(' ').Append(elementText);
-            return sb.ToString();
+            if (!string.IsNullOrEmpty(elementText)) parts.Add(elementText);
+            return parts.Count > 0 ? AnnouncementComposer.JoinSpeechParts(parts) : elementText;
         }
 
         // ── Manager-only entry points ──────────────────────────────────

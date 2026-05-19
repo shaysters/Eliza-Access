@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using ElizaAccess.Common;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.WorldScreenSubs
 {
@@ -460,11 +461,20 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     bool isProxy = SessionState.IsActive
                                    && _proxyText != null
                                    && string.Equals(label, _proxyText, StringComparison.Ordinal);
-                    // Prefix order mirrors the visual layout: the "Proxy
-                    // Response" header is drawn above the line of text it
-                    // labels, so we read header-then-content the way a
-                    // sighted player parses the panel.
-                    string announce = isProxy ? $"Proxy Response, {label}" : label;
+
+                    // Format via ButtonElement so the announcement
+                    // matches every other button focus across the
+                    // mod: "{label}, Button". When this option is
+                    // the one the Eliza panel marked as her
+                    // recommended response, prefix with "Proxy
+                    // Response" — the marker must land BEFORE the
+                    // response text, not after, because the player
+                    // makes story-relevant decisions based on
+                    // whether the option is Eliza's recommendation
+                    // and we can't risk the prefix being missed
+                    // mid-utterance.
+                    string body = new ButtonElement(label).ResolveFocusText();
+                    string announce = isProxy ? $"Proxy Response, {body}" : body;
                     Speech.Speak(announce);
                 }
                 bool matchedProxyText = _proxyText != null && label == _proxyText;
