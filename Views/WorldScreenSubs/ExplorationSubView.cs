@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using ElizaAccess.Common;
 using ElizaAccess.Common.Patches;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.WorldScreenSubs
 {
@@ -343,7 +344,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     _navIdx = 0;
                     _focusedLabel = _navList[0].Label;
                     SnapCursorToFocused();
-                    Speech.Speak(_focusedLabel);
+                    SpeakFocused();
                     Log($"[ExplorationSubView] ready, focus → [0] \"{_focusedLabel}\"");
                 }
                 return;
@@ -473,8 +474,17 @@ namespace ElizaAccess.Views.WorldScreenSubs
             _navIdx = newIdx;
             _focusedLabel = _navList[_navIdx].Label;
             SnapCursorToFocused();
-            Speech.Speak(_focusedLabel);
+            SpeakFocused();
             Log($"[ExplorationSubView] {direction} → [{_navIdx}] \"{_focusedLabel}\"");
+        }
+
+        // Speak the currently-focused nav item via ButtonElement so
+        // entries and the Continue button announce as "label, button"
+        // — matches every other clickable surface in the mod.
+        private void SpeakFocused()
+        {
+            if (_focusedLabel == null) return;
+            Speech.Speak(new ButtonElement(_focusedLabel).ResolveFocusText());
         }
 
         public override void OnLeave()

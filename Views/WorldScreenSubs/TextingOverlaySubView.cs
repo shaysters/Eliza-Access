@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using ElizaAccess.Common;
+using ElizaAccess.Common.Patches;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.WorldScreenSubs
 {
@@ -56,12 +58,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // that would give a different answer.
         private const string PlayerName = "Evelyn";
 
-        // Cap how many messages the OnEnter history read speaks. The
-        // thread history can grow to dozens of messages across a
-        // playthrough; reading the full backlog on every overlay open
-        // is too much. Latest few give enough context to answer.
-        private const int MaxOpenReadMessages = 3;
-
         // ── WorldScreen-level reflection (OnInit) ──────────────────────
         // First Maybe<ScriptCharacter> field by declaration order on
         // WorldScreen. SessionSubView documents that this is maybe_14
@@ -83,6 +79,28 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         // ── Per-activation state ───────────────────────────────────────
         private int  _conversationLastMsgCount = -1;
+        // True once we've announced the trailing Continue button for
+        // this overlay activation. The engine draws Continue only
+        // after the conversation is "done" (no more script-driven
+        // messages or replies expected), and the player has to click
+        // it to dismiss the overlay — without an announcement they
+        // wouldn't know there's an action waiting. Reset on
+        // OnEnter / OnLeave so each new overlay activation re-fires
+        // the announcement when its Continue appears.
+        private bool _continueAnnounced;
+        // Wall-clock time of OnEnter, used as the start of the
+        // "ignore Continue" grace window — see CheckContinueButton.
+        private DateTime _enteredAtUtc;
+        // How long to wait after OnEnter before honoring a Continue
+        // detection. HotspotLabelCapture's recent-text cache has a
+        // 0.25s freshness window; on a save-load that finishes with
+        // Continue drawn in some other UI (e.g. a confirmation
+        // dialog the player just closed before saving), the stale
+        // entry would still match on our first poll. 500ms is
+        // comfortably past the cache TTL and short enough that a
+        // legitimate immediate Continue (rare) only feels slightly
+        // delayed.
+        private static readonly TimeSpan ContinueGrace = TimeSpan.FromMilliseconds(500);
         private readonly Dictionary<string, int> _readCountByChar = new Dictionary<string, int>();
 
         public override void OnInit()
@@ -157,6 +175,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
         public override void OnEnter()
         {
             _conversationLastMsgCount = -1;
+            _continueAnnounced        = false;
+            _enteredAtUtc             = DateTime.UtcNow;
             DoCharReflect();
 
             object? character = TryGetTextingCharacter();
@@ -178,6 +198,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
         public override void OnLeave()
         {
             _conversationLastMsgCount = -1;
+            _continueAnnounced        = false;
             Log("[TextingOverlay] overlay closed.");
         }
 
@@ -188,6 +209,34 @@ namespace ElizaAccess.Views.WorldScreenSubs
             object? phoneState = TryGetPhoneState();
             if (phoneState == null) return;
             SpeakNewMessages(phoneState, character);
+            CheckContinueButton();
+        }
+
+        // The engine draws a "Continue" button on the texting overlay
+        // once the conversation has no more script-driven content to
+        // produce — the player has to press it to dismiss the overlay
+        // and resume the scene. Without an explicit announcement the
+        // player wouldn't know there's an action waiting (the last
+        // NPC line already played, no choices appear). We watch for
+        // the literal "Continue" text-draw via HotspotLabelCapture's
+        // recent-draw tracker — since this poll only runs while
+        // IsActive (the overlay is up), the matching Continue is
+        // unambiguously the overlay's, not some unrelated screen's.
+        // Fires once per overlay activation; resets on OnEnter /
+        // OnLeave.
+        private void CheckContinueButton()
+        {
+            if (_continueAnnounced) return;
+            // Grace window: skip the check during the post-enter
+            // settle period so stale Continue draws cached from
+            // before the overlay activated (most commonly: a save
+            // loaded with a confirmation dialog's Continue button
+            // recently visible) don't spuriously announce.
+            if (DateTime.UtcNow - _enteredAtUtc < ContinueGrace) return;
+            if (!HotspotLabelCapture.WasTextDrawnRecently("Continue")) return;
+            _continueAnnounced = true;
+            Speech.Speak(new ButtonElement("Continue").ResolveFocusText());
+            Log("[TextingOverlay] Continue button announced");
         }
 
         // ── Reads ──────────────────────────────────────────────────────
@@ -221,37 +270,20 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 List<object> msgs = GetMessages(phoneState, character);
                 int curCount = msgs.Count;
 
-                // Per-character read tracker: first overlay for this
-                // character reads the whole thread (context for what
-                // the player is replying to); a later overlay for the
-                // same character — possible if a script triggers them
-                // back-to-back — reads only what's new since last visit.
-                //
-                // Also cap to the most recent few messages on first
-                // open. The thread can grow to dozens of messages over
-                // the course of a playthrough, and dumping all of them
-                // at once when the overlay pops up is too much for the
-                // player to follow — the latest few are what they need
-                // for context to answer.
-                int lastSpoken = _readCountByChar.TryGetValue(name, out int v) ? v : 0;
-                int newCount   = curCount - lastSpoken;
-                int startIdx   = Math.Max(lastSpoken, curCount - MaxOpenReadMessages);
-                if (startIdx < 0) startIdx = 0;
-
+                // Speak the most recent message only. The engine
+                // shows it immediately when the overlay opens (the
+                // script appended it just before setting maybe_14),
+                // and that's the cue the player needs. Anything
+                // appended AFTER this point gets picked up by
+                // SpeakNewMessages' animated flow.
                 Speech.Speak($"Text from {name}.");
-                // History read: speak player lines too. The echo-
-                // suppression that SpeakNewMessages applies is only
-                // valid for messages the player JUST chose — for the
-                // historical thread the player needs to hear both
-                // sides to follow the conversation.
-                for (int i = startIdx; i < curCount; i++)
-                    SpeakChatEntry(msgs[i], name, suppressPlayer: false);
+                if (curCount > 0)
+                    SpeakChatEntry(msgs[curCount - 1], name, suppressPlayer: false);
 
                 _readCountByChar[name]    = curCount;
                 _conversationLastMsgCount = curCount;
 
-                Log($"[TextingOverlay] opened: {name}, {curCount} msgs, {newCount} new since last visit, " +
-                    $"spoke msgs[{startIdx}..{curCount}) ({curCount - startIdx} of last {MaxOpenReadMessages}).");
+                Log($"[TextingOverlay] opened: {name}, {curCount} msgs, spoke most recent");
             }
             catch (Exception ex)
             {

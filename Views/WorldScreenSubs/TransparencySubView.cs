@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Reflection;
 using ElizaAccess.Common;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.WorldScreenSubs
 {
@@ -85,6 +86,12 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private readonly bool[]  _lastFocus     = new bool[7];
         private int  _lastEmailsRead = -1;
         private int  _lastChatsRead  = -1;
+        // Which statement (0–2) the player's focus last landed on, or
+        // -1 for "none / Submit / fresh." Used to skip re-announcing
+        // the statement text when the player moves between Agree and
+        // Disagree within the same row — mimics the container path-
+        // diff that scope-tracking elements get for free.
+        private int  _lastFocusedStatement = -1;
         // Snapshotted at OnEnter — the conclusion text for each of the
         // three statements. Used by FocusLabel so cursor focus on an
         // Agree/Disagree button reads back the statement it's voting on.
@@ -158,8 +165,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // changes.
             for (int i = 0; i < 3; i++) _lastAnswers[i] = null;
             for (int k = 0; k < 7; k++) _lastFocus[k]   = false;
-            _lastEmailsRead = -1;
-            _lastChatsRead  = -1;
+            _lastEmailsRead       = -1;
+            _lastChatsRead        = -1;
+            _lastFocusedStatement = -1;
 
             string patient   = ReadPatientName();
             int    emailRead = ReadReadEmails();
@@ -222,8 +230,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
             {
                 if (focus[k] && !_lastFocus[k])
                 {
-                    Speech.Speak(FocusLabel(k, answers));
-                    Log($"[TransparencySub] focus → {k} ({FocusLabel(k, answers)})");
+                    SpeakFocus(k, answers);
+                    Log($"[TransparencySub] focus → {k}");
                 }
                 _lastFocus[k] = focus[k];
             }
@@ -392,21 +400,39 @@ namespace ElizaAccess.Views.WorldScreenSubs
             return answer.Value ? "Agreed." : "Disagreed.";
         }
 
-        private string FocusLabel(int k, bool?[] answers)
+        // Speak focus for the given button index. Statement context
+        // is announced only when the player moves into a new
+        // statement row (path-diff: same effect as wrapping each
+        // statement in a RowContainer). The Agree/Disagree pair are
+        // RadioButtonElements so they announce the standard
+        // "{label}, radio button, selected / not selected" form.
+        // Submit is a plain ButtonElement and clears the row tracker
+        // so re-entering a statement re-announces it.
+        private void SpeakFocus(int k, bool?[] answers)
         {
-            if (k == 6) return "Submit.";
+            if (k == 6)
+            {
+                _lastFocusedStatement = -1;
+                Speech.Speak(new ButtonElement("Submit").ResolveFocusText());
+                return;
+            }
+
             int statement = k / 2;
-            string side   = (k % 2 == 0) ? "Agree" : "Disagree";
-            bool?  ans    = statement < answers.Length ? answers[statement] : null;
-            // If this side IS the current answer, say "currently selected"
-            // so the player knows pressing again would just confirm rather
-            // than flip. Helps when scanning across already-answered rows.
-            bool isCurrentChoice = ans.HasValue && ans.Value == (k % 2 == 0);
-            string suffix = isCurrentChoice ? " (selected)" : "";
-            string text   = statement < _cachedStatements.Length ? _cachedStatements[statement] : "";
-            return string.IsNullOrEmpty(text)
-                ? $"{side}, statement {statement + 1}.{suffix}"
-                : $"{side}, statement {statement + 1}: {text}{suffix}";
+            if (statement != _lastFocusedStatement)
+            {
+                string text = statement < _cachedStatements.Length ? _cachedStatements[statement] : "";
+                Speech.Speak(string.IsNullOrEmpty(text)
+                    ? $"Statement {statement + 1}"
+                    : $"Statement {statement + 1}: {text}");
+                _lastFocusedStatement = statement;
+            }
+
+            bool   isAgree    = (k % 2 == 0);
+            string side       = isAgree ? "Agree" : "Disagree";
+            bool?  ans        = statement < answers.Length ? answers[statement] : null;
+            bool   isSelected = ans.HasValue && ans.Value == isAgree;
+            var radio = new RadioButtonElement(side, isSelected: () => isSelected);
+            Speech.Speak(radio.ResolveFocusText());
         }
 
         // ── Maybe<T> method resolution ─────────────────────────────────

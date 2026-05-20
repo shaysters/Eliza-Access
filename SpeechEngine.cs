@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using ElizaAccess.Common;
 
 namespace ElizaAccess
@@ -39,6 +40,21 @@ namespace ElizaAccess
         private IntPtr _ctx;
         private IntPtr _backend;
         private string _backendName = "<none>";
+
+        // When Stop() was last called, in Environment.TickCount.
+        // Speak() blocks the remainder of StopSettleMs before
+        // dispatching, so the in-flight stop has time to reach the
+        // backend transport before a queue request lands on top of
+        // it — fixes the race where the first speak in a post-stop
+        // burst gets caught by the still-arriving flush and either
+        // gets cancelled or causes the speech to start partway
+        // through a later line in the burst.
+        //
+        // Only the first speak in a burst pays the delay; subsequent
+        // ones land outside the settle window and dispatch
+        // immediately, chaining cleanly behind the first.
+        private int _lastStopTick = int.MinValue / 2;
+        private const int StopSettleMs = 25;
 
         // Logger plumbed in by Main so we land in the same log file as
         // every other [Speech] / [Main] / [...] line instead of the
@@ -141,6 +157,16 @@ namespace ElizaAccess
 
             if (_backend == IntPtr.Zero) return;
 
+            // Stop-settle delay: if Stop was called within the last
+            // StopSettleMs, sleep the remainder so the in-flight
+            // flush has time to propagate before we queue. See
+            // _lastStopTick docs above for the full rationale.
+            int sinceStop = Environment.TickCount - _lastStopTick;
+            if (sinceStop >= 0 && sinceStop < StopSettleMs)
+            {
+                Thread.Sleep(StopSettleMs - sinceStop);
+            }
+
             IntPtr p = PrismNative.Utf8Alloc(text);
             try
             {
@@ -165,6 +191,7 @@ namespace ElizaAccess
         public void Stop()
         {
             if (_backend == IntPtr.Zero) return;
+            _lastStopTick = Environment.TickCount;
             try { PrismNative.prism_backend_stop(_backend); }
             catch { }
         }

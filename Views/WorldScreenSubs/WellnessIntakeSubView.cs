@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using ElizaAccess.Common;
 using ElizaAccess.Common.Patches;
+using ElizaAccess.UI.Elements;
 
 namespace ElizaAccess.Views.WorldScreenSubs
 {
@@ -236,7 +237,12 @@ namespace ElizaAccess.Views.WorldScreenSubs
             if (string.IsNullOrEmpty(label)) return;
             if (string.Equals(label, _lastFocusLabel, StringComparison.Ordinal)) return;
             _lastFocusLabel = label;
-            Speech.Speak(label!);
+            // Every interactive hotspot on this screen is a plain
+            // click-to-advance button (Yes / No, the star ratings,
+            // tip amounts, DONE). Format via ButtonElement so they
+            // all announce as "{label}, button" — matches every
+            // other clickable surface in the mod.
+            Speech.Speak(new ButtonElement(label!).ResolveFocusText());
             Log($"[WellnessSub] focus → [{idx}] \"{label}\"");
         }
 
