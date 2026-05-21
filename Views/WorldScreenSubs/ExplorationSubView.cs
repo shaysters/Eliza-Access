@@ -159,6 +159,15 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // in list_0 (or the safety deadline elapses).
         private bool     _ready;
         private DateTime _readyDeadline;
+        // OnEnter timestamp + one-shot "Loading." announce gate. The
+        // gap between OnEnter (count announces) and _ready (first item
+        // announces) is several seconds on the train scenes while the
+        // entry sprites fade in. Without intermediate feedback the
+        // player thinks the mod has hung. If the wait exceeds the
+        // threshold we say "Loading." once — fast scenes stay quiet.
+        private DateTime _enteredAtUtc;
+        private bool     _loadingAnnounced;
+        private static readonly TimeSpan LoadingAnnounceAfter = TimeSpan.FromMilliseconds(500);
 
         private struct NavItem
         {
@@ -287,8 +296,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
             SuppressAxes();
             _kbUp.Reset();
             _kbDown.Reset();
-            _ready = false;
-            _readyDeadline = DateTime.UtcNow.AddSeconds(5);
+            _ready             = false;
+            _readyDeadline     = DateTime.UtcNow.AddSeconds(5);
+            _enteredAtUtc      = DateTime.UtcNow;
+            _loadingAnnounced  = false;
 
             var entries = ReadEntries();
             int n = entries?.Count ?? 0;
@@ -333,6 +344,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
         {
             if (!_ready)
             {
+                if (!_loadingAnnounced
+                    && DateTime.UtcNow - _enteredAtUtc >= LoadingAnnounceAfter)
+                {
+                    _loadingAnnounced = true;
+                    Speech.Speak("Loading.");
+                    Log("[ExplorationSubView] loading announce (ready gate still open)");
+                }
                 if (!TryAdvanceReady()) return;
                 _ready = true;
                 // Just became ready — build the nav list, snap cursor
