@@ -236,6 +236,18 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 _lastFocus[k] = focus[k];
             }
 
+            // If focus has moved off all six agree/disagree buttons
+            // (player tabbed to the inline home grid visible behind
+            // the survey, or focus has briefly cleared between hotspot
+            // rebuilds), reset the row tracker so the next focus into
+            // any statement re-announces its context. Without this,
+            // exiting a statement and returning would speak only the
+            // radio because _lastFocusedStatement still pointed at
+            // that row.
+            bool anyStatementFocused = false;
+            for (int k = 0; k < 6; k++) { if (focus[k]) { anyStatementFocused = true; break; } }
+            if (!anyStatementFocused) _lastFocusedStatement = -1;
+
             // 3) Per-tick: did the read-emails / read-chats counters tick up?
             int emailRead = ReadReadEmails();
             int chatRead  = ReadReadChats();
