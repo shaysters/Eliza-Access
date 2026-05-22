@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using ElizaAccess.Common;
 
 
 namespace ElizaAccess
@@ -24,9 +25,10 @@ namespace ElizaAccess
         {
             try
             {
-                string logDir = Path.Combine(
+                string accessibilityDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    "My Games", "Eliza", "Accessibility", "Logs");
+                    "My Games", "Eliza", "Accessibility");
+                string logDir = Path.Combine(accessibilityDir, "Logs");
                 try { Directory.CreateDirectory(logDir); } catch { }
                 string logPath = Path.Combine(logDir, "eliza-access.log");
 
@@ -43,6 +45,11 @@ namespace ElizaAccess
                 catch { }
 
                 Log(logPath, $"[Entry] Initialize. gamePath={gamePath}");
+
+                // Load user mod settings before Main spins up so any
+                // observer that reads ModConfig at construction time
+                // sees the persisted values, not the bare defaults.
+                ModConfig.Init(accessibilityDir, msg => Log(logPath, msg));
 
                 _main = new Main(logPath);
 

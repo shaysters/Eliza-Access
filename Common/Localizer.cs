@@ -81,6 +81,28 @@ namespace ElizaAccess.Common
             catch { return null; }
         }
 
+        /// <summary>
+        /// Look up a string-keyed entry directly — for engine strings
+        /// like "Set phase" or "Sentiment analyzer: {0} [{1}]" where
+        /// the English literal IS the dictionary key (no int-decode
+        /// step). The <paramref name="comment"/> disambiguates strings
+        /// that share an English form but mean different things in
+        /// context (engine uses it for "pos" / "neg" etc.); pass ""
+        /// for entries with no comment. Returns null if the chain
+        /// isn't ready or the lookup throws.
+        /// </summary>
+        public static string? TryLocalizeStringKey(string englishKey, string comment = "")
+        {
+            if (string.IsNullOrEmpty(englishKey)) return null;
+            if (!TryInit()) return null;
+            try
+            {
+                object? locStr = _localize!.Invoke(null, new object[] { englishKey, comment });
+                return locStr?.ToString();
+            }
+            catch { return null; }
+        }
+
         // ── Resolution ─────────────────────────────────────────────────────
 
         private static void ResolveDecodeKey()

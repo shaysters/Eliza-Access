@@ -76,6 +76,11 @@ namespace ElizaAccess
             // repeat queues into the now-empty queue.
             SpeechRepeater repeater = new SpeechRepeater(speech);
 
+            // Mod settings overlay (F7). Polled every tick from any
+            // game state — see ModSettingsMenu for the open/close +
+            // input-suppression flow.
+            ModSettingsMenu modSettings = new ModSettingsMenu(speech, _log);
+
             // Texture dumper: F9 triggers a one-shot dump of the
             // email-image dictionary (GClass127.dictionary_0) to PNG
             // files under {logdir}/TextureDumps/. Used once to
@@ -113,6 +118,10 @@ namespace ElizaAccess
                 try   { repeater.Poll(); }
                 catch (Exception ex)
                     { _log($"[Main] repeater poll exception: {ex.GetType().Name}: {ex.Message}"); }
+
+                try   { modSettings.Poll(); }
+                catch (Exception ex)
+                    { _log($"[Main] modSettings poll exception: {ex.GetType().Name}: {ex.Message}"); }
 
                 try   { screens.Poll(); }
                 catch (Exception ex)

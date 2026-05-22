@@ -93,6 +93,7 @@ namespace ElizaAccess.Common
         public const int VK_TAB    = 0x09;
         public const int VK_RETURN = 0x0D;
         public const int VK_ESCAPE = 0x1B;
+        public const int VK_SPACE  = 0x20;
         public const int VK_PRIOR  = 0x21; // Page Up
         public const int VK_NEXT   = 0x22; // Page Down
         public const int VK_END    = 0x23;
@@ -105,6 +106,7 @@ namespace ElizaAccess.Common
         public const int VK_2      = 0x32;
         public const int VK_3      = 0x33;
         public const int VK_R      = 0x52;
+        public const int VK_F7     = 0x76;
         public const int VK_F8     = 0x77;
         public const int VK_F9     = 0x78;
     }
@@ -126,6 +128,23 @@ namespace ElizaAccess.Common
     {
         private readonly int _vk;
         private bool _wasHeld;
+
+        // Global gate flipped on by modal overlays (e.g.
+        // ModSettingsMenu) so every view's own KeyEdges quietly
+        // return false instead of running their navigation while the
+        // overlay is up. The overlay sets BypassGlobalSuppress=true
+        // on its OWN KeyEdges so they keep working. Held-state still
+        // updates underneath — when the gate releases, no stale
+        // "rising edge" from a key the user happened to be holding
+        // during the overlay falsely fires.
+        private static bool _globalSuppress;
+        public static void SetGlobalSuppress(bool on) { _globalSuppress = on; }
+
+        /// <summary>When true, this edge ignores
+        /// <c>SetGlobalSuppress</c> — used by the overlay that
+        /// switched suppression on so its own keys still drive its
+        /// navigation.</summary>
+        public bool BypassGlobalSuppress { get; set; }
 
         public KeyEdge(int vk) { _vk = vk; }
 
@@ -167,6 +186,10 @@ namespace ElizaAccess.Common
             // Only carry forward "currently held" — so a brief tap that
             // already released doesn't block the next rising edge.
             _wasHeld = nowHeld;
+            // Honour the global gate AFTER updating _wasHeld so that
+            // releasing the gate doesn't fire a spurious edge for a
+            // key the user kept held the whole time.
+            if (_globalSuppress && !BypassGlobalSuppress) return false;
             return rising;
         }
 

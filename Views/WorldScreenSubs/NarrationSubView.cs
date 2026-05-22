@@ -33,11 +33,14 @@ namespace ElizaAccess.Views.WorldScreenSubs
     /// menu trips and between-session walking don't re-speak past content.
     ///
     /// Emotion-meter toggle: F8 (keyboard) or R3 (right-stick click on
-    /// controller) toggles <see cref="AnalyzerEnabled"/>. Some players find
-    /// the per-keyword "hollow, negative" / "motivated, positive" stream
-    /// during therapy distracting. When off, the analyzer-status branch
-    /// short-circuits before speaking. R3 is the least-used button in the
-    /// game so it works well as an accessibility shortcut.
+    /// controller) flips
+    /// <c>ModConfig.ElizaSessions.ReadSentimentAnalyzer</c> and saves
+    /// immediately. Some players find the per-keyword "hollow,
+    /// negative" / "motivated, positive" stream during therapy
+    /// distracting. The same flag is also exposed in the F7 settings
+    /// menu, so the runtime hotkey and the menu always agree. R3 is
+    /// the least-used button in the game so it works well as an
+    /// accessibility shortcut.
     /// </summary>
     internal sealed class NarrationSubView : SubView
     {
@@ -56,17 +59,33 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private FieldInfo? _narrationQueueField;
 
         // ── Per-activation state ───────────────────────────────────────
-        // PlayerFacing covers everything visible on the AR console panel —
-        // boot ROM, firmware, Skandha-connect, "Set phase:", and the
-        // engine-instrumentation timings ("Forced reflow during execution",
-        // "State change handler time", "Load handler time"). The
-        // instrumentation lines are drawn on screen too (verified from the
-        // HotspotLabel DRAW log) and fire once per discrete event, not per
-        // frame, so speaking them matches the sighted-player experience.
-        // AnalyzerStatus is kept as its own category because the F8/R3
-        // emotion-meter toggle and back-to-back duplicate suppression apply
-        // only to those sentiment/multimodal lines.
-        private enum NarCategory { PlayerFacing, AnalyzerStatus }
+        // Narration lines are split into five categories so each
+        // gets an independent toggle:
+        //  - Boot: the fixed 10-line BeginTherapy sequence
+        //    ("Eliza AR headset bootloader", "Boot ROM: …",
+        //    "Firmware version: …", "Connecting to Skandha Cloud
+        //    Services…", "Done", "Begin session", etc.). Detected by
+        //    exact match against the localised boot strings — NOT
+        //    by position — because engine perf instrumentation
+        //    ("Load handler time: 123ms") can fire at any time
+        //    including during the boot window and was misclassified
+        //    under the previous count-based gate. Config-gated by
+        //    ReadBootupText.
+        //  - SentimentAnalyzer: the emotion-meter stream
+        //    ("Sentiment analyzer: hollow [neg]"). Config-gated by
+        //    ReadSentimentAnalyzer; F8 / R3 flips that flag at
+        //    runtime and saves.
+        //  - MultimodalSense: the engine's "Multimodal sense:
+        //    increased agitation" line. Config-gated by
+        //    ReadMultimodalSense.
+        //  - SetPhase: phase transitions ("Set phase: INTERVENTION
+        //    (101)"). Config-gated by ReadSetPhase.
+        //  - Misc: anything that doesn't match the above — character
+        //    enter/exit events, wait phrases, perf instrumentation
+        //    ("Load handler time: 87ms"). Config-gated by ReadMisc.
+        // Classification is by localised prefix / exact match so
+        // non-English locales work correctly.
+        private enum NarCategory { Boot, SentimentAnalyzer, MultimodalSense, SetPhase, Misc }
         // Grows as we speak entries. Starts at 0 so the first activation
         // reads from index 0 — that's the visible AR boot text on a
         // fresh BeginTherapy and also on save-load mid-session.
@@ -75,14 +94,61 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private bool    _narSourceLogged;
         private bool    _analyzerSourceLogged;
 
+        // ── Localised category prefixes ────────────────────────────────
+        // Resolved once via the engine's own localization table so
+        // matches work in any of the 10 supported locales.
+        //  - _sentimentPrefix: the part of "Sentiment analyzer: {0}
+        //    [{1}]" up to "{0}" (e.g. "Sentiment analyzer: ",
+        //    "Stimmungsanalyseprogramm: ", "感情解析:  ").
+        //  - _multimodalExact: the whole "Multimodal sense: increased
+        //    agitation" line — the engine only emits this one variant
+        //    so exact-string match avoids the localised colon/space
+        //    fragility (Chinese uses "：", French has spaces around ":").
+        //  - _setPhasePrefix: localised "Set phase" + ": " — the
+        //    engine's format string is hard-coded as "{prefix}: {phase}
+        //    ({num})" with an ASCII colon regardless of locale.
+        // null until Localizer is ready; lines are classified as Misc
+        // in that window (same as pre-refactor behaviour for unknown
+        // prefixes).
+        private string? _sentimentPrefix;
+        private string? _multimodalExact;
+        private string? _setPhasePrefix;
+
+        // ── Boot-text classification (content-based) ───────────────────
+        // BeginTherapy appends a fixed 10-line bootup sequence
+        // (WorldScreen.cs:48-57). We detect those lines by exact
+        // match against the localised forms — NOT by position —
+        // because engine perf instrumentation ("Load handler time:
+        // 87ms") can land anywhere in the narration stream and was
+        // misclassified under the previous count-based gate.
+        //
+        // _bootExactLines is populated lazily via Localizer at the
+        // same time as the other category prefixes; until it is,
+        // every line is classified as Misc.
+        private static readonly string[] BootStringKeys =
+        {
+            "Eliza AR headset bootloader",
+            "Type N2 rev. 5",
+            "Boot ROM: 114.0.0.0.0",
+            "Display driver: 2.1d0",
+            "Address: 13-BD-E2-00-50-C0",
+            "Chipset: 18210B0",
+            "Firmware version: v110 c3115",
+            "Connecting to Skandha Cloud Services...",
+            "Done",
+            "Begin session",
+        };
+        private HashSet<string>? _bootExactLines;
+
         // ── F8 / R3 toggle ─────────────────────────────────────────────
+        // Runtime hotkey that mirrors the persisted
+        // ModConfig.ElizaSessions.ReadSentimentAnalyzer flag —
+        // pressing F8 (keyboard) or R3 (right-stick click) flips the
+        // config value and saves immediately, so the in-game toggle
+        // and the F7 settings menu stay in sync.
         private readonly KeyEdge _kbF8 = new KeyEdge(Keyboard.VK_F8);
         private bool _xinputUseFallback;
         private bool _r3ButtonReleased = true;
-
-        /// <summary>Module-level toggle for the per-keyword emotion-meter
-        /// readout. Defaults true; F8 / R3 flip it.</summary>
-        public static bool AnalyzerEnabled = true;
 
         /// <summary><c>Environment.TickCount</c> of the most recent
         /// narration line this sub spoke. Read by
@@ -153,6 +219,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
             }
             Log($"[NarrationSub] narrationQueueField={(_narrationQueueField != null ? _narrationQueueField.Name : "<not found>")}");
 
+            TryResolveCategoryPrefixes();
+
             // OnInit fires once per WorldScreen lifecycle, so the list
             // count we see here represents everything that existed
             // before our mod attached.
@@ -203,7 +271,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // bootloader text that BeginTherapy appends in the same
             // frame it sets the session character (so the count has
             // already advanced by the time we see the transition).
-            Log($"[NarrationSub] session entered (lastCount={_lastNarrationCount})");
+            Log($"[NarrationSub] session entered (lastCount={_lastNarrationCount}, " +
+                $"readBootupText={ModConfig.ElizaSessions.ReadBootupText})");
         }
 
         public override void OnLeave()
@@ -280,9 +349,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 }
                 if (count <= _lastNarrationCount) return;
 
+                // Retry prefix resolution if Localizer wasn't ready
+                // at OnInit. Cheap once resolved (early-return).
+                TryResolveCategoryPrefixes();
+
                 var lines = new List<string>();
                 var cats  = new List<NarCategory>();
-                int pfCount = 0;
+                int miscCount = 0;
 
                 for (int i = _lastNarrationCount; i < count; i++)
                 {
@@ -293,53 +366,35 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     NarCategory cat = ClassifyLine(line);
                     lines.Add(line);
                     cats.Add(cat);
-                    if (cat == NarCategory.PlayerFacing) pfCount++;
+                    if (cat == NarCategory.Misc) miscCount++;
                 }
 
-                if (pfCount > 1)
-                    Log($"[NarrationSub] batch detected: count={pfCount}");
+                if (miscCount > 1)
+                    Log($"[NarrationSub] batch detected: miscCount={miscCount}");
 
                 for (int j = 0; j < lines.Count; j++)
                 {
                     string      line = lines[j];
                     NarCategory cat  = cats[j];
 
-                    if (cat == NarCategory.AnalyzerStatus)
+                    switch (cat)
                     {
-                        if (!_analyzerSourceLogged)
-                        {
-                            _analyzerSourceLogged = true;
-                            Log("[NarrationSub] category observed: analyzer (in-session emotion meter)");
-                        }
-                        if (!AnalyzerEnabled)
-                        {
-                            Log($"[NarrationSub] analyzer suppressed (toggled off): \"{Trunc(line, 40)}\"");
-                            continue;
-                        }
-                        // Speak the line exactly as the AR display shows it
-                        // ("Sentiment analyzer: hollow [neg]") rather than
-                        // reformatting to a shorter spoken form. Matching
-                        // the visible text is the design goal.
-                        if (line == _lastAnalyzerSpoken)
-                        {
-                            Log($"[NarrationSub] analyzer duplicate suppressed: \"{Trunc(line, 40)}\"");
-                            continue;
-                        }
-                        _lastAnalyzerSpoken = line;
-                        Speech.Speak(line);
-                        LastSpokenTick = Environment.TickCount;
-                        Log($"[NarrationSub] analyzer spoken: \"{Trunc(line, 60)}\"");
-                        continue;
+                        case NarCategory.Boot:
+                            HandleBoot(line);
+                            break;
+                        case NarCategory.SentimentAnalyzer:
+                            HandleSentiment(line);
+                            break;
+                        case NarCategory.MultimodalSense:
+                            HandleMultimodal(line);
+                            break;
+                        case NarCategory.SetPhase:
+                            HandleSetPhase(line);
+                            break;
+                        case NarCategory.Misc:
+                            HandleMisc(line);
+                            break;
                     }
-
-                    if (!_narSourceLogged)
-                    {
-                        _narSourceLogged = true;
-                        Log("[NarrationSub] category observed: supplementary (enter/exit, wait phrases)");
-                    }
-                    Speech.Speak(line);
-                    LastSpokenTick = Environment.TickCount;
-                    Log($"[NarrationSub] supplementary spoken: \"{Trunc(line, 60)}\"");
                 }
 
                 _lastNarrationCount = count;
@@ -360,20 +415,182 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
             if (f8Rising || r3Rising)
             {
-                AnalyzerEnabled = !AnalyzerEnabled;
-                string state = AnalyzerEnabled ? "on" : "off";
+                ModConfig.ElizaSessions.ReadSentimentAnalyzer
+                    = !ModConfig.ElizaSessions.ReadSentimentAnalyzer;
+                ModConfig.Save();
+                string state = ModConfig.ElizaSessions.ReadSentimentAnalyzer ? "on" : "off";
                 Speech.Speak($"Emotion meter {state}.");
-                Log($"[NarrationSub] emotion-meter toggle — now {state} (source={(f8Rising ? "F8" : "R3")})");
+                Log($"[NarrationSub] emotion-meter toggle — now {state} (source={(f8Rising ? "F8" : "R3")}, saved)");
             }
         }
 
-        // ── Classification helpers ─────────────────────────────────────
+        // ── Classification + per-category handlers ─────────────────────
 
-        private static NarCategory ClassifyLine(string line)
+        private NarCategory ClassifyLine(string line)
         {
-            if (line.StartsWith("Sentiment analyzer:")) return NarCategory.AnalyzerStatus;
-            if (line.StartsWith("Multimodal sense:"))   return NarCategory.AnalyzerStatus;
-            return NarCategory.PlayerFacing;
+            // Locale-aware: match against the prefixes / exact lines
+            // resolved from the engine's own localization table.
+            // Until resolution completes (rare — usually done by
+            // OnInit), everything is Misc.
+            if (_bootExactLines != null && _bootExactLines.Contains(line))
+                return NarCategory.Boot;
+            if (_sentimentPrefix != null && line.StartsWith(_sentimentPrefix, StringComparison.Ordinal))
+                return NarCategory.SentimentAnalyzer;
+            if (_setPhasePrefix  != null && line.StartsWith(_setPhasePrefix,  StringComparison.Ordinal))
+                return NarCategory.SetPhase;
+            // Multimodal has only one engine variant ("Multimodal sense:
+            // increased agitation"), so exact-string match keeps us out
+            // of the localised-colon-spacing weeds (Chinese "：", French
+            // " : "). If Zachtronics ever adds more multimodal variants
+            // we'd switch to a prefix.
+            if (_multimodalExact != null && line == _multimodalExact)
+                return NarCategory.MultimodalSense;
+            return NarCategory.Misc;
+        }
+
+        private void HandleBoot(string line)
+        {
+            if (!ModConfig.ElizaSessions.ReadBootupText)
+            {
+                Log($"[NarrationSub] boot suppressed (setting off): \"{Trunc(line, 60)}\"");
+                return;
+            }
+            Speech.Speak(line);
+            LastSpokenTick = Environment.TickCount;
+            Log($"[NarrationSub] boot spoken: \"{Trunc(line, 60)}\"");
+        }
+
+        private void HandleSentiment(string line)
+        {
+            if (!_analyzerSourceLogged)
+            {
+                _analyzerSourceLogged = true;
+                Log("[NarrationSub] category observed: sentiment analyzer (in-session emotion meter)");
+            }
+            if (!ModConfig.ElizaSessions.ReadSentimentAnalyzer)
+            {
+                Log($"[NarrationSub] sentiment suppressed (setting off): \"{Trunc(line, 40)}\"");
+                return;
+            }
+            // Speak exactly as the AR display shows it ("Sentiment
+            // analyzer: hollow [neg]") rather than reformatting —
+            // matching the visible text is the design goal. The
+            // duplicate gate stops back-to-back identical readings
+            // when the engine re-emits the same sentiment tick
+            // multiple times.
+            if (line == _lastAnalyzerSpoken)
+            {
+                Log($"[NarrationSub] sentiment duplicate suppressed: \"{Trunc(line, 40)}\"");
+                return;
+            }
+            _lastAnalyzerSpoken = line;
+            Speech.Speak(line);
+            LastSpokenTick = Environment.TickCount;
+            Log($"[NarrationSub] sentiment spoken: \"{Trunc(line, 60)}\"");
+        }
+
+        private void HandleMultimodal(string line)
+        {
+            if (!ModConfig.ElizaSessions.ReadMultimodalSense)
+            {
+                Log($"[NarrationSub] multimodal suppressed (setting off): \"{Trunc(line, 60)}\"");
+                return;
+            }
+            Speech.Speak(line);
+            LastSpokenTick = Environment.TickCount;
+            Log($"[NarrationSub] multimodal spoken: \"{Trunc(line, 60)}\"");
+        }
+
+        private void HandleSetPhase(string line)
+        {
+            if (!ModConfig.ElizaSessions.ReadSetPhase)
+            {
+                Log($"[NarrationSub] set-phase suppressed (setting off): \"{Trunc(line, 60)}\"");
+                return;
+            }
+            Speech.Speak(line);
+            LastSpokenTick = Environment.TickCount;
+            Log($"[NarrationSub] set-phase spoken: \"{Trunc(line, 60)}\"");
+        }
+
+        private void HandleMisc(string line)
+        {
+            if (!_narSourceLogged)
+            {
+                _narSourceLogged = true;
+                Log("[NarrationSub] category observed: misc (enter/exit, wait phrases, instrumentation)");
+            }
+            if (!ModConfig.ElizaSessions.ReadMisc)
+            {
+                Log($"[NarrationSub] misc suppressed (setting off): \"{Trunc(line, 60)}\"");
+                return;
+            }
+            Speech.Speak(line);
+            LastSpokenTick = Environment.TickCount;
+            Log($"[NarrationSub] misc spoken: \"{Trunc(line, 60)}\"");
+        }
+
+        // ── Prefix resolution via engine localization ──────────────────
+
+        private void TryResolveCategoryPrefixes()
+        {
+            if (_sentimentPrefix != null && _multimodalExact != null
+                && _setPhasePrefix != null && _bootExactLines != null)
+                return; // already resolved
+
+            string? sentFmt   = Localizer.TryLocalizeStringKey("Sentiment analyzer: {0} [{1}]");
+            string? multiFull = Localizer.TryLocalizeStringKey("Multimodal sense: increased agitation");
+            string? phasePart = Localizer.TryLocalizeStringKey("Set phase");
+
+            if (_sentimentPrefix == null && sentFmt != null)
+            {
+                // The "{0}" placeholder is literal in C# format strings
+                // and never translated. Everything before it is the
+                // localised prefix the engine emits.
+                int idx = sentFmt.IndexOf("{0}", StringComparison.Ordinal);
+                if (idx > 0) _sentimentPrefix = sentFmt.Substring(0, idx);
+            }
+            if (_multimodalExact == null && multiFull != null)
+            {
+                _multimodalExact = multiFull;
+            }
+            if (_setPhasePrefix == null && phasePart != null)
+            {
+                // Engine format is `"{2}: {0} ({1})"` — the ": " is
+                // ASCII regardless of locale, so the visible prefix
+                // is always localised "Set phase" + ": ".
+                _setPhasePrefix = phasePart + ": ";
+            }
+
+            if (_bootExactLines == null)
+            {
+                // Resolve all 10 boot lines to their current-locale
+                // form. Each is matched as an exact string, so the
+                // version numbers / hex addresses survive: a German
+                // session's "Boot-ROM: 114.0.0.0.0" matches the
+                // engine's emitted line directly.
+                var set = new HashSet<string>(StringComparer.Ordinal);
+                int resolved = 0;
+                foreach (string key in BootStringKeys)
+                {
+                    string? loc = Localizer.TryLocalizeStringKey(key);
+                    if (loc != null) { set.Add(loc); resolved++; }
+                }
+                // Only commit once we got every line — partial
+                // resolution would silently leak unresolved boot
+                // lines into Misc.
+                if (resolved == BootStringKeys.Length) _bootExactLines = set;
+            }
+
+            if (_sentimentPrefix != null && _multimodalExact != null
+                && _setPhasePrefix != null && _bootExactLines != null)
+            {
+                Log($"[NarrationSub] prefixes resolved: " +
+                    $"sentiment=\"{Trunc(_sentimentPrefix, 30)}\" " +
+                    $"multimodal=\"{Trunc(_multimodalExact, 30)}\" " +
+                    $"setPhase=\"{Trunc(_setPhasePrefix, 30)}\" " +
+                    $"boot=[{_bootExactLines.Count} lines]");
+            }
         }
 
         private static string Trunc(string s, int max)
