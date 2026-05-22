@@ -160,14 +160,25 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private bool     _ready;
         private DateTime _readyDeadline;
         // OnEnter timestamp + one-shot "Loading." announce gate. The
-        // gap between OnEnter (count announces) and _ready (first item
-        // announces) is several seconds on the train scenes while the
-        // entry sprites fade in. Without intermediate feedback the
-        // player thinks the mod has hung. If the wait exceeds the
-        // threshold we say "Loading." once — fast scenes stay quiet.
+        // gap between OnEnter and _ready (first item announces) is
+        // several seconds on the train scenes while the entry sprites
+        // fade in. Without intermediate feedback the player thinks
+        // the mod has hung. If the wait exceeds the threshold we say
+        // "Loading." once — fast scenes stay quiet.
         private DateTime _enteredAtUtc;
         private bool     _loadingAnnounced;
         private static readonly TimeSpan LoadingAnnounceAfter = TimeSpan.FromMilliseconds(500);
+        // Number of look-around entries captured at OnEnter time, used
+        // by the container-label prefix on the first focus announce.
+        // Entries don't change between OnEnter and _ready, so this is
+        // stable.
+        private int _entryCountForAnnounce;
+        // Container-label state. The first focus announce on a scene
+        // gets "Look around, N things" prefixed onto the item — same
+        // pattern Settings uses for its RowContainers. Subsequent
+        // navigates within the scene just announce the item. Reset on
+        // OnEnter / OnLeave so re-entering the screen re-announces.
+        private bool _containerAnnounced;
 
         private struct NavItem
         {
@@ -296,35 +307,34 @@ namespace ElizaAccess.Views.WorldScreenSubs
             SuppressAxes();
             _kbUp.Reset();
             _kbDown.Reset();
-            _ready             = false;
-            _readyDeadline     = DateTime.UtcNow.AddSeconds(5);
-            _enteredAtUtc      = DateTime.UtcNow;
-            _loadingAnnounced  = false;
+            _ready                 = false;
+            _readyDeadline         = DateTime.UtcNow.AddSeconds(5);
+            _enteredAtUtc          = DateTime.UtcNow;
+            _loadingAnnounced      = false;
+            _containerAnnounced    = false;
 
             var entries = ReadEntries();
             int n = entries?.Count ?? 0;
-            string countPart = n switch
-            {
-                0 => "Look around. Nothing to interact with.",
-                1 => "Look around. One thing to interact with.",
-                _ => $"Look around. {n} things to interact with."
-            };
-
-            // Announce the count up front so the user gets feedback that
-            // the screen has loaded — but DON'T announce the focused
-            // item or process input until the hotspots have registered.
-            Speech.Speak(countPart);
+            _entryCountForAnnounce = n;
 
             if (n == 0)
             {
-                // Nothing to wait for.
+                // Nothing to focus or wait for — there's no first
+                // item to attach the container label to, so speak it
+                // standalone here.
+                Speech.Speak("Look around. Nothing to interact with.");
                 _ready = true;
                 _navIdx = -1;
                 _focusedLabel = null;
+                _containerAnnounced = true;
                 Log("[ExplorationSubView] enter: no entries, ready immediately");
             }
             else
             {
+                // Defer the count announce to the first-item announce
+                // in SpeakFocused — that's the moment interaction is
+                // actually ready, so the player hearing "Look around,
+                // N things, …" is their go-ahead signal.
                 Log($"[ExplorationSubView] enter: {n} entries, waiting for hotspots to register");
             }
         }
@@ -348,7 +358,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     && DateTime.UtcNow - _enteredAtUtc >= LoadingAnnounceAfter)
                 {
                     _loadingAnnounced = true;
-                    Speech.Speak("Loading.");
+                    Speech.Speak("Scene loading.");
                     Log("[ExplorationSubView] loading announce (ready gate still open)");
                 }
                 if (!TryAdvanceReady()) return;
@@ -498,11 +508,25 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         // Speak the currently-focused nav item via ButtonElement so
         // entries and the Continue button announce as "label, button"
-        // — matches every other clickable surface in the mod.
+        // — matches every other clickable surface in the mod. The
+        // very first announce on a fresh scene prefixes the look-
+        // around container label so the player hears "Look around,
+        // N things, item 1, button" — that's the readiness cue.
         private void SpeakFocused()
         {
             if (_focusedLabel == null) return;
-            Speech.Speak(new ButtonElement(_focusedLabel).ResolveFocusText());
+            string itemText = new ButtonElement(_focusedLabel).ResolveFocusText();
+            if (!_containerAnnounced)
+            {
+                _containerAnnounced = true;
+                int n = _entryCountForAnnounce;
+                string countPart = n == 1 ? "1 thing" : $"{n} things";
+                Speech.Speak($"Look around, {countPart}, {itemText}");
+            }
+            else
+            {
+                Speech.Speak(itemText);
+            }
         }
 
         public override void OnLeave()
