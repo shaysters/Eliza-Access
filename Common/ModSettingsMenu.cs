@@ -274,13 +274,21 @@ namespace ElizaAccess.Common
 
         private static string BuildItemText(MenuItem item)
         {
-            if (item.Submenu != null) return $"{item.Label}, submenu";
+            if (item.Submenu != null)
+            {
+                // "submenu" as a type label was misleading — it's
+                // screen-reader-specific terminology that doesn't
+                // describe the actual interaction. Announce as a
+                // plain button instead; the activation behaviour
+                // (Enter drills in) becomes obvious from use.
+                return new ButtonElement(item.Label).ResolveFocusText();
+            }
             // Toggle: CheckboxElement composes "{label}, checkbox,
             // checked / unchecked" via the shared
             // AnnouncementComposer so the menu speaks in the same
             // form as every other UI surface.
-            var element = new CheckboxElement(item.Label, item.Get!);
-            return element.ResolveFocusText();
+            var checkbox = new CheckboxElement(item.Label, item.Get!);
+            return checkbox.ResolveFocusText();
         }
 
         // ── Game-input suppression ────────────────────────────────────
