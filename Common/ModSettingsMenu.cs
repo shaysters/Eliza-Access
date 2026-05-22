@@ -114,7 +114,7 @@ namespace ElizaAccess.Common
                     () => ModConfig.ElizaSessions.ReadSetPhase,
                     () => ModConfig.ElizaSessions.ReadSetPhase
                        = !ModConfig.ElizaSessions.ReadSetPhase),
-                Toggle("Read miscellaneous narration",
+                Toggle("Read miscellaneous notifications and system events",
                     () => ModConfig.ElizaSessions.ReadMisc,
                     () => ModConfig.ElizaSessions.ReadMisc
                        = !ModConfig.ElizaSessions.ReadMisc),

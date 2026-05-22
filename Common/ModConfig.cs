@@ -65,12 +65,14 @@ namespace ElizaAccess.Common
             public static bool ReadSetPhase = true;
 
             /// <summary>
-            /// Whether to speak miscellaneous session narration that
-            /// doesn't match any of the recognised category prefixes
-            /// (character enter/exit events, wait phrases, engine
-            /// instrumentation lines). Default true. Set false to
-            /// fully silence the AR-display content stream while
-            /// keeping the categorised toggles independent.
+            /// Whether to speak session narration that doesn't match
+            /// any of the recognised category prefixes — character
+            /// enter/exit events, wait phrases, engine warnings
+            /// ("[Warning] Proxy script deviation"), and perf
+            /// instrumentation ("Load handler time: 87ms"). Exposed
+            /// in the F7 menu as "Read miscellaneous notifications
+            /// and system events" — the JSON key stays read_misc
+            /// for backwards-compat. Default true.
             /// </summary>
             public static bool ReadMisc = true;
         }
