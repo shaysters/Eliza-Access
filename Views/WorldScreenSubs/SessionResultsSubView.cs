@@ -295,7 +295,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // would otherwise play right after "Session Results." The
             // results overlay owns the screen at this point, so cutting
             // off whatever was speaking matches the visual state.
-            Speech.Speak("Session Results.", interrupt: true);
+            Speech.Speak(Loc.Get("session.results_title"), interrupt: true);
             Log("[SessionResultsSub] enter: announced \"Session Results.\"");
         }
 

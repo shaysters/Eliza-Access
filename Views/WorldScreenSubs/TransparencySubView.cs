@@ -175,14 +175,16 @@ namespace ElizaAccess.Views.WorldScreenSubs
             int    chatRead  = ReadReadChats();
             int    chatTot   = ReadTotalChats();
 
-            string header = $"Transparency Mode. Reviewing {patient}.";
-            string emails = (emailRead >= 0 && emailTot >= 0)
-                ? $" {emailRead} of {emailTot} emails read."
-                : "";
-            string chats  = (chatRead >= 0 && chatTot >= 0)
-                ? $" {chatRead} of {chatTot} text conversations read."
-                : "";
-            Speech.Speak(header + emails + chats + " Three conclusions to evaluate.");
+            var parts = new System.Collections.Generic.List<string>
+            {
+                Loc.Fmt("transparency.header", patient)
+            };
+            if (emailRead >= 0 && emailTot >= 0)
+                parts.Add(Loc.Fmt("transparency.emails_read", emailRead, emailTot));
+            if (chatRead >= 0 && chatTot >= 0)
+                parts.Add(Loc.Fmt("transparency.chats_read", chatRead, chatTot));
+            parts.Add(Loc.Get("transparency.three_conclusions"));
+            Speech.Speak(string.Join(" ", parts));
 
             _cachedStatements = ReadStatements();
             bool?[]  answers  = ReadAnswers();
@@ -190,7 +192,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
             {
                 string state = AnswerStateLabel(answers[i]);
                 string text  = i < _cachedStatements.Length ? _cachedStatements[i] : "(unavailable)";
-                Speech.Speak($"Statement {i + 1}. {text} {state}");
+                Speech.Speak(Loc.Fmt("transparency.statement_full", i + 1, text, state));
                 _lastAnswers[i] = answers[i];
             }
 
@@ -216,8 +218,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 {
                     if (answers[i].HasValue)
                     {
-                        string verb = answers[i]!.Value ? "Agreed" : "Disagreed";
-                        Speech.Speak($"Statement {i + 1}, {verb}.");
+                        string verb = Loc.Get(answers[i]!.Value ? "transparency.verb_agreed" : "transparency.verb_disagreed");
+                        Speech.Speak(Loc.Fmt("transparency.statement_answer", i + 1, verb));
                         Log($"[TransparencySub] answer changed: statement {i + 1} → {verb}");
                     }
                     _lastAnswers[i] = answers[i];
@@ -255,13 +257,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
             {
                 int emailTot = ReadTotalEmails();
                 if (emailTot >= 0)
-                    Speech.Speak($"{emailRead} of {emailTot} emails read.");
+                    Speech.Speak(Loc.Fmt("transparency.emails_read", emailRead, emailTot));
             }
             if (_lastChatsRead >= 0 && chatRead != _lastChatsRead)
             {
                 int chatTot = ReadTotalChats();
                 if (chatTot >= 0)
-                    Speech.Speak($"{chatRead} of {chatTot} text conversations read.");
+                    Speech.Speak(Loc.Fmt("transparency.chats_read", chatRead, chatTot));
             }
             _lastEmailsRead = emailRead;
             _lastChatsRead  = chatRead;
@@ -408,8 +410,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         private static string AnswerStateLabel(bool? answer)
         {
-            if (!answer.HasValue) return "Not yet answered.";
-            return answer.Value ? "Agreed." : "Disagreed.";
+            if (!answer.HasValue) return Loc.Get("transparency.answer_not_yet");
+            return Loc.Get(answer.Value ? "transparency.answer_agreed" : "transparency.answer_disagreed");
         }
 
         // Speak focus for the given button index. Statement context
@@ -425,7 +427,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
             if (k == 6)
             {
                 _lastFocusedStatement = -1;
-                Speech.Speak(new ButtonElement("Submit").ResolveFocusText());
+                Speech.Speak(new ButtonElement(Loc.Get("transparency.submit")).ResolveFocusText());
                 return;
             }
 
@@ -434,13 +436,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
             {
                 string text = statement < _cachedStatements.Length ? _cachedStatements[statement] : "";
                 Speech.Speak(string.IsNullOrEmpty(text)
-                    ? $"Statement {statement + 1}"
-                    : $"Statement {statement + 1}: {text}");
+                    ? Loc.Fmt("transparency.statement_label", statement + 1)
+                    : Loc.Fmt("transparency.statement_label_text", statement + 1, text));
                 _lastFocusedStatement = statement;
             }
 
             bool   isAgree    = (k % 2 == 0);
-            string side       = isAgree ? "Agree" : "Disagree";
+            string side       = Loc.Get(isAgree ? "transparency.agree" : "transparency.disagree");
             bool?  ans        = statement < answers.Length ? answers[statement] : null;
             bool   isSelected = ans.HasValue && ans.Value == isAgree;
             var radio = new RadioButtonElement(side, isSelected: () => isSelected);

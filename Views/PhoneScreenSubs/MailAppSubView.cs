@@ -166,7 +166,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         {
             _focusedListIdx = -1;
             _inDetailView   = false;
-            Speech.Speak("Mail.");
+            Speech.Speak(Loc.Get("mail.title"));
             SpeakInboxCount();
             Log("[MailAppSub] mail app entered.");
         }
@@ -364,13 +364,13 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                         string? desc = EmailImageDescriptions.TryGet(key);
                         if (desc != null)
                         {
-                            Speech.Speak($"Image: {desc}");
+                            Speech.Speak(Loc.Fmt("image.desc", desc));
                         }
                         else if (key.Length > 0)
                         {
                             // Unknown token — surface the key so we
                             // know to add a description for it.
-                            Speech.Speak($"Image: {key.Replace("_", " ")}");
+                            Speech.Speak(Loc.Fmt("image.desc", key.Replace("_", " ")));
                         }
                         spoken++;
                         continue;

@@ -276,7 +276,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 // and that's the cue the player needs. Anything
                 // appended AFTER this point gets picked up by
                 // SpeakNewMessages' animated flow.
-                Speech.Speak($"Text from {name}.");
+                Speech.Speak(Loc.Fmt("texting.text_from", name));
                 if (curCount > 0)
                     SpeakChatEntry(msgs[curCount - 1], name, suppressPlayer: false);
 
@@ -365,7 +365,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     return;
                 }
                 string speaker = isPlayer ? PlayerName : partnerName;
-                Speech.Speak($"{speaker}: {text}");
+                Speech.Speak(Loc.Fmt("dialogue.line", speaker, text));
                 TextingState.LastMessageTick = Environment.TickCount;
                 Log($"[TextingOverlay] msg: {speaker}: \"{text}\"");
             }

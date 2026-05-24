@@ -302,7 +302,7 @@ namespace ElizaAccess.Views
 
         protected override void OnFocus()
         {
-            Speech.Speak("Settings");
+            Speech.Speak(Loc.Get("settings.title"));
         }
 
         protected override (object? key, string? label) ReadCurrentFocus()

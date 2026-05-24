@@ -254,7 +254,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             // Announce the screen context so the user knows where they
             // landed — whether they just opened the phone or just
             // closed an app back to the grid.
-            Speech.Speak("Phone home screen.");
+            Speech.Speak(Loc.Get("home.title"));
 
             // Pre-seed _focusedIdx with whichever slot the cursor is
             // currently over (without announcing the slot). The home

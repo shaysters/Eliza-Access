@@ -129,22 +129,25 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     if (_pendingLabel != null)
                     {
                         _cooldownPolls = 10;
-                        string label = _pendingLabel;
+                        // _pendingLabel holds a loc KEY (not the spoken
+                        // text) so the comparison below stays language-
+                        // independent; resolve to speech here.
+                        string key = _pendingLabel;
                         _pendingLabel = null;
-                        Speech.Speak(label);
-                        Log($"[NotifSub] spoken: \"{label}\" (aligned to buzz moment)");
+                        Speech.Speak(Loc.Get(key));
+                        Log($"[NotifSub] spoken: \"{key}\" (aligned to buzz moment)");
 
                         if (!_phoneHintGiven)
                         {
                             _phoneHintGiven = true;
-                            Speech.Speak("Press Tab or Y button to open phone.");
+                            Speech.Speak(Loc.Get("notification.open_phone"));
                             Log("[NotifSub] phone hint spoken: first actionable notification");
                         }
 
-                        if (label == "Message from Eliza.")
+                        if (key == "notification.message_from_eliza")
                         {
-                            Speech.Speak("Update received.");
-                            Log("[NotifSub] fallback context spoken: \"Update received.\"");
+                            Speech.Speak(Loc.Get("notification.update_received"));
+                            Log("[NotifSub] fallback context spoken: update received");
                         }
                     }
                 }
@@ -215,7 +218,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     {
                         PropertyInfo? countProp = hashSet.GetType().GetProperty("Count");
                         if (countProp != null && (int)countProp.GetValue(hashSet)! > 0)
-                            return "New mail.";
+                            return "notification.new_mail";
                     }
                 }
             }
@@ -229,14 +232,14 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     if (maybe != null && (bool)_maybeSessionHasValue.Invoke(maybe, null)!)
                     {
                         Log("[NotifSub] therapy session active at notification");
-                        return "Message from Eliza.";
+                        return "notification.message_from_eliza";
                     }
                 }
             }
             catch { }
 
             Log("[NotifSub] meaning unresolved — generic fallback used");
-            return "Notification.";
+            return "notification.title";
         }
     }
 }

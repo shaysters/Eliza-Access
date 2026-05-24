@@ -85,7 +85,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             int fortuneNumber = ReadFortuneNumber();
             if (fortuneNumber < 0)
             {
-                Speech.Speak("Fortune.");
+                Speech.Speak(Loc.Get("fortune.title"));
                 Log("[FortuneAppSub] entered. (number unavailable)");
                 return;
             }

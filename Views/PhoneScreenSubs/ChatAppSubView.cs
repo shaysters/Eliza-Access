@@ -160,7 +160,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             _focusedListIdx           = -1;
             _inConversation           = false;
             _conversationLastMsgCount = -1;
-            Speech.Speak("Messages.");
+            Speech.Speak(Loc.Get("chat.title"));
             DoCharReflect();
             if (IsChatHistoryEmpty())
             {
@@ -169,9 +169,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 // — no list to navigate, no hotspots — so this is the
                 // only thing the player can know about the app right
                 // now.
-                Speech.Speak("No recent chats. Not feeling very gabby lately? " +
-                             "Hey, that's valid. When you're in a talkative mood again, " +
-                             "your recent chats will be available here.");
+                Speech.Speak(Loc.Get("chat.no_recent"));
             }
             Log("[ChatAppSub] chat app entered.");
         }
@@ -295,7 +293,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 int lastSpoken = _readCountByChar.TryGetValue(name, out int v) ? v : 0;
                 int newCount   = curCount - lastSpoken;
 
-                Speech.Speak($"Conversation with {name}.");
+                Speech.Speak(Loc.Fmt("chat.conversation_with", name));
                 // History read: speak player lines too. The echo-
                 // suppression that SpeakNewMessages applies is only
                 // valid for messages the player JUST chose — for the
@@ -397,7 +395,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     ? TransparencyState.SubjectName
                     : PlayerName;
                 string speaker = isPlayer ? playerLabel : partnerName;
-                Speech.Speak($"{speaker}: {text}");
+                Speech.Speak(Loc.Fmt("dialogue.line", speaker, text));
                 Log($"[ChatAppSub] msg: {speaker}: \"{text}\"");
             }
             catch (Exception ex)

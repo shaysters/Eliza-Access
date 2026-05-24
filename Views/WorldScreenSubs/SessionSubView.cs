@@ -544,7 +544,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     deltas.Add($"{kv.Key.Substring(0, Math.Min(8, kv.Key.Length))}={kv.Value - old:+0;-0}");
             }
 
-            Speech.Speak($"Session ended. {good} of 3 stars.");
+            Speech.Speak(Loc.Fmt("session.ended_stars", good));
             Log($"[SessionSub] end: good={good} bad={bad} unrated={none} deltas=[{string.Join(", ", deltas)}]");
 
             _sessionActive = false;
@@ -596,7 +596,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                         if (_shadowFinalStars[i] == true)  good++;
                         else if (_shadowFinalStars[i] == false) bad++;
                     }
-                    Speech.Speak($"Session results: {good} of 3 stars.");
+                    Speech.Speak(Loc.Fmt("session.results_stars", good));
                     Log($"[SessionSub] shadow ended. good={good} bad={bad} stars=[{Fmt(_shadowFinalStars[0])},{Fmt(_shadowFinalStars[1])},{Fmt(_shadowFinalStars[2])}]");
                     _shadowFinalStars = new bool?[3];
                 }

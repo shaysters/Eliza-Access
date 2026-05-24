@@ -372,7 +372,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             _lastTab           = -1;
             _lastInboxIndex    = -1;
             _inboxDetailActive = false;
-            Speech.Speak("Eliza. Three tabs: 1 profile, 2 inbox, 3 session history.");
+            Speech.Speak(Loc.Get("eliza.intro"));
             Log("[ElizaAppSub] entered.");
         }
 
@@ -422,7 +422,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             switch (tab)
             {
                 case 0:
-                    Speech.Speak("Profile tab.");
+                    Speech.Speak(Loc.Get("eliza.tab_profile"));
                     AnnounceProfileHeader(phoneState);
                     AnnounceSessionCount(phoneState, prefix: "");
                     // Reset grid focus to the top-left achievement and
@@ -436,12 +436,12 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     Log("[ElizaAppSub] tab: profile");
                     break;
                 case 1:
-                    Speech.Speak("Inbox tab.");
+                    Speech.Speak(Loc.Get("eliza.tab_inbox"));
                     AnnounceInboxCount(phoneState);
                     Log("[ElizaAppSub] tab: inbox");
                     break;
                 case 2:
-                    Speech.Speak("Session history tab.");
+                    Speech.Speak(Loc.Get("eliza.tab_history"));
                     AnnounceSessionCount(phoneState, prefix: "");
                     _sessionFocusIdx = 0;
                     _kbUp.Reset(); _kbDown.Reset();
@@ -450,7 +450,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     Log("[ElizaAppSub] tab: sessions");
                     break;
                 default:
-                    Speech.Speak($"Tab {tab}.");
+                    Speech.Speak(Loc.Fmt("eliza.tab_fmt", tab));
                     Log($"[ElizaAppSub] tab: unknown ({tab})");
                     break;
             }
@@ -766,11 +766,11 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                         string? desc = EmailImageDescriptions.TryGet(key);
                         if (desc != null)
                         {
-                            Speech.Speak($"Image: {desc}");
+                            Speech.Speak(Loc.Fmt("image.desc", desc));
                         }
                         else if (key.Length > 0)
                         {
-                            Speech.Speak($"Image: {key.Replace("_", " ")}");
+                            Speech.Speak(Loc.Fmt("image.desc", key.Replace("_", " ")));
                         }
                         spoken++;
                         continue;

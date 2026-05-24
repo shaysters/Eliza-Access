@@ -474,7 +474,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     // and we can't risk the prefix being missed
                     // mid-utterance.
                     string body = new ButtonElement(label).ResolveFocusText();
-                    string announce = isProxy ? $"Proxy Response, {body}" : body;
+                    string announce = isProxy ? Loc.Fmt("choice.proxy_response", body) : body;
                     Speech.Speak(announce);
                 }
                 bool matchedProxyText = _proxyText != null && label == _proxyText;
@@ -605,9 +605,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         private static string BuildInstructionText(int count)
         {
-            if (count == 0) return "No choices.";
-            if (count == 1) return "One choice.";
-            return $"Make a choice. {count} choices.";
+            if (count == 0) return Loc.Get("choice.no_choices");
+            if (count == 1) return Loc.Get("choice.one_choice");
+            return Loc.Fmt("choice.make_choice", count);
         }
 
         private static string CleanLabel(string? raw)

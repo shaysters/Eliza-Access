@@ -74,12 +74,15 @@ namespace ElizaAccess.Views
         // static LocalizedText array; if the player plays in a non-
         // English locale we'd reflect via #=qAwVefAmijgEdhOcd_dMEmg==
         // and convert each LocalizedText to string.
-        private static readonly string[] HowToPlayParagraphs =
+        // Loc keys (not the text) so the paragraphs resolve in the
+        // current game language at speak time rather than freezing to
+        // English at static-init.
+        private static readonly string[] HowToPlayParagraphKeys =
         {
-            "Matching cards can be stacked and can then be moved together.",
-            "When four matching cards are united on the tableau they will collapse into a locked stack. This will also unlock a free cell if one is available.",
-            "Free cells can store a single card of any type. Four matching cards can also be united in a free cell to collapse them into a locked stack.",
-            "To win the game, collapse all ten types of cards into ten locked stacks.",
+            "solitaire.rule_1",
+            "solitaire.rule_2",
+            "solitaire.rule_3",
+            "solitaire.rule_4",
         };
         private const string ItemRankField           = "#=qpxM7EauMEb3FM9sNlLtUXg==";
         // SolitaireItem.bool_3 — set true on collapsed/locked stacks.
@@ -247,28 +250,33 @@ namespace ElizaAccess.Views
                 // Read the unlock level so the announcement reflects
                 // what the player can actually pick.
                 int unlocked = UnlockedDifficultyCount();
-                string[] names = { "Easy", "Medium", "Hard", "Expert" };
+                string[] names =
+                {
+                    Loc.Get("difficulty.easy"), Loc.Get("difficulty.medium"),
+                    Loc.Get("difficulty.hard"), Loc.Get("difficulty.expert")
+                };
                 if (unlocked >= 4)
                 {
-                    Speech.Speak("Solitaire. Select difficulty. Easy, Medium, Hard, or Expert.");
+                    Speech.Speak(Loc.Get("solitaire.diff_all"));
                 }
                 else if (unlocked >= 2)
                 {
-                    string list = string.Join(", ", names, 0, unlocked - 1) + ", or " + names[unlocked - 1];
-                    Speech.Speak($"Solitaire. Select difficulty. {list}. " +
-                                 $"{4 - unlocked} harder " +
-                                 $"{((4 - unlocked) == 1 ? "difficulty" : "difficulties")} still locked.");
+                    string list = string.Join(", ", names, 0, unlocked - 1)
+                                + Loc.Get("solitaire.list_or") + names[unlocked - 1];
+                    int locked = 4 - unlocked;
+                    string lockedPart = Loc.Fmt(
+                        locked == 1 ? "solitaire.locked_one" : "solitaire.locked_many", locked);
+                    Speech.Speak(Loc.Fmt("solitaire.diff_some", list, lockedPart));
                 }
                 else
                 {
-                    Speech.Speak("Solitaire. Select difficulty. Only Easy is unlocked. " +
-                                 "Win games to unlock harder difficulties.");
+                    Speech.Speak(Loc.Get("solitaire.diff_easy_only"));
                 }
                 Log($"[SolitaireView] focus (phase=0 difficulty, unlocked={unlocked}).");
             }
             else
             {
-                Speech.Speak("Solitaire game.");
+                Speech.Speak(Loc.Get("solitaire.game"));
                 Log($"[SolitaireView] focus (phase={phase} game).");
             }
             _lastStateEnum = phase;
@@ -469,7 +477,7 @@ namespace ElizaAccess.Views
             // Difficulty → game transition (player picked a difficulty).
             if (prev == 0 && phase != 0)
             {
-                Speech.Speak("Difficulty selected. Solitaire game starting.");
+                Speech.Speak(Loc.Get("solitaire.difficulty_selected"));
                 Log($"[SolitaireView] phase 0 → {phase} (game starting).");
             }
             // Phase 2 is the first interactive frame (phase 1 is the deal
@@ -488,7 +496,7 @@ namespace ElizaAccess.Views
             if (phase == 3)
             {
                 int score = ReadSolScore();
-                Speech.Speak($"You won. Score {score}.");
+                Speech.Speak(Loc.Fmt("solitaire.you_won", score));
                 Log($"[SolitaireView] won. Score={score}");
             }
         }
@@ -540,8 +548,8 @@ namespace ElizaAccess.Views
             _lastHowToPlay = now;
             if (now)
             {
-                Speech.Speak("How to play.");
-                foreach (string p in HowToPlayParagraphs) Speech.Speak(p);
+                Speech.Speak(Loc.Get("solitaire.how_to_play"));
+                foreach (string key in HowToPlayParagraphKeys) Speech.Speak(Loc.Get(key));
                 Log("[SolitaireView] how-to-play opened.");
             }
             else

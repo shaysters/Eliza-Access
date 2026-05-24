@@ -91,9 +91,9 @@ namespace ElizaAccess.Views
             int chapters = ReadChapterCount();
             int sel = ReadSelectedChapter();
             string selPart = (sel >= 0 && sel < chapters)
-                ? $" Chapter {sel + 1} expanded."
+                ? Loc.Fmt("chapter.sel_part", sel + 1)
                 : "";
-            Speech.Speak($"Chapter Select. {chapters} chapters.{selPart}");
+            Speech.Speak(Loc.Fmt("chapter.select", chapters, selPart));
         }
 
         protected override (object? key, string? label) ReadCurrentFocus()
@@ -280,10 +280,10 @@ namespace ElizaAccess.Views
                 int n;
                 try { n = _episodeCount(); } catch { n = 0; }
 
-                string state = exp ? "expanded" : "collapsed";
+                string state = Loc.Get(exp ? "chapter.expanded" : "chapter.collapsed");
                 string status = n == 0 ? state
-                              : n == 1 ? $"{state}, 1 episode"
-                              :          $"{state}, {n} episodes";
+                              : n == 1 ? Loc.Fmt("chapter.state_one_episode", state)
+                              :          Loc.Fmt("chapter.state_n_episodes", state, n);
                 yield return new StatusAnnouncement(status);
             }
 
@@ -298,7 +298,7 @@ namespace ElizaAccess.Views
                 // The user just expanded this chapter and is
                 // focused on it; the simultaneous deselection of
                 // the previously-expanded chapter is implicit.
-                return now ? new StatusAnnouncement("expanded") : null;
+                return now ? new StatusAnnouncement(Loc.Get("chapter.expanded")) : null;
             }
         }
     }
