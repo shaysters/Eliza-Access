@@ -178,6 +178,12 @@ namespace ElizaAccess.Common
             // menu would also drive ExplorationSubView's nav,
             // SolitaireView, HistoryView, etc.
             KeyEdge.SetGlobalSuppress(true);
+            // Force the engine's raw key/click layer (dialogue advance,
+            // hotspot clicks) to read as "filtered" via the patched
+            // GClass5.smethod_1 getter — InputSuppressor only covers
+            // the VirtualInput controller layer, which Enter-to-advance
+            // bypasses.
+            Patches.RawInputGate.Blocking = true;
             _kbUp.Reset();
             _kbDown.Reset();
             _kbEnter.Reset();
@@ -192,6 +198,7 @@ namespace ElizaAccess.Common
             _active = false;
             ReleaseGameInput();
             KeyEdge.SetGlobalSuppress(false);
+            Patches.RawInputGate.Blocking = false;
             ModConfig.Save();
             _log("[ModSettings] closed (saved)");
             _speech.Speak("Mod settings closed.");

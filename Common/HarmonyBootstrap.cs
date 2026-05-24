@@ -44,6 +44,7 @@ namespace ElizaAccess.Common
                 KeyInjectDiag.LogPath = logPath;
                 InputFlipGuard.LogPath = logPath;
                 HotspotLabelCapture.LogPath = logPath;
+                RawInputGate.Log = log;
 
                 var harmony = new Harmony(HarmonyId);
                 harmony.PatchAll(typeof(HarmonyBootstrap).Assembly);
@@ -59,6 +60,7 @@ namespace ElizaAccess.Common
                 log($"[Harmony] CtrlModeLock   Target() = {ControllerModeLock.Target()?.Name ?? "<NULL — NOT PATCHED>"}");
                 log($"[Harmony] CursorSnapLock Target() = {CursorSnapLock.Target()?.Name ?? "<NULL — NOT PATCHED>"}");
                 log($"[Harmony] InputFlipGuard Target() = {InputFlipGuard.Target()?.Name ?? "<NULL — NOT PATCHED>"}");
+                log($"[Harmony] RawInputGate   Target() = {RawInputGate.Target()?.Name ?? "<NULL — NOT PATCHED>"}");
                 log($"[Harmony] LabelCapture/TextDraw Target() = {HotspotLabelCapture.TextDrawPatch.Target()?.Name ?? "<NULL>"}");
                 log($"[Harmony] LabelCapture/Hotspot  Target() = {HotspotLabelCapture.HotspotRegisterPatch.Target()?.Name ?? "<NULL>"}");
                 log($"[Harmony] LabelCapture/Frame    Target() = {HotspotLabelCapture.FrameBoundaryPatch.Target()?.Name ?? "<NULL>"}");
