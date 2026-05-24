@@ -389,6 +389,21 @@ namespace ElizaAccess.Views.WorldScreenSubs
             if (step == _lastStep) return;
             _lastStep = step;
             SpeakIntakeStep(step);
+
+            // Reset the focus tracker on every step change so PollFocus
+            // — which runs right after this in the same OnUpdate, and
+            // queues behind the page-text speech — re-announces the
+            // focused button. Without this, the cursor stays on the
+            // same on-screen control across a transition and the
+            // label-dedup swallows the re-announce whenever the new
+            // step's focused label matches the old one: OK→OK (0→1),
+            // NEXT→NEXT (2→3), and Yes→Yes / No→No between consecutive
+            // PHQ-7 questions (4-10) when the player keeps the same
+            // answer focused. The page text then reads with no button
+            // cue. Forcing only fires on step change, so moving focus
+            // within a step (Yes↔No) still announces normally and
+            // there's no double-speak.
+            _lastFocusLabel = null;
         }
 
         private void SpeakIntakeStep(int step)
