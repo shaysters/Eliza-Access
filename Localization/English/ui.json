@@ -14,5 +14,25 @@
 
   "format.percent": "{0} percent",
 
-  "common.scene_loading": "Scene loading."
+  "common.scene_loading": "Scene loading.",
+
+  "title.menu": "Title menu",
+  "escape.pause_menu": "Pause menu",
+
+  "modsettings.title": "Mod settings",
+  "modsettings.closed": "Mod settings closed.",
+  "modsettings.eliza_sessions": "Eliza sessions",
+  "modsettings.read_bootup": "Read bootup text",
+  "modsettings.read_sentiment": "Read sentiment analyzer",
+  "modsettings.read_multimodal": "Read multimodal sense",
+  "modsettings.read_phase": "Read phase changes",
+  "modsettings.read_misc": "Read miscellaneous notifications and system events",
+
+  "narration.emotion_on": "Emotion meter on.",
+  "narration.emotion_off": "Emotion meter off.",
+
+  "exploration.nothing": "Look around. Nothing to interact with.",
+  "exploration.one_thing": "1 thing",
+  "exploration.n_things": "{0} things",
+  "exploration.entry": "Look around, {0}, {1}"
 }

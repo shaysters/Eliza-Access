@@ -418,9 +418,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 ModConfig.ElizaSessions.ReadSentimentAnalyzer
                     = !ModConfig.ElizaSessions.ReadSentimentAnalyzer;
                 ModConfig.Save();
-                string state = ModConfig.ElizaSessions.ReadSentimentAnalyzer ? "on" : "off";
-                Speech.Speak($"Emotion meter {state}.");
-                Log($"[NarrationSub] emotion-meter toggle — now {state} (source={(f8Rising ? "F8" : "R3")}, saved)");
+                bool on = ModConfig.ElizaSessions.ReadSentimentAnalyzer;
+                Speech.Speak(Loc.Get(on ? "narration.emotion_on" : "narration.emotion_off"));
+                Log($"[NarrationSub] emotion-meter toggle — now {(on ? "on" : "off")} (source={(f8Rising ? "F8" : "R3")}, saved)");
             }
         }
 

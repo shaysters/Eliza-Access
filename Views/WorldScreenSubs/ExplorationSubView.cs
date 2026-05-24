@@ -322,7 +322,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 // Nothing to focus or wait for — there's no first
                 // item to attach the container label to, so speak it
                 // standalone here.
-                Speech.Speak("Look around. Nothing to interact with.");
+                Speech.Speak(Loc.Get("exploration.nothing"));
                 _ready = true;
                 _navIdx = -1;
                 _focusedLabel = null;
@@ -520,8 +520,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
             {
                 _containerAnnounced = true;
                 int n = _entryCountForAnnounce;
-                string countPart = n == 1 ? "1 thing" : $"{n} things";
-                Speech.Speak($"Look around, {countPart}, {itemText}");
+                string countPart = n == 1 ? Loc.Get("exploration.one_thing")
+                                          : Loc.Fmt("exploration.n_things", n);
+                Speech.Speak(Loc.Fmt("exploration.entry", countPart, itemText));
             }
             else
             {

@@ -25,7 +25,7 @@ namespace ElizaAccess.Views
 
         protected override void OnFocus()
         {
-            Speech.Speak("Pause menu");
+            Speech.Speak(Loc.Get("escape.pause_menu"));
         }
 
         protected override (object? key, string? label) ReadCurrentFocus()

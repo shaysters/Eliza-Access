@@ -14,5 +14,25 @@
 
   "format.percent": "{0} процентов",
 
-  "common.scene_loading": "Загрузка сцены."
+  "common.scene_loading": "Загрузка сцены.",
+
+  "title.menu": "Главное меню",
+  "escape.pause_menu": "Меню паузы",
+
+  "modsettings.title": "Настройки мода",
+  "modsettings.closed": "Настройки мода закрыты.",
+  "modsettings.eliza_sessions": "Сеансы Элизы",
+  "modsettings.read_bootup": "Читать текст загрузки",
+  "modsettings.read_sentiment": "Читать анализ чувств",
+  "modsettings.read_multimodal": "Читать мультимодальное восприятие",
+  "modsettings.read_phase": "Читать смену этапов",
+  "modsettings.read_misc": "Читать прочие уведомления и системные события",
+
+  "narration.emotion_on": "Индикатор настроения включён.",
+  "narration.emotion_off": "Индикатор настроения выключен.",
+
+  "exploration.nothing": "Осмотреться. Не с чем взаимодействовать.",
+  "exploration.one_thing": "1 объект",
+  "exploration.n_things": "объектов: {0}",
+  "exploration.entry": "Осмотреться, {0}, {1}"
 }

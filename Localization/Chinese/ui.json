@@ -14,5 +14,25 @@
 
   "format.percent": "百分之 {0}",
 
-  "common.scene_loading": "场景加载中。"
+  "common.scene_loading": "场景加载中。",
+
+  "title.menu": "标题菜单",
+  "escape.pause_menu": "暂停菜单",
+
+  "modsettings.title": "模组设置",
+  "modsettings.closed": "模组设置已关闭。",
+  "modsettings.eliza_sessions": "伊莱莎咨询",
+  "modsettings.read_bootup": "朗读启动文本",
+  "modsettings.read_sentiment": "朗读情绪分析",
+  "modsettings.read_multimodal": "朗读多模感知",
+  "modsettings.read_phase": "朗读阶段变化",
+  "modsettings.read_misc": "朗读其他通知和系统事件",
+
+  "narration.emotion_on": "情绪指示器已开启。",
+  "narration.emotion_off": "情绪指示器已关闭。",
+
+  "exploration.nothing": "环顾四周。没有可交互的内容。",
+  "exploration.one_thing": "1 项",
+  "exploration.n_things": "{0} 项",
+  "exploration.entry": "环顾四周，{0}，{1}"
 }

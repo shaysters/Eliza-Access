@@ -52,22 +52,26 @@ namespace ElizaAccess.Common
 
         private sealed class Submenu
         {
-            public string         Title;
+            public string         TitleKey;   // loc key, resolved at speak time
             public List<MenuItem> Items;
-            public Submenu(string title, List<MenuItem> items)
+            public Submenu(string titleKey, List<MenuItem> items)
             {
-                Title = title;
+                TitleKey = titleKey;
                 Items = items;
             }
         }
 
         private struct MenuItem
         {
-            public string     Label;
+            // LabelKey is a loc key resolved via Loc.Get at speak time
+            // (NOT at build time — the menu is constructed before the
+            // game language is known, so capturing the string here
+            // would freeze it to English).
+            public string      LabelKey;
             // Either Submenu is non-null (drill-in entry) OR
             // Get + Toggle are non-null (toggleable setting). Never
             // both, never neither.
-            public Submenu?   Submenu;
+            public Submenu?    Submenu;
             public Func<bool>? Get;
             public Action?     Toggle;
         }
@@ -95,42 +99,43 @@ namespace ElizaAccess.Common
         private static Submenu BuildRoot()
         {
             // One submenu per ModConfig section. Add a section here
-            // when ModConfig grows a new top-level group.
-            var elizaSessions = new Submenu("Eliza sessions", new List<MenuItem>
+            // when ModConfig grows a new top-level group. Labels are
+            // loc KEYS resolved at speak time (see MenuItem.LabelKey).
+            var elizaSessions = new Submenu("modsettings.eliza_sessions", new List<MenuItem>
             {
-                Toggle("Read bootup text",
+                Toggle("modsettings.read_bootup",
                     () => ModConfig.ElizaSessions.ReadBootupText,
                     () => ModConfig.ElizaSessions.ReadBootupText
                        = !ModConfig.ElizaSessions.ReadBootupText),
-                Toggle("Read sentiment analyzer",
+                Toggle("modsettings.read_sentiment",
                     () => ModConfig.ElizaSessions.ReadSentimentAnalyzer,
                     () => ModConfig.ElizaSessions.ReadSentimentAnalyzer
                        = !ModConfig.ElizaSessions.ReadSentimentAnalyzer),
-                Toggle("Read multimodal sense",
+                Toggle("modsettings.read_multimodal",
                     () => ModConfig.ElizaSessions.ReadMultimodalSense,
                     () => ModConfig.ElizaSessions.ReadMultimodalSense
                        = !ModConfig.ElizaSessions.ReadMultimodalSense),
-                Toggle("Read phase changes",
+                Toggle("modsettings.read_phase",
                     () => ModConfig.ElizaSessions.ReadSetPhase,
                     () => ModConfig.ElizaSessions.ReadSetPhase
                        = !ModConfig.ElizaSessions.ReadSetPhase),
-                Toggle("Read miscellaneous notifications and system events",
+                Toggle("modsettings.read_misc",
                     () => ModConfig.ElizaSessions.ReadMisc,
                     () => ModConfig.ElizaSessions.ReadMisc
                        = !ModConfig.ElizaSessions.ReadMisc),
             });
 
-            return new Submenu("Mod settings", new List<MenuItem>
+            return new Submenu("modsettings.title", new List<MenuItem>
             {
-                SubmenuEntry("Eliza sessions", elizaSessions),
+                SubmenuEntry("modsettings.eliza_sessions", elizaSessions),
             });
         }
 
-        private static MenuItem Toggle(string label, Func<bool> get, Action toggle)
-            => new MenuItem { Label = label, Get = get, Toggle = toggle };
+        private static MenuItem Toggle(string labelKey, Func<bool> get, Action toggle)
+            => new MenuItem { LabelKey = labelKey, Get = get, Toggle = toggle };
 
-        private static MenuItem SubmenuEntry(string label, Submenu sub)
-            => new MenuItem { Label = label, Submenu = sub };
+        private static MenuItem SubmenuEntry(string labelKey, Submenu sub)
+            => new MenuItem { LabelKey = labelKey, Submenu = sub };
 
         // ── Poll ─────────────────────────────────────────────────────
 
@@ -201,7 +206,7 @@ namespace ElizaAccess.Common
             Patches.RawInputGate.Blocking = false;
             ModConfig.Save();
             _log("[ModSettings] closed (saved)");
-            _speech.Speak("Mod settings closed.");
+            _speech.Speak(Loc.Get("modsettings.closed"));
         }
 
         // ── Navigation + activation ───────────────────────────────────
@@ -214,7 +219,7 @@ namespace ElizaAccess.Common
             if (newIdx == _navIdx) return;
             _navIdx = newIdx;
             SpeakFocused();
-            _log($"[ModSettings] focus → [{_navIdx}] \"{_current.Items[_navIdx].Label}\"");
+            _log($"[ModSettings] focus → [{_navIdx}] \"{_current.Items[_navIdx].LabelKey}\"");
         }
 
         private void Activate()
@@ -227,7 +232,7 @@ namespace ElizaAccess.Common
                 _trail.Push((_current, _navIdx));
                 _current = item.Submenu;
                 _navIdx  = 0;
-                _log($"[ModSettings] drill → \"{_current.Title}\"");
+                _log($"[ModSettings] drill → \"{_current.TitleKey}\"");
                 SpeakSubmenuEntry();
                 return;
             }
@@ -242,7 +247,7 @@ namespace ElizaAccess.Common
             // lose the user's change.
             ModConfig.Save();
             SpeakFocused();
-            _log($"[ModSettings] toggled [{_navIdx}] \"{item.Label}\" → {item.Get!()}");
+            _log($"[ModSettings] toggled [{_navIdx}] \"{item.LabelKey}\" → {item.Get!()}");
         }
 
         private void GoBack()
@@ -256,7 +261,7 @@ namespace ElizaAccess.Common
             var (parent, parentIdx) = _trail.Pop();
             _current = parent;
             _navIdx  = parentIdx;
-            _log($"[ModSettings] back → \"{_current.Title}\" [{_navIdx}]");
+            _log($"[ModSettings] back → \"{_current.TitleKey}\" [{_navIdx}]");
             SpeakSubmenuEntry();
         }
 
@@ -269,7 +274,7 @@ namespace ElizaAccess.Common
         private void SpeakSubmenuEntry()
         {
             string itemText = BuildItemText(_current.Items[_navIdx]);
-            _speech.Speak($"{_current.Title}, {itemText}");
+            _speech.Speak($"{Loc.Get(_current.TitleKey)}, {itemText}");
         }
 
         // Used when nav changes within the current submenu — no
@@ -288,13 +293,13 @@ namespace ElizaAccess.Common
                 // describe the actual interaction. Announce as a
                 // plain button instead; the activation behaviour
                 // (Enter drills in) becomes obvious from use.
-                return new ButtonElement(item.Label).ResolveFocusText();
+                return new ButtonElement(Loc.Get(item.LabelKey)).ResolveFocusText();
             }
             // Toggle: CheckboxElement composes "{label}, checkbox,
             // checked / unchecked" via the shared
             // AnnouncementComposer so the menu speaks in the same
             // form as every other UI surface.
-            var checkbox = new CheckboxElement(item.Label, item.Get!);
+            var checkbox = new CheckboxElement(Loc.Get(item.LabelKey), item.Get!);
             return checkbox.ResolveFocusText();
         }
 

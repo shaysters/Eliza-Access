@@ -14,5 +14,25 @@
 
   "format.percent": "{0} per cento",
 
-  "common.scene_loading": "Caricamento scena."
+  "common.scene_loading": "Caricamento scena.",
+
+  "title.menu": "Menu del titolo",
+  "escape.pause_menu": "Menu di pausa",
+
+  "modsettings.title": "Impostazioni del mod",
+  "modsettings.closed": "Impostazioni del mod chiuse.",
+  "modsettings.eliza_sessions": "Sessioni di Eliza",
+  "modsettings.read_bootup": "Leggi il testo di avvio",
+  "modsettings.read_sentiment": "Leggi l'analisi dei sentimenti",
+  "modsettings.read_multimodal": "Leggi la percezione multimodale",
+  "modsettings.read_phase": "Leggi i cambi di fase",
+  "modsettings.read_misc": "Leggi notifiche varie ed eventi di sistema",
+
+  "narration.emotion_on": "Misuratore dell'umore attivato.",
+  "narration.emotion_off": "Misuratore dell'umore disattivato.",
+
+  "exploration.nothing": "Esplora. Niente con cui interagire.",
+  "exploration.one_thing": "1 elemento",
+  "exploration.n_things": "{0} elementi",
+  "exploration.entry": "Esplora, {0}, {1}"
 }

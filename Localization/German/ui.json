@@ -14,5 +14,25 @@
 
   "format.percent": "{0} Prozent",
 
-  "common.scene_loading": "Szene wird geladen."
+  "common.scene_loading": "Szene wird geladen.",
+
+  "title.menu": "Titelmenü",
+  "escape.pause_menu": "Pausenmenü",
+
+  "modsettings.title": "Mod-Einstellungen",
+  "modsettings.closed": "Mod-Einstellungen geschlossen.",
+  "modsettings.eliza_sessions": "Eliza-Sitzungen",
+  "modsettings.read_bootup": "Boot-Text vorlesen",
+  "modsettings.read_sentiment": "Stimmungsanalyse vorlesen",
+  "modsettings.read_multimodal": "Multimodale Wahrnehmung vorlesen",
+  "modsettings.read_phase": "Phasenwechsel vorlesen",
+  "modsettings.read_misc": "Sonstige Meldungen und Systemereignisse vorlesen",
+
+  "narration.emotion_on": "Stimmungsmesser ein.",
+  "narration.emotion_off": "Stimmungsmesser aus.",
+
+  "exploration.nothing": "Umsehen. Nichts zum Interagieren.",
+  "exploration.one_thing": "1 Objekt",
+  "exploration.n_things": "{0} Objekte",
+  "exploration.entry": "Umsehen, {0}, {1}"
 }

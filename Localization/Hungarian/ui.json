@@ -14,5 +14,25 @@
 
   "format.percent": "{0} százalék",
 
-  "common.scene_loading": "Jelenet betöltése."
+  "common.scene_loading": "Jelenet betöltése.",
+
+  "title.menu": "Címképernyő menü",
+  "escape.pause_menu": "Szünet menü",
+
+  "modsettings.title": "Mod beállítások",
+  "modsettings.closed": "Mod beállítások bezárva.",
+  "modsettings.eliza_sessions": "Eliza foglalkozások",
+  "modsettings.read_bootup": "Indítási szöveg felolvasása",
+  "modsettings.read_sentiment": "Érzelemelemző felolvasása",
+  "modsettings.read_multimodal": "Multimodális érzékelés felolvasása",
+  "modsettings.read_phase": "Fázisváltások felolvasása",
+  "modsettings.read_misc": "Egyéb értesítések és rendszeresemények felolvasása",
+
+  "narration.emotion_on": "Hangulatmérő bekapcsolva.",
+  "narration.emotion_off": "Hangulatmérő kikapcsolva.",
+
+  "exploration.nothing": "Körülnézés. Nincs mivel interakcióba lépni.",
+  "exploration.one_thing": "1 dolog",
+  "exploration.n_things": "{0} dolog",
+  "exploration.entry": "Körülnézés, {0}, {1}"
 }

@@ -49,7 +49,7 @@ namespace ElizaAccess.Views
             // bare-label path (loc-key int → localized string mapping
             // for these labels isn't catalogued today — easy follow-up
             // when there's a non-English request).
-            var menu = new RowContainer("Title menu");
+            var menu = new RowContainer(Loc.Get("title.menu"));
 
             void AddButton(string label)
             {

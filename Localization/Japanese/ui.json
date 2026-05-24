@@ -14,5 +14,25 @@
 
   "format.percent": "{0} パーセント",
 
-  "common.scene_loading": "シーンを読み込み中。"
+  "common.scene_loading": "シーンを読み込み中。",
+
+  "title.menu": "タイトルメニュー",
+  "escape.pause_menu": "ポーズメニュー",
+
+  "modsettings.title": "モッド設定",
+  "modsettings.closed": "モッド設定を閉じました。",
+  "modsettings.eliza_sessions": "イライザのセッション",
+  "modsettings.read_bootup": "起動テキストを読み上げる",
+  "modsettings.read_sentiment": "感情解析を読み上げる",
+  "modsettings.read_multimodal": "マルチモーダル知覚を読み上げる",
+  "modsettings.read_phase": "フェーズの変化を読み上げる",
+  "modsettings.read_misc": "その他の通知とシステムイベントを読み上げる",
+
+  "narration.emotion_on": "感情メーター オン。",
+  "narration.emotion_off": "感情メーター オフ。",
+
+  "exploration.nothing": "見回す。操作できるものはありません。",
+  "exploration.one_thing": "1 件",
+  "exploration.n_things": "{0} 件",
+  "exploration.entry": "見回す、{0}、{1}"
 }
