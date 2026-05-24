@@ -39,6 +39,17 @@
 
   <ItemGroup>
     <!--
+      Localization tables, embedded into the DLL so the mod's spoken
+      strings travel with the assembly (no loose data files to deploy
+      or lose). Resource names become
+      ElizaAccess.Localization.<Language>.ui.json — Loc.cs reads them
+      by that path. Edit the JSONs in the repo + rebuild to update.
+    -->
+    <EmbeddedResource Include="Localization\**\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
       prism.dll is the native screen-reader abstraction library
       P/Invoked by SpeechEngine. Vendored from the Prismatoid NuGet
       package's runtimes/win-x64/native/ folder because the managed

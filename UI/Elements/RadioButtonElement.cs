@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ElizaAccess.Common;
 using ElizaAccess.UI.Announcements;
 
 namespace ElizaAccess.UI.Elements
@@ -47,13 +48,13 @@ namespace ElizaAccess.UI.Elements
         public override IEnumerable<Announcement> GetFocusAnnouncements()
         {
             yield return new LabelAnnouncement(_label);
-            yield return new TypeAnnouncement("radio button");
+            yield return new TypeAnnouncement(Loc.Get("type.radio_button"));
             if (_isSelected != null)
             {
                 bool sel;
                 try { sel = _isSelected(); }
                 catch { sel = false; }
-                yield return new StatusAnnouncement(sel ? "selected" : "not selected");
+                yield return new StatusAnnouncement(Loc.Get(sel ? "status.selected" : "status.not_selected"));
             }
             if (!string.IsNullOrEmpty(_tooltip))
                 yield return new TooltipAnnouncement(_tooltip);
@@ -69,7 +70,7 @@ namespace ElizaAccess.UI.Elements
             _lastState = now;
             // Only announce the gain. The losing option's TRUE→FALSE
             // is implicit in the new option's announcement.
-            return now ? new StatusAnnouncement("selected") : null;
+            return now ? new StatusAnnouncement(Loc.Get("status.selected")) : null;
         }
     }
 }

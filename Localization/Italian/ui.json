@@ -1,0 +1,18 @@
+{
+  "type.button": "pulsante",
+  "type.checkbox": "casella di controllo",
+  "type.radio_button": "pulsante di opzione",
+  "type.slider": "cursore",
+
+  "status.selected": "selezionato",
+  "status.not_selected": "non selezionato",
+  "status.checked": "spuntato",
+  "status.unchecked": "non spuntato",
+  "status.locked": "bloccato",
+  "status.unlocked": "sbloccato",
+  "status.disabled": "disattivato",
+
+  "format.percent": "{0} per cento",
+
+  "common.scene_loading": "Caricamento scena."
+}

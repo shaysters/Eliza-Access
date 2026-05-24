@@ -1,0 +1,18 @@
+{
+  "type.button": "кнопка",
+  "type.checkbox": "флажок",
+  "type.radio_button": "переключатель",
+  "type.slider": "ползунок",
+
+  "status.selected": "выбрано",
+  "status.not_selected": "не выбрано",
+  "status.checked": "отмечено",
+  "status.unchecked": "не отмечено",
+  "status.locked": "заблокировано",
+  "status.unlocked": "разблокировано",
+  "status.disabled": "отключено",
+
+  "format.percent": "{0} процентов",
+
+  "common.scene_loading": "Загрузка сцены."
+}

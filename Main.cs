@@ -50,6 +50,14 @@ namespace ElizaAccess
             _log("[Main] Nagoya found. Bootstrapping Harmony.");
             HarmonyBootstrap.TryApplyAll(_logPath, _log);
 
+            // Localization: load the English table now (embedded, no
+            // game state needed) and detect the current language.
+            // Language detection may return English until the game's
+            // GameLogic singleton exists; the throttled RefreshLanguage
+            // in the poll loop below picks up the real language once
+            // it does, and re-loads on any mid-session change.
+            Loc.Init(_log);
+
             // Every screen is owned by a view registered below. The
             // manager mirrors the game's ScreenStack and dispatches
             // lifecycle hooks (added/focused/updated/unfocused/removed)
@@ -98,8 +106,20 @@ namespace ElizaAccess
 
             _log("[Main] Entering poll loop (~200 Hz).");
 
+            int locRefreshCounter = 0;
             while (true)
             {
+                // Re-check the game language ~once per second (poll is
+                // ~200 Hz). Cheap reflection; reloads the table only on
+                // an actual change.
+                if (++locRefreshCounter >= 200)
+                {
+                    locRefreshCounter = 0;
+                    try   { Loc.RefreshLanguage(); }
+                    catch (Exception ex)
+                        { _log($"[Main] Loc refresh exception: {ex.GetType().Name}: {ex.Message}"); }
+                }
+
                 // if (kbF9.Pressed())
                 // {
                 //     TextureDumper.DumpRequested = true;

@@ -77,7 +77,7 @@ namespace ElizaAccess.Views
             if (_firstFocusSeen || _loadingAnnounced) return;
             if (DateTime.UtcNow - _focusedAtUtc < LoadingAnnounceAfter) return;
             _loadingAnnounced = true;
-            Speech.Speak("Scene loading.");
+            Speech.Speak(Loc.Get("common.scene_loading"));
         }
 
         protected override void OnFocusChanged(object? key, string label)

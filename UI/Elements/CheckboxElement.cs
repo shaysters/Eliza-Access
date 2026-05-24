@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ElizaAccess.Common;
 using ElizaAccess.UI.Announcements;
 
 namespace ElizaAccess.UI.Elements
@@ -36,8 +37,8 @@ namespace ElizaAccess.UI.Elements
         public override IEnumerable<Announcement> GetFocusAnnouncements()
         {
             yield return new LabelAnnouncement(_label);
-            yield return new TypeAnnouncement("checkbox");
-            yield return new StatusAnnouncement(_getState() ? "checked" : "unchecked");
+            yield return new TypeAnnouncement(Loc.Get("type.checkbox"));
+            yield return new StatusAnnouncement(Loc.Get(_getState() ? "status.checked" : "status.unchecked"));
             if (!string.IsNullOrEmpty(_tooltip))
                 yield return new TooltipAnnouncement(_tooltip);
         }
@@ -49,7 +50,7 @@ namespace ElizaAccess.UI.Elements
             if (!_hasBaseline) { _lastState = now; _hasBaseline = true; return null; }
             if (now == _lastState) return null;
             _lastState = now;
-            return new StatusAnnouncement(now ? "checked" : "unchecked");
+            return new StatusAnnouncement(Loc.Get(now ? "status.checked" : "status.unchecked"));
         }
     }
 }

@@ -1,0 +1,18 @@
+{
+  "type.button": "Schaltfläche",
+  "type.checkbox": "Kontrollkästchen",
+  "type.radio_button": "Optionsfeld",
+  "type.slider": "Schieberegler",
+
+  "status.selected": "ausgewählt",
+  "status.not_selected": "nicht ausgewählt",
+  "status.checked": "aktiviert",
+  "status.unchecked": "nicht aktiviert",
+  "status.locked": "gesperrt",
+  "status.unlocked": "freigeschaltet",
+  "status.disabled": "deaktiviert",
+
+  "format.percent": "{0} Prozent",
+
+  "common.scene_loading": "Szene wird geladen."
+}

@@ -1,0 +1,18 @@
+{
+  "type.button": "bouton",
+  "type.checkbox": "case à cocher",
+  "type.radio_button": "bouton radio",
+  "type.slider": "curseur",
+
+  "status.selected": "sélectionné",
+  "status.not_selected": "non sélectionné",
+  "status.checked": "coché",
+  "status.unchecked": "non coché",
+  "status.locked": "verrouillé",
+  "status.unlocked": "déverrouillé",
+  "status.disabled": "désactivé",
+
+  "format.percent": "{0} pour cent",
+
+  "common.scene_loading": "Chargement de la scène."
+}

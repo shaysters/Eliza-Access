@@ -358,7 +358,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     && DateTime.UtcNow - _enteredAtUtc >= LoadingAnnounceAfter)
                 {
                     _loadingAnnounced = true;
-                    Speech.Speak("Scene loading.");
+                    Speech.Speak(Loc.Get("common.scene_loading"));
                     Log("[ExplorationSubView] loading announce (ready gate still open)");
                 }
                 if (!TryAdvanceReady()) return;

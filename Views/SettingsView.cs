@@ -297,7 +297,7 @@ namespace ElizaAccess.Views
         private static string FormatVolumePercent(float v)
         {
             if (v < 0f) return string.Empty;
-            return $"{(int)Math.Round(v * 100f)} percent";
+            return Loc.Fmt("format.percent", (int)Math.Round(v * 100f));
         }
 
         protected override void OnFocus()

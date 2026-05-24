@@ -1,0 +1,18 @@
+{
+  "type.button": "botón",
+  "type.checkbox": "casilla de verificación",
+  "type.radio_button": "botón de opción",
+  "type.slider": "control deslizante",
+
+  "status.selected": "seleccionado",
+  "status.not_selected": "no seleccionado",
+  "status.checked": "marcado",
+  "status.unchecked": "no marcado",
+  "status.locked": "bloqueado",
+  "status.unlocked": "desbloqueado",
+  "status.disabled": "deshabilitado",
+
+  "format.percent": "{0} por ciento",
+
+  "common.scene_loading": "Cargando escena."
+}

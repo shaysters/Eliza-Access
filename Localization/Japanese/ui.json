@@ -1,0 +1,18 @@
+{
+  "type.button": "ボタン",
+  "type.checkbox": "チェックボックス",
+  "type.radio_button": "ラジオボタン",
+  "type.slider": "スライダー",
+
+  "status.selected": "選択",
+  "status.not_selected": "未選択",
+  "status.checked": "チェックあり",
+  "status.unchecked": "チェックなし",
+  "status.locked": "ロック",
+  "status.unlocked": "ロック解除",
+  "status.disabled": "無効",
+
+  "format.percent": "{0} パーセント",
+
+  "common.scene_loading": "シーンを読み込み中。"
+}

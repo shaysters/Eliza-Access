@@ -1,0 +1,18 @@
+{
+  "type.button": "button",
+  "type.checkbox": "checkbox",
+  "type.radio_button": "radio button",
+  "type.slider": "slider",
+
+  "status.selected": "selected",
+  "status.not_selected": "not selected",
+  "status.checked": "checked",
+  "status.unchecked": "unchecked",
+  "status.locked": "locked",
+  "status.unlocked": "unlocked",
+  "status.disabled": "disabled",
+
+  "format.percent": "{0} percent",
+
+  "common.scene_loading": "Scene loading."
+}

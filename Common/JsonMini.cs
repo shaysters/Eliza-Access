@@ -37,6 +37,21 @@ namespace ElizaAccess.Common
             return result;
         }
 
+        /// <summary>
+        /// Parse a flat string→string object: <c>{ "key": "value", … }</c>.
+        /// Used for localization tables, whose values are always
+        /// strings. Same string/escape handling as <see cref="Parse"/>.
+        /// </summary>
+        public static Dictionary<string, string> ParseFlat(string text)
+        {
+            var p = new Parser(text);
+            p.SkipWs();
+            var result = p.ReadFlatStringObject();
+            p.SkipWs();
+            if (!p.AtEnd) throw new ParseException($"trailing junk at offset {p.Pos}");
+            return result;
+        }
+
         private sealed class Parser
         {
             private readonly string _s;
@@ -65,6 +80,28 @@ namespace ElizaAccess.Common
             {
                 if (Peek() != c) throw new ParseException($"expected '{c}' at offset {_i}, got '{Peek()}'");
                 _i++;
+            }
+
+            public Dictionary<string, string> ReadFlatStringObject()
+            {
+                var map = new Dictionary<string, string>(StringComparer.Ordinal);
+                Expect('{');
+                SkipWs();
+                if (Peek() == '}') { _i++; return map; }
+                while (true)
+                {
+                    SkipWs();
+                    string key = ReadString();
+                    SkipWs(); Expect(':'); SkipWs();
+                    string val = ReadString();
+                    map[key] = val;
+                    SkipWs();
+                    char nc = Peek();
+                    if (nc == ',') { _i++; continue; }
+                    if (nc == '}') { _i++; break; }
+                    throw new ParseException($"expected ',' or '}}' at offset {_i}");
+                }
+                return map;
             }
 
             public Dictionary<string, Dictionary<string, object?>> ReadOuterObject()

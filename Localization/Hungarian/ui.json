@@ -1,0 +1,18 @@
+{
+  "type.button": "gomb",
+  "type.checkbox": "jelölőnégyzet",
+  "type.radio_button": "választógomb",
+  "type.slider": "csúszka",
+
+  "status.selected": "kijelölve",
+  "status.not_selected": "nincs kijelölve",
+  "status.checked": "bejelölve",
+  "status.unchecked": "nincs bejelölve",
+  "status.locked": "zárolva",
+  "status.unlocked": "feloldva",
+  "status.disabled": "letiltva",
+
+  "format.percent": "{0} százalék",
+
+  "common.scene_loading": "Jelenet betöltése."
+}

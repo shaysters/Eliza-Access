@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ElizaAccess.Common;
 using ElizaAccess.UI.Announcements;
 
 namespace ElizaAccess.UI.Elements
@@ -42,7 +43,7 @@ namespace ElizaAccess.UI.Elements
         public override IEnumerable<Announcement> GetFocusAnnouncements()
         {
             yield return new LabelAnnouncement(_label);
-            yield return new TypeAnnouncement("slider");
+            yield return new TypeAnnouncement(Loc.Get("type.slider"));
             yield return new StatusAnnouncement(SafeFormat());
             if (!string.IsNullOrEmpty(_tooltip))
                 yield return new TooltipAnnouncement(_tooltip);

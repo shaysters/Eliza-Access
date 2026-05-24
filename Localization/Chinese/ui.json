@@ -1,0 +1,18 @@
+{
+  "type.button": "按钮",
+  "type.checkbox": "复选框",
+  "type.radio_button": "单选按钮",
+  "type.slider": "滑块",
+
+  "status.selected": "已选中",
+  "status.not_selected": "未选中",
+  "status.checked": "已勾选",
+  "status.unchecked": "未勾选",
+  "status.locked": "已锁定",
+  "status.unlocked": "已解锁",
+  "status.disabled": "已禁用",
+
+  "format.percent": "百分之 {0}",
+
+  "common.scene_loading": "场景加载中。"
+}
