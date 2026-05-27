@@ -72,6 +72,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private const int MinWaitPolls         = 40;    // ~200ms before earliest announce
         private const int StableThresholdPolls = 100;   // ~500ms unchanged → settled
         private const int HardDeadlinePolls    = 1200;  // ~6s backstop
+        // The signature when nothing is populated — see BuildContentSignature.
+        private const string EmptySig = "a0:x0:r-:t-";
 
         // ── Per-activation state ───────────────────────────────────────
         private bool _contentAnnounced;
@@ -103,9 +105,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
             Log($"[SessionResultsSub] init: currentStep={(_currentStepMethod != null)} " +
                 $"endTherapyCast={(_endTherapyCastMethod != null)} " +
-                $"phoneState={(_phoneStateField != null)} achievements={(_achievementsListField != null)} " +
-                $"gc27Xp={(_gc27XpField != null)} gc27Name={(_gc27NameField != null)} " +
-                $"tip={(_tipField != null)} rating={(_ratingField != null)}");
+                $"phoneState={(_phoneStateField != null)} " +
+                $"achievements={_achievementsListField?.Name ?? "<null>"} " +
+                $"gc27Xp={_gc27XpField?.Name ?? "<null>"} gc27Name={_gc27NameField?.Name ?? "<null>"} " +
+                $"tip={_tipField?.Name ?? "<null>"} rating={_ratingField?.Name ?? "<null>"}");
         }
 
         // ── Content-field resolution ───────────────────────────────────
@@ -175,20 +178,28 @@ namespace ElizaAccess.Views.WorldScreenSubs
             }
         }
 
-        // GClass27: a reference type with an int field (XP), a GClass23
-        // field (localized name), and a Texture field (icon). We need the
-        // int and the FIRST GClass23 (gclass23_0 — the drawn name;
-        // gclass23_1 is a secondary string we don't read).
+        // GClass27: a reference type with an int field (XP), two
+        // localized-text fields (gclass23_0/1), and two Texture fields
+        // (icons). We want int_0 and the FIRST localized-text field
+        // (gclass23_0 — the drawn name). The localized-text type's name
+        // ("GClass23") does NOT survive obfuscation, so we can't match
+        // it by name — instead the name field is identified as the
+        // first reference-typed field that is neither a string nor a
+        // Texture. "Texture" IS a preserved runtime name, so the icon
+        // fields are excluded reliably.
         private static bool LooksLikeAchievement(Type t, out FieldInfo? xp, out FieldInfo? name)
         {
             xp = null; name = null;
             if (t.IsValueType || t == typeof(string)) return false;
             bool hasTexture = false;
-            foreach (FieldInfo f in t.GetFields(BindingFlags.Public | BindingFlags.Instance))
+            var fields = new List<FieldInfo>(t.GetFields(BindingFlags.Public | BindingFlags.Instance));
+            fields.Sort((a, b) => a.MetadataToken.CompareTo(b.MetadataToken));
+            foreach (FieldInfo f in fields)
             {
-                if (f.FieldType == typeof(int) && xp == null) xp = f;
-                else if (f.FieldType.Name == "GClass23" && name == null) name = f;
-                else if (f.FieldType.Name == "Texture") hasTexture = true;
+                Type ft = f.FieldType;
+                if (ft == typeof(int)) { if (xp == null) xp = f; }
+                else if (ft.Name == "Texture") hasTexture = true;
+                else if (!ft.IsValueType && ft != typeof(string) && name == null) name = f;
             }
             return xp != null && name != null && hasTexture;
         }
@@ -266,7 +277,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 if (_pollsWaited % 20 == 0)
                     Log($"[SessionResultsSub] waiting: sig=[{sig}] stableFor={_pollsSinceChange} waited={_pollsWaited}");
 
-                bool stable   = _pollsWaited >= MinWaitPolls && _pollsSinceChange >= StableThresholdPolls;
+                // "Stable" only counts once the content is actually
+                // populated. A constant ALL-EMPTY signature means the
+                // reveal hasn't reached the data yet, NOT that it's
+                // done — announcing then is the "way too early" bug.
+                bool nonEmpty = sig != EmptySig;
+                bool stable   = nonEmpty && _pollsWaited >= MinWaitPolls
+                                         && _pollsSinceChange >= StableThresholdPolls;
                 bool deadline = _pollsWaited >= HardDeadlinePolls;
                 if (!stable && !deadline) return;
 
