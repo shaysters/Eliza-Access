@@ -348,11 +348,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
             else
                 Speech.Speak(Loc.Get("session.results.no_rating"));
 
-            // Tip: maybe_21 dollars or "No tip given."
-            if (TryReadMaybeFloat(out float tip))
-                Speech.Speak(Loc.Fmt("session.results.tip", tip.ToString("0.00")));
-            else
-                Speech.Speak(Loc.Get("session.results.no_tip"));
+            // Tip: the panel always shows a dollar figure — $0.00 when
+            // no tip was given (maybe_21 no-value → the engine's
+            // method_4(0f) default), $X.XX otherwise — so read the
+            // number to match what's on screen rather than a "no tip"
+            // phrase.
+            float tip = TryReadMaybeFloat(out float t) ? t : 0f;
+            Speech.Speak(Loc.Fmt("session.results.tip", tip.ToString("0.00")));
 
             Log($"[SessionResultsSub] announced: {achievements.Count} achievements, total {total} XP");
         }
