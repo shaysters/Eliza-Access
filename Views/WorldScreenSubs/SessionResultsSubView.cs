@@ -55,14 +55,29 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private MethodInfo? _maybeFloatHasValue, _maybeFloatGetValue;
         private MethodInfo? _maybeIntHasValue, _maybeIntGetValue;
 
+        // ── Animation-settle detection ─────────────────────────────────
+        // The panel's content (maybe_21 tip, maybe_22 rating, AND the
+        // list_0 achievements) is populated as the reveal animation
+        // plays, NOT at EndTherapy entry — read too early and they're
+        // all empty/no-value. We wait for the animation to finish the
+        // same way the old text-scraping version did: watch the panel's
+        // own timer chain (maybe_23-27, a set of Maybe<float> that are
+        // no-value before EndTherapy, then get set and increment during
+        // the reveal). When none of them has incremented for
+        // SettleThresholdPolls, every phase is done and the fields hold
+        // their final values.
+        private readonly List<FieldInfo> _maybeFloatFields = new List<FieldInfo>();
+        private readonly HashSet<FieldInfo> _initiallyNoValue = new HashSet<FieldInfo>();
+        private readonly HashSet<FieldInfo> _panelTimerFields = new HashSet<FieldInfo>();
+        private readonly Dictionary<FieldInfo, float> _lastTimerValues = new Dictionary<FieldInfo, float>();
+        private int  _pollsSinceLastIncrement;
+        private int  _pollsWaited;
+        private const int SettleThresholdPolls = 60;   // ~300ms with no timer increment
+        private const int HardDeadlinePolls    = 1000;  // ~5s backstop if no timers seen
+
         // ── Per-activation state ───────────────────────────────────────
         private bool _contentAnnounced;
-        private int  _pollsWaited;
         private int  _lastSideHotspotIdx = -1;
-        // Give the engine a beat to populate list_0 after EndTherapy
-        // becomes current, but don't wait forever (a session with no
-        // achievements would leave the list empty). ~100 polls ≈ 0.5s.
-        private const int ReadyDeadlinePolls = 100;
 
         public override void OnInit()
         {
@@ -87,6 +102,19 @@ namespace ElizaAccess.Views.WorldScreenSubs
             if (tGClass10 != null) ResolveEndTherapyCast(tGClass10);
 
             ResolveContentFields(tWS, inst);
+
+            // Catalog every Maybe<float> on WorldScreen — the animation-
+            // settle detector watches the subset of these that the
+            // EndTherapy reveal activates.
+            foreach (FieldInfo f in tWS.GetFields(inst))
+            {
+                Type ft = f.FieldType;
+                if (!ft.IsGenericType || ft.GetGenericArguments().Length != 1) continue;
+                if (ft.GetGenericArguments()[0] != typeof(float)) continue;
+                _maybeFloatFields.Add(f);
+                if (_maybeFloatHasValue == null)
+                    ResolveMaybeMethods(ft, out _maybeFloatHasValue, out _maybeFloatGetValue);
+            }
 
             Log($"[SessionResultsSub] init: currentStep={(_currentStepMethod != null)} " +
                 $"endTherapyCast={(_endTherapyCastMethod != null)} " +
@@ -217,13 +245,29 @@ namespace ElizaAccess.Views.WorldScreenSubs
             SessionResultsState.IsActive = true;
             _contentAnnounced  = false;
             _pollsWaited       = 0;
+            _pollsSinceLastIncrement = 0;
             _lastSideHotspotIdx = -1;
+            _initiallyNoValue.Clear();
+            _panelTimerFields.Clear();
+            _lastTimerValues.Clear();
+
+            // Snapshot which Maybe<float> are no-value right now; any
+            // that later transition to HasValue is a panel reveal timer
+            // we watch for the animation-done signal.
+            if (_maybeFloatHasValue != null)
+            {
+                foreach (FieldInfo f in _maybeFloatFields)
+                {
+                    if (TryReadMaybeFloatField(f, out _)) continue; // already HasValue → not a panel timer
+                    _initiallyNoValue.Add(f);
+                }
+            }
 
             // Interrupt anything in flight (queued narration / a stale
             // load-handler dialogue line on save-resume), then announce
-            // the header. The content follows once list_0 populates.
+            // the header. The content follows once the reveal settles.
             Speech.Speak(Loc.Get("session.results_title"), interrupt: true);
-            Log("[SessionResultsSub] enter");
+            Log($"[SessionResultsSub] enter ({_initiallyNoValue.Count} Maybe<float> baseline no-value)");
         }
 
         public override void OnLeave()
@@ -238,10 +282,28 @@ namespace ElizaAccess.Views.WorldScreenSubs
             if (!_contentAnnounced)
             {
                 _pollsWaited++;
-                // Announce once list_0 has populated, or after the
-                // deadline (covers a session with no achievements).
-                bool ready = AchievementCount() > 0 || _pollsWaited >= ReadyDeadlinePolls;
-                if (!ready) return;
+
+                // Watch the panel reveal timers (Maybe<float> that went
+                // no-value → HasValue since OnEnter). Animation is done
+                // when none has incremented for SettleThresholdPolls.
+                bool anyIncremented = false;
+                foreach (FieldInfo f in _initiallyNoValue)
+                {
+                    if (!TryReadMaybeFloatField(f, out float v)) continue;
+                    if (_panelTimerFields.Add(f)) { _lastTimerValues[f] = v; anyIncremented = true; continue; }
+                    if (_lastTimerValues.TryGetValue(f, out float prev) && v > prev + 0.0001f)
+                    {
+                        anyIncremented = true;
+                        _lastTimerValues[f] = v;
+                    }
+                }
+                if (anyIncremented) _pollsSinceLastIncrement = 0;
+                else                _pollsSinceLastIncrement++;
+
+                bool settled  = _panelTimerFields.Count > 0 && _pollsSinceLastIncrement >= SettleThresholdPolls;
+                bool deadline = _pollsWaited >= HardDeadlinePolls;
+                if (!settled && !deadline) return;
+
                 AnnounceResults();
                 _contentAnnounced = true;
                 // Seed the cursor tracker so we don't immediately read a
@@ -249,6 +311,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 // in-session AR-console log keeps registering hotspots
                 // behind the panel).
                 _lastSideHotspotIdx = CursorFocus.FindHotspotIndex();
+                Log($"[SessionResultsSub] settle: settled={settled} deadline={deadline} " +
+                    $"timers={_panelTimerFields.Count} waited={_pollsWaited}");
                 return;
             }
 
@@ -295,18 +359,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
             Log($"[SessionResultsSub] announced: {achievements.Count} achievements, total {total} XP");
         }
 
-        private int AchievementCount()
-        {
-            if (_phoneStateField == null || _achievementsListField == null) return 0;
-            try
-            {
-                object? ps = _phoneStateField.GetValue(Parent);
-                if (ps == null) return 0;
-                return (_achievementsListField.GetValue(ps) is ICollection c) ? c.Count : 0;
-            }
-            catch { return 0; }
-        }
-
         private List<(string Name, int Xp)> ReadAchievements()
         {
             var result = new List<(string, int)>();
@@ -350,12 +402,15 @@ namespace ElizaAccess.Views.WorldScreenSubs
         }
 
         private bool TryReadMaybeFloat(out float value)
+            => TryReadMaybeFloatField(_tipField, out value);
+
+        private bool TryReadMaybeFloatField(FieldInfo? f, out float value)
         {
             value = 0f;
-            if (_tipField == null || _maybeFloatHasValue == null || _maybeFloatGetValue == null) return false;
+            if (f == null || _maybeFloatHasValue == null || _maybeFloatGetValue == null) return false;
             try
             {
-                object? boxed = _tipField.GetValue(Parent);
+                object? boxed = f.GetValue(Parent);
                 if (boxed == null) return false;
                 if (!(bool)_maybeFloatHasValue.Invoke(boxed, null)!) return false;
                 value = (float)_maybeFloatGetValue.Invoke(boxed, null)!;
