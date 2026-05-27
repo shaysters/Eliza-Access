@@ -55,25 +55,23 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private MethodInfo? _maybeFloatHasValue, _maybeFloatGetValue;
         private MethodInfo? _maybeIntHasValue, _maybeIntGetValue;
 
-        // ── Animation-settle detection ─────────────────────────────────
-        // The panel's content (maybe_21 tip, maybe_22 rating, AND the
-        // list_0 achievements) is populated as the reveal animation
-        // plays, NOT at EndTherapy entry — read too early and they're
-        // all empty/no-value. We wait for the animation to finish the
-        // same way the old text-scraping version did: watch the panel's
-        // own timer chain (maybe_23-27, a set of Maybe<float> that are
-        // no-value before EndTherapy, then get set and increment during
-        // the reveal). When none of them has incremented for
-        // SettleThresholdPolls, every phase is done and the fields hold
-        // their final values.
-        private readonly List<FieldInfo> _maybeFloatFields = new List<FieldInfo>();
-        private readonly HashSet<FieldInfo> _initiallyNoValue = new HashSet<FieldInfo>();
-        private readonly HashSet<FieldInfo> _panelTimerFields = new HashSet<FieldInfo>();
-        private readonly Dictionary<FieldInfo, float> _lastTimerValues = new Dictionary<FieldInfo, float>();
-        private int  _pollsSinceLastIncrement;
-        private int  _pollsWaited;
-        private const int SettleThresholdPolls = 60;   // ~300ms with no timer increment
-        private const int HardDeadlinePolls    = 1000;  // ~5s backstop if no timers seen
+        // ── Content-stability gate ─────────────────────────────────────
+        // The panel's content (maybe_21 tip, maybe_22 rating, list_0
+        // achievements) is set by award script steps; the reveal then
+        // animates it in. Rather than try to detect the animation's
+        // timer chain (fragile — depends on catching a no-value
+        // baseline before the engine's first render frame sets it), we
+        // just read the real fields each poll and announce once the
+        // composite content has stopped changing for StableThresholdPolls.
+        // Robust whether the data is ready at entry or fills in over the
+        // reveal; a minimum wait avoids announcing on the first poll
+        // before population, and a hard deadline is the backstop.
+        private int    _pollsWaited;
+        private int    _pollsSinceChange;
+        private string _lastSig = "";
+        private const int MinWaitPolls         = 40;    // ~200ms before earliest announce
+        private const int StableThresholdPolls = 100;   // ~500ms unchanged → settled
+        private const int HardDeadlinePolls    = 1200;  // ~6s backstop
 
         // ── Per-activation state ───────────────────────────────────────
         private bool _contentAnnounced;
@@ -102,19 +100,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
             if (tGClass10 != null) ResolveEndTherapyCast(tGClass10);
 
             ResolveContentFields(tWS, inst);
-
-            // Catalog every Maybe<float> on WorldScreen — the animation-
-            // settle detector watches the subset of these that the
-            // EndTherapy reveal activates.
-            foreach (FieldInfo f in tWS.GetFields(inst))
-            {
-                Type ft = f.FieldType;
-                if (!ft.IsGenericType || ft.GetGenericArguments().Length != 1) continue;
-                if (ft.GetGenericArguments()[0] != typeof(float)) continue;
-                _maybeFloatFields.Add(f);
-                if (_maybeFloatHasValue == null)
-                    ResolveMaybeMethods(ft, out _maybeFloatHasValue, out _maybeFloatGetValue);
-            }
 
             Log($"[SessionResultsSub] init: currentStep={(_currentStepMethod != null)} " +
                 $"endTherapyCast={(_endTherapyCastMethod != null)} " +
@@ -245,29 +230,15 @@ namespace ElizaAccess.Views.WorldScreenSubs
             SessionResultsState.IsActive = true;
             _contentAnnounced  = false;
             _pollsWaited       = 0;
-            _pollsSinceLastIncrement = 0;
+            _pollsSinceChange  = 0;
+            _lastSig           = "";
             _lastSideHotspotIdx = -1;
-            _initiallyNoValue.Clear();
-            _panelTimerFields.Clear();
-            _lastTimerValues.Clear();
-
-            // Snapshot which Maybe<float> are no-value right now; any
-            // that later transition to HasValue is a panel reveal timer
-            // we watch for the animation-done signal.
-            if (_maybeFloatHasValue != null)
-            {
-                foreach (FieldInfo f in _maybeFloatFields)
-                {
-                    if (TryReadMaybeFloatField(f, out _)) continue; // already HasValue → not a panel timer
-                    _initiallyNoValue.Add(f);
-                }
-            }
 
             // Interrupt anything in flight (queued narration / a stale
             // load-handler dialogue line on save-resume), then announce
-            // the header. The content follows once the reveal settles.
+            // the header. The content follows once it stops changing.
             Speech.Speak(Loc.Get("session.results_title"), interrupt: true);
-            Log($"[SessionResultsSub] enter ({_initiallyNoValue.Count} Maybe<float> baseline no-value)");
+            Log("[SessionResultsSub] enter");
         }
 
         public override void OnLeave()
@@ -283,26 +254,21 @@ namespace ElizaAccess.Views.WorldScreenSubs
             {
                 _pollsWaited++;
 
-                // Watch the panel reveal timers (Maybe<float> that went
-                // no-value → HasValue since OnEnter). Animation is done
-                // when none has incremented for SettleThresholdPolls.
-                bool anyIncremented = false;
-                foreach (FieldInfo f in _initiallyNoValue)
-                {
-                    if (!TryReadMaybeFloatField(f, out float v)) continue;
-                    if (_panelTimerFields.Add(f)) { _lastTimerValues[f] = v; anyIncremented = true; continue; }
-                    if (_lastTimerValues.TryGetValue(f, out float prev) && v > prev + 0.0001f)
-                    {
-                        anyIncremented = true;
-                        _lastTimerValues[f] = v;
-                    }
-                }
-                if (anyIncremented) _pollsSinceLastIncrement = 0;
-                else                _pollsSinceLastIncrement++;
+                // Composite signature of everything we'd announce. When
+                // it stops changing, the reveal has finished populating
+                // the fields and they hold their final values.
+                string sig = BuildContentSignature();
+                if (sig != _lastSig) { _lastSig = sig; _pollsSinceChange = 0; }
+                else                 { _pollsSinceChange++; }
 
-                bool settled  = _panelTimerFields.Count > 0 && _pollsSinceLastIncrement >= SettleThresholdPolls;
+                // Periodic trace of the population timeline — invaluable
+                // for confirming when each field becomes ready.
+                if (_pollsWaited % 20 == 0)
+                    Log($"[SessionResultsSub] waiting: sig=[{sig}] stableFor={_pollsSinceChange} waited={_pollsWaited}");
+
+                bool stable   = _pollsWaited >= MinWaitPolls && _pollsSinceChange >= StableThresholdPolls;
                 bool deadline = _pollsWaited >= HardDeadlinePolls;
-                if (!settled && !deadline) return;
+                if (!stable && !deadline) return;
 
                 AnnounceResults();
                 _contentAnnounced = true;
@@ -311,8 +277,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 // in-session AR-console log keeps registering hotspots
                 // behind the panel).
                 _lastSideHotspotIdx = CursorFocus.FindHotspotIndex();
-                Log($"[SessionResultsSub] settle: settled={settled} deadline={deadline} " +
-                    $"timers={_panelTimerFields.Count} waited={_pollsWaited}");
+                Log($"[SessionResultsSub] announce: stable={stable} deadline={deadline} " +
+                    $"waited={_pollsWaited} sig=[{_lastSig}]");
                 return;
             }
 
@@ -357,6 +323,20 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 Speech.Speak(Loc.Get("session.results.no_tip"));
 
             Log($"[SessionResultsSub] announced: {achievements.Count} achievements, total {total} XP");
+        }
+
+        // Snapshot of the announceable content as a compact string, so
+        // we can tell when it stops changing. Achievement count + total
+        // XP + rating/tip states; if any field is unresolved it
+        // contributes a constant, so the signature still settles.
+        private string BuildContentSignature()
+        {
+            var achievements = ReadAchievements();
+            int total = 0;
+            foreach (var (_, xp) in achievements) total += xp;
+            string rating = TryReadMaybeInt(out int r) ? r.ToString() : "-";
+            string tip    = TryReadMaybeFloat(out float t) ? t.ToString("0.00") : "-";
+            return $"a{achievements.Count}:x{total}:r{rating}:t{tip}";
         }
 
         private List<(string Name, int Xp)> ReadAchievements()
