@@ -69,8 +69,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private int    _pollsWaited;
         private int    _pollsSinceChange;
         private string _lastSig = "";
+        private bool   _tipOrRatingSeen;
         private const int MinWaitPolls         = 40;    // ~200ms before earliest announce
         private const int StableThresholdPolls = 100;   // ~500ms unchanged → settled
+        // achievements populate early but tip/rating arrive later in the
+        // reveal; don't announce until they've shown up (or this cap is
+        // hit, for a genuine no-tip / no-rating session).
+        private const int ExtendedWaitPolls    = 700;   // ~3.5s
         private const int HardDeadlinePolls    = 1200;  // ~6s backstop
         // The signature when nothing is populated — see BuildContentSignature.
         private const string EmptySig = "a0:x0:r-:t-";
@@ -243,6 +248,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
             _pollsWaited       = 0;
             _pollsSinceChange  = 0;
             _lastSig           = "";
+            _tipOrRatingSeen   = false;
             _lastSideHotspotIdx = -1;
 
             // Interrupt anything in flight (queued narration / a stale
@@ -272,20 +278,29 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 if (sig != _lastSig) { _lastSig = sig; _pollsSinceChange = 0; }
                 else                 { _pollsSinceChange++; }
 
+                // Track whether tip/rating have populated yet. They
+                // arrive later in the reveal than the achievements, so
+                // achievements going stable is NOT "done."
+                bool tipNow    = TryReadMaybeFloat(out _);
+                bool ratingNow = TryReadMaybeInt(out _);
+                if (tipNow || ratingNow) _tipOrRatingSeen = true;
+
                 // Periodic trace of the population timeline — invaluable
                 // for confirming when each field becomes ready.
                 if (_pollsWaited % 20 == 0)
-                    Log($"[SessionResultsSub] waiting: sig=[{sig}] stableFor={_pollsSinceChange} waited={_pollsWaited}");
+                    Log($"[SessionResultsSub] waiting: sig=[{sig}] stableFor={_pollsSinceChange} " +
+                        $"waited={_pollsWaited} tipNow={tipNow} ratingNow={ratingNow}");
 
-                // "Stable" only counts once the content is actually
-                // populated. A constant ALL-EMPTY signature means the
-                // reveal hasn't reached the data yet, NOT that it's
-                // done — announcing then is the "way too early" bug.
+                // Announce once the content is populated (non-empty) AND
+                // stable, AND tip/rating have shown up — or, for a
+                // session that genuinely gives neither, after the
+                // extended cap. Hard deadline is the final backstop.
                 bool nonEmpty = sig != EmptySig;
                 bool stable   = nonEmpty && _pollsWaited >= MinWaitPolls
                                          && _pollsSinceChange >= StableThresholdPolls;
+                bool revealDone = _tipOrRatingSeen || _pollsWaited >= ExtendedWaitPolls;
                 bool deadline = _pollsWaited >= HardDeadlinePolls;
-                if (!stable && !deadline) return;
+                if (!(stable && revealDone) && !deadline) return;
 
                 AnnounceResults();
                 _contentAnnounced = true;
