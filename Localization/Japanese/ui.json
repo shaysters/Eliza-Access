@@ -62,6 +62,12 @@
   "session.results_title": "セッション結果。",
   "session.ended_stars": "セッション終了。3つ中 {0} つの星。",
   "session.results_stars": "セッション結果: 3つ中 {0} つの星。",
+  "session.results.achievement": "{0}、経験値 プラス{1}。",
+  "session.results.total_xp": "獲得した経験値の合計: {0}。",
+  "session.results.rating": "クライアントの評価: 5つ中 {0} つ星。",
+  "session.results.no_rating": "評価なし。",
+  "session.results.tip": "クライアントのチップ: ${0}。",
+  "session.results.no_tip": "チップなし。",
 
   "texting.text_from": "{0} からのメッセージ。",
 

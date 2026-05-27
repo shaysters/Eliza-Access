@@ -62,6 +62,12 @@
   "session.results_title": "Foglalkozás eredményei.",
   "session.ended_stars": "Foglalkozás vége. {0} a 3 csillagból.",
   "session.results_stars": "Foglalkozás eredményei: {0} a 3 csillagból.",
+  "session.results.achievement": "{0}, plusz {1} tapasztalat.",
+  "session.results.total_xp": "Összes szerzett tapasztalat: {0}.",
+  "session.results.rating": "Kliens értékelése: {0} az 5 csillagból.",
+  "session.results.no_rating": "Nincs értékelés adva.",
+  "session.results.tip": "Kliens borravalója: ${0}.",
+  "session.results.no_tip": "Nincs borravaló adva.",
 
   "texting.text_from": "Üzenet tőle: {0}.",
 

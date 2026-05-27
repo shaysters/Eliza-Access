@@ -62,6 +62,12 @@
   "session.results_title": "Итоги сеанса.",
   "session.ended_stars": "Сеанс завершён. {0} из 3 звёзд.",
   "session.results_stars": "Итоги сеанса: {0} из 3 звёзд.",
+  "session.results.achievement": "{0}, плюс {1} опыта.",
+  "session.results.total_xp": "Всего получено опыта: {0}.",
+  "session.results.rating": "Оценка клиента: {0} из 5 звёзд.",
+  "session.results.no_rating": "Оценка не дана.",
+  "session.results.tip": "Чаевые клиента: ${0}.",
+  "session.results.no_tip": "Чаевые не даны.",
 
   "texting.text_from": "Сообщение от {0}.",
 

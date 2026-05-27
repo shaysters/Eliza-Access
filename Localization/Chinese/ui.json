@@ -62,6 +62,12 @@
   "session.results_title": "咨询结果。",
   "session.ended_stars": "咨询结束。3 颗星中获得 {0} 颗。",
   "session.results_stars": "咨询结果：3 颗星中获得 {0} 颗。",
+  "session.results.achievement": "{0}，经验值 加 {1}。",
+  "session.results.total_xp": "获得的总经验值：{0}。",
+  "session.results.rating": "客户评分：5 星中 {0} 星。",
+  "session.results.no_rating": "未给出评分。",
+  "session.results.tip": "客户小费：${0}。",
+  "session.results.no_tip": "未给小费。",
 
   "texting.text_from": "来自 {0} 的短信。",
 

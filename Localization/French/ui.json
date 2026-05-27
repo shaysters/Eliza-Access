@@ -62,6 +62,12 @@
   "session.results_title": "Résultats de la session.",
   "session.ended_stars": "Session terminée. {0} étoiles sur 3.",
   "session.results_stars": "Résultats de la session : {0} étoiles sur 3.",
+  "session.results.achievement": "{0}, plus {1} d'expérience.",
+  "session.results.total_xp": "Expérience totale gagnée : {0}.",
+  "session.results.rating": "Évaluation du client : {0} étoiles sur 5.",
+  "session.results.no_rating": "Aucune évaluation donnée.",
+  "session.results.tip": "Pourboire du client : ${0}.",
+  "session.results.no_tip": "Aucun pourboire donné.",
 
   "texting.text_from": "Message de {0}.",
 

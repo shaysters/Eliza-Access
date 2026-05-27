@@ -62,6 +62,12 @@
   "session.results_title": "Session Results.",
   "session.ended_stars": "Session ended. {0} of 3 stars.",
   "session.results_stars": "Session results: {0} of 3 stars.",
+  "session.results.achievement": "{0}, plus {1} experience.",
+  "session.results.total_xp": "Total experience gained: {0}.",
+  "session.results.rating": "Client rating: {0} of 5 stars.",
+  "session.results.no_rating": "No rating given.",
+  "session.results.tip": "Client tip: ${0}.",
+  "session.results.no_tip": "No tip given.",
 
   "texting.text_from": "Text from {0}.",
 

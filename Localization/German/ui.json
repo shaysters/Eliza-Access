@@ -62,6 +62,12 @@
   "session.results_title": "Sitzungsergebnisse.",
   "session.ended_stars": "Sitzung beendet. {0} von 3 Sternen.",
   "session.results_stars": "Sitzungsergebnisse: {0} von 3 Sternen.",
+  "session.results.achievement": "{0}, plus {1} Erfahrung.",
+  "session.results.total_xp": "Erhaltene Erfahrung insgesamt: {0}.",
+  "session.results.rating": "Klientenbewertung: {0} von 5 Sternen.",
+  "session.results.no_rating": "Keine Bewertung abgegeben.",
+  "session.results.tip": "Trinkgeld des Klienten: ${0}.",
+  "session.results.no_tip": "Kein Trinkgeld gegeben.",
 
   "texting.text_from": "Nachricht von {0}.",
 

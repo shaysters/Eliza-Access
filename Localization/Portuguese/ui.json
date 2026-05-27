@@ -62,6 +62,12 @@
   "session.results_title": "Resultados da sessão.",
   "session.ended_stars": "Sessão encerrada. {0} de 3 estrelas.",
   "session.results_stars": "Resultados da sessão: {0} de 3 estrelas.",
+  "session.results.achievement": "{0}, mais {1} de experiência.",
+  "session.results.total_xp": "Experiência total obtida: {0}.",
+  "session.results.rating": "Avaliação do cliente: {0} de 5 estrelas.",
+  "session.results.no_rating": "Nenhuma avaliação dada.",
+  "session.results.tip": "Gorjeta do cliente: ${0}.",
+  "session.results.no_tip": "Nenhuma gorjeta dada.",
 
   "texting.text_from": "Mensagem de {0}.",
 
