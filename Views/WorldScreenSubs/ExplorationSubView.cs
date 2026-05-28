@@ -516,19 +516,22 @@ namespace ElizaAccess.Views.WorldScreenSubs
         {
             if (_focusedLabel == null) return;
             string itemText = new ButtonElement(_focusedLabel).ResolveFocusText();
-            // Look-around item text is narrative content → R-key
-            // replayable (unlike menu/UI focus labels).
+            // These are the look-around item BUTTONS — navigation, not
+            // content — so they're NOT R-key replayable. The narrative
+            // text the player clicks through (Evelyn's thoughts) is the
+            // FakeAppScreen pushed on selecting an item, handled by
+            // FakeAppScreenView.
             if (!_containerAnnounced)
             {
                 _containerAnnounced = true;
                 int n = _entryCountForAnnounce;
                 string countPart = n == 1 ? Loc.Get("exploration.one_thing")
                                           : Loc.Fmt("exploration.n_things", n);
-                Speech.Speak(Loc.Fmt("exploration.entry", countPart, itemText), repeatable: true);
+                Speech.Speak(Loc.Fmt("exploration.entry", countPart, itemText));
             }
             else
             {
-                Speech.Speak(itemText, repeatable: true);
+                Speech.Speak(itemText);
             }
         }
 
