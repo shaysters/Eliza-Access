@@ -192,7 +192,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
                 _lastDialogueText = text;
                 if (speakerName != "?") _lastSpeakerName = speakerName;
-                Speech.Speak(utterance);
+                // Conversation dialogue is narrative content → R-key
+                // replayable. (Voiced / player-echo lines above use
+                // RecordSilent, which also sets the replay target.)
+                Speech.Speak(utterance, repeatable: true);
                 Log($"[DialogueSub] spoke: \"{Trunc(utterance, 80)}\"");
             }
             catch (Exception ex)

@@ -125,9 +125,16 @@ namespace ElizaAccess
 
         // ── Public API ────────────────────────────────────────────────────────
 
-        /// <summary>The last non-empty string passed to Speak() (or
-        /// recorded via <see cref="RecordSilent"/>). Used for R-key
-        /// repeat.</summary>
+        /// <summary>The last utterance the player should be able to
+        /// REPLAY with the R key — narrative content only (Evelyn's
+        /// thoughts / look-around text / locked-app text via
+        /// FakeAppScreen, and conversation dialogue). It is updated
+        /// only by <see cref="Speak"/> calls passing
+        /// <c>repeatable: true</c> and by <see cref="RecordSilent"/>
+        /// (voiced dialogue). UI / navigation announcements (menu
+        /// options, focus labels, the Eliza-app AR log) deliberately
+        /// do NOT update it, so R always re-reads the last piece of
+        /// story content regardless of menu navigation in between.</summary>
         public string? LastSpoken { get; private set; }
 
         /// <summary>Update <see cref="LastSpoken"/> WITHOUT routing the
@@ -141,19 +148,21 @@ namespace ElizaAccess
             LastSpoken = text;
         }
 
-        /// <summary>Speak text. interrupt=true stops current speech first.</summary>
-        public void Speak(string text, bool interrupt = false)
+        /// <summary>Speak text. interrupt=true stops current speech
+        /// first. repeatable=true marks this utterance as the R-key
+        /// replay target (narrative content); leave it false for UI /
+        /// navigation announcements so they don't become the replay
+        /// target. See <see cref="LastSpoken"/>.</summary>
+        public void Speak(string text, bool interrupt = false, bool repeatable = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
+            // Only narrative content updates the replay target; UI
+            // announcements speak without disturbing it.
+            if (repeatable) LastSpoken = text;
             // Suppress speech when the game window is not the foreground
-            // app (user has alt-tabbed away). LastSpoken still updates
-            // so R-key replay works once focus returns.
-            if (!IsGameWindowFocused())
-            {
-                LastSpoken = text;
-                return;
-            }
-            LastSpoken = text;
+            // app (user has alt-tabbed away). The replay target still
+            // updated above so R works once focus returns.
+            if (!IsGameWindowFocused()) return;
 
             if (_backend == IntPtr.Zero) return;
 

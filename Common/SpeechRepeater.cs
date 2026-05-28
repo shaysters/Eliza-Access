@@ -12,9 +12,13 @@ namespace ElizaAccess.Common
     /// ran first, the interrupter would kill the replay we just
     /// queued.
     ///
-    /// Works across every screen because LastSpoken is updated by
-    /// every Speak call regardless of context — dialogue, focus
-    /// announcements, pile readouts, fortune descriptions, etc.
+    /// <see cref="SpeechEngine.LastSpoken"/> is the narrative-content
+    /// replay target — set only by repeatable Speak calls and
+    /// RecordSilent (Evelyn's thoughts / look-around / locked-app text
+    /// via FakeAppScreen, and conversation dialogue). UI / navigation
+    /// announcements (menu options, focus labels, the Eliza-app AR
+    /// log) don't update it, so R re-reads the last story content even
+    /// after the player has been navigating menus.
     /// </summary>
     internal sealed class SpeechRepeater
     {

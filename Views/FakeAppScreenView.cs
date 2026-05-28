@@ -82,8 +82,13 @@ namespace ElizaAccess.Views
             }
         }
 
-        // Default OnFocusChanged speaks the label with interrupt — that's
-        // what we want here: each advance cuts off whatever's mid-speech
-        // and reads the new line.
+        // Each advance reads the new line. This screen carries the
+        // narrative content for exploration-entry thoughts (Evelyn's
+        // thoughts), look-around snippets, and the locked-app text, so
+        // mark it R-key replayable — unlike menu/UI focus labels.
+        protected override void OnFocusChanged(object? key, string label)
+        {
+            Speech.Speak(label, repeatable: true);
+        }
     }
 }

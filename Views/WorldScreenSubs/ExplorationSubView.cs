@@ -516,17 +516,19 @@ namespace ElizaAccess.Views.WorldScreenSubs
         {
             if (_focusedLabel == null) return;
             string itemText = new ButtonElement(_focusedLabel).ResolveFocusText();
+            // Look-around item text is narrative content → R-key
+            // replayable (unlike menu/UI focus labels).
             if (!_containerAnnounced)
             {
                 _containerAnnounced = true;
                 int n = _entryCountForAnnounce;
                 string countPart = n == 1 ? Loc.Get("exploration.one_thing")
                                           : Loc.Fmt("exploration.n_things", n);
-                Speech.Speak(Loc.Fmt("exploration.entry", countPart, itemText));
+                Speech.Speak(Loc.Fmt("exploration.entry", countPart, itemText), repeatable: true);
             }
             else
             {
-                Speech.Speak(itemText);
+                Speech.Speak(itemText, repeatable: true);
             }
         }
 
