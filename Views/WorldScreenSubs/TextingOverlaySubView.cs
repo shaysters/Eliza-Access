@@ -365,7 +365,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     return;
                 }
                 string speaker = isPlayer ? PlayerName : partnerName;
-                Speech.Speak(Loc.Fmt("dialogue.line", speaker, text));
+                // A text message is narrative content → R-key replayable
+                // (the "Text from {name}" header above is just a
+                // notification, so it stays non-repeatable).
+                Speech.Speak(Loc.Fmt("dialogue.line", speaker, text), repeatable: true);
                 TextingState.LastMessageTick = Environment.TickCount;
                 Log($"[TextingOverlay] msg: {speaker}: \"{text}\"");
             }
