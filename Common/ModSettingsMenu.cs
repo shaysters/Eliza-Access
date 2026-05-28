@@ -6,7 +6,7 @@ namespace ElizaAccess.Common
 {
     /// <summary>
     /// Mod-owned settings overlay. Polled from <see cref="Main"/>'s
-    /// loop on every tick. Press F7 anywhere in the game to open;
+    /// loop on every tick. Press F5 anywhere in the game to open;
     /// arrows navigate, Enter/Space toggle / drill into a submenu,
     /// Escape goes up one level (closes from the root).
     ///
@@ -30,7 +30,7 @@ namespace ElizaAccess.Common
     {
         private readonly SpeechEngine   _speech;
         private readonly Action<string> _log;
-        private readonly KeyEdge _kbF7     = new KeyEdge(Keyboard.VK_F7);
+        private readonly KeyEdge _kbF5     = new KeyEdge(Keyboard.VK_F5);
         private readonly KeyEdge _kbUp     = new KeyEdge(Keyboard.VK_UP);
         private readonly KeyEdge _kbDown   = new KeyEdge(Keyboard.VK_DOWN);
         private readonly KeyEdge _kbEnter  = new KeyEdge(Keyboard.VK_RETURN);
@@ -86,7 +86,7 @@ namespace ElizaAccess.Common
             // Mark our own edges as exempt from the global suppression
             // we flip on while open. Without this, the overlay would
             // also gate its own input and the menu would freeze.
-            _kbF7.BypassGlobalSuppress     = true;
+            _kbF5.BypassGlobalSuppress     = true;
             _kbUp.BypassGlobalSuppress     = true;
             _kbDown.BypassGlobalSuppress   = true;
             _kbEnter.BypassGlobalSuppress  = true;
@@ -141,11 +141,11 @@ namespace ElizaAccess.Common
 
         public void Poll()
         {
-            // F7 toggles open/closed from any state. We handle the
-            // edge BEFORE the other key checks so pressing F7 while
+            // F5 toggles open/closed from any state. We handle the
+            // edge BEFORE the other key checks so pressing F5 while
             // already open closes cleanly, even if Up/Down/Enter
             // happen to land on the same tick.
-            if (_kbF7.Pressed())
+            if (_kbF5.Pressed())
             {
                 if (_active) Close();
                 else         Open();

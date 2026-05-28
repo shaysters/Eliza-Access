@@ -84,7 +84,7 @@ namespace ElizaAccess
             // repeat queues into the now-empty queue.
             SpeechRepeater repeater = new SpeechRepeater(speech);
 
-            // Mod settings overlay (F7). Polled every tick from any
+            // Mod settings overlay (F5). Polled every tick from any
             // game state — see ModSettingsMenu for the open/close +
             // input-suppression flow.
             ModSettingsMenu modSettings = new ModSettingsMenu(speech, _log);
