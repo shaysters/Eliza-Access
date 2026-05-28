@@ -78,7 +78,7 @@
   "chapter.state_one_episode": "{0}, 1 epizód",
   "chapter.state_n_episodes": "{0}, {1} epizód",
 
-  "transparency.header": "Átláthatósági mód. {0} áttekintése.",
+  "transparency.header": "Átláthatósági mód. {0} áttekintése. A képernyő jobb oldalán lévő kérdések akkor lesznek használhatók, ha minden e-mailt és üzenetet elolvastál.",
   "transparency.emails_read": "{0} / {1} e-mail elolvasva.",
   "transparency.chats_read": "{0} / {1} szöveges beszélgetés elolvasva.",
   "transparency.three_conclusions": "Három értékelendő következtetés.",

@@ -78,7 +78,7 @@
   "chapter.state_one_episode": "{0}, 1 episodio",
   "chapter.state_n_episodes": "{0}, {1} episodios",
 
-  "transparency.header": "Modo Transparencia. Revisando a {0}.",
+  "transparency.header": "Modo Transparencia. Revisando a {0}. Las preguntas en el lado derecho de la pantalla se podrán usar una vez que se hayan leído todos los correos y mensajes.",
   "transparency.emails_read": "{0} de {1} correos leídos.",
   "transparency.chats_read": "{0} de {1} conversaciones de texto leídas.",
   "transparency.three_conclusions": "Tres conclusiones que evaluar.",

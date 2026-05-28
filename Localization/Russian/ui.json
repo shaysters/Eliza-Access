@@ -78,7 +78,7 @@
   "chapter.state_one_episode": "{0}, 1 эпизод",
   "chapter.state_n_episodes": "{0}, эпизодов: {1}",
 
-  "transparency.header": "Режим прозрачности. Проверка: {0}.",
+  "transparency.header": "Режим прозрачности. Проверка: {0}. Вопросы в правой части экрана станут доступны, когда будут прочитаны все письма и сообщения.",
   "transparency.emails_read": "Прочитано писем: {0} из {1}.",
   "transparency.chats_read": "Прочитано текстовых бесед: {0} из {1}.",
   "transparency.three_conclusions": "Три вывода для оценки.",
