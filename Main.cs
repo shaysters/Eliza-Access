@@ -110,11 +110,32 @@ namespace ElizaAccess
             // render-thread piggyback the email dump uses.
             KeyEdge kbF10 = new KeyEdge(Keyboard.VK_F10);
 
+            // Q: on-demand review of the three Transparency-Mode
+            // conclusion statements (with current Agreed/Disagreed
+            // state). Polled globally rather than from
+            // HomeGridSubView because the player has to leave the
+            // inline phone home grid to read each email/text, and a
+            // SubView-scoped Q would be silently dead during those
+            // detours. TransparencyState gates the announcement —
+            // outside Transparency Mode it speaks the "not active"
+            // line so a stray Q keypress doesn't read as a broken
+            // key.
+            KeyEdge kbQ = new KeyEdge(Keyboard.VK_Q);
+
             _log("[Main] Entering poll loop (~200 Hz).");
 
             int locRefreshCounter = 0;
             while (true)
             {
+                // Read all 256 VK states ONCE into the shared snapshot.
+                // Every KeyEdge.Pressed and the InputInterrupter sweep
+                // read from this cache, so the GetAsyncKeyState 0x0001
+                // bit is consumed exactly once per tick instead of
+                // racing between multiple callers (which silently lost
+                // taps — the dominant cause of "I pressed Q and nothing
+                // happened" / lost arrow taps in fast nav).
+                KeyboardSnapshot.Refresh();
+
                 // Re-check the game language ~once per second (poll is
                 // ~200 Hz). Cheap reflection; reloads the table only on
                 // an actual change.
@@ -158,6 +179,17 @@ namespace ElizaAccess
                 try   { screens.Poll(); }
                 catch (Exception ex)
                     { _log($"[Main] screens poll exception: {ex.GetType().Name}: {ex.Message}"); }
+
+                // Q is polled AFTER interrupter.Poll() so the
+                // interrupter's Stop() (fired by Q's own rising
+                // edge) doesn't wipe the announcement we're about
+                // to queue. Same rule the SubView path relied on
+                // implicitly via Drive() running after interrupter.
+                if (kbQ.Pressed())
+                {
+                    speech.Speak(TransparencyState.BuildReviewAnnouncement(),
+                                 interrupt: true);
+                }
 
                 Thread.Sleep(5);
             }

@@ -39,22 +39,36 @@ namespace ElizaAccess.Common
 
         public void Poll()
         {
+            // Skip the sweep entirely when the game window isn't
+            // foreground. Keyboard.IsHeld returns false for every key
+            // when unfocused; if we ran the sweep we'd reset _wasHeld
+            // to false for keys the user is actually still holding,
+            // and the next focused tick would re-detect them as
+            // rising edges — firing a spurious Stop() that wipes
+            // whatever announcement was mid-play. Returning early
+            // preserves _wasHeld from the last focused tick so the
+            // next focused tick compares against a real baseline.
+            if (!Keyboard.IsGameFocused()) return;
+
             if (!_primed)
             {
                 // Snapshot whatever's currently held without firing —
                 // user might be holding a key when the mod loads, and we
                 // don't want to interrupt on that incidentally.
                 for (int vk = 0; vk < 256; vk++)
-                    _wasHeld[vk] = Keyboard.IsHeld(vk);
+                    _wasHeld[vk] = KeyboardSnapshot.IsHeld(vk);
                 _primed = true;
                 return;
             }
 
             bool risingEdge = false;
             // Skip VK 0-7 (unused/mouse). 0x08 = VK_BACK. 0xFF reserved.
+            // Read via the shared snapshot so we don't race with the
+            // KeyEdges elsewhere in this tick on GetAsyncKeyState's
+            // 0x0001 bit.
             for (int vk = 0x08; vk < 256; vk++)
             {
-                bool held = Keyboard.IsHeld(vk);
+                bool held = KeyboardSnapshot.IsHeld(vk);
                 if (held && !_wasHeld[vk]) risingEdge = true;
                 _wasHeld[vk] = held;
             }

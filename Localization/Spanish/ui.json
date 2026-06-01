@@ -186,7 +186,7 @@
   "chapter.state_one_episode": "{0}, 1 episodio",
   "chapter.state_n_episodes": "{0}, {1} episodios",
 
-  "transparency.header": "Modo Transparencia. Revisando a {0}. Pulsa Q en la pantalla de inicio del teléfono para repasar las tres preguntas. Se podrán usar en el lado derecho de la pantalla cuando se hayan leído todos los correos y mensajes.",
+  "transparency.header": "Modo Transparencia. Revisando a {0}. Pulsa Q para repasar las tres preguntas. Se podrán usar en el lado derecho de la pantalla cuando se hayan leído todos los correos y mensajes.",
   "transparency.no_active": "No hay preguntas de transparencia activas.",
   "transparency.emails_read": "{0} de {1} correos leídos.",
   "transparency.chats_read": "{0} de {1} conversaciones de texto leídas.",

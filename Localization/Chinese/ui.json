@@ -186,7 +186,7 @@
   "chapter.state_one_episode": "{0}，1 集",
   "chapter.state_n_episodes": "{0}，{1} 集",
 
-  "transparency.header": "透明模式。正在审查 {0}。在手机主屏幕按 Q 键可复习三个问题。阅读完所有邮件和短信后，屏幕右侧的问题将可以进行操作。",
+  "transparency.header": "透明模式。正在审查 {0}。按 Q 键可复习三个问题。阅读完所有邮件和短信后，屏幕右侧的问题将可以进行操作。",
   "transparency.no_active": "当前没有透明模式的问题。",
   "transparency.emails_read": "已读 {1} 封邮件中的 {0} 封。",
   "transparency.chats_read": "已读 {1} 段文字对话中的 {0} 段。",

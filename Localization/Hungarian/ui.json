@@ -186,7 +186,7 @@
   "chapter.state_one_episode": "{0}, 1 epizód",
   "chapter.state_n_episodes": "{0}, {1} epizód",
 
-  "transparency.header": "Átláthatósági mód. {0} áttekintése. A telefon kezdőképernyőjén a Q billentyűvel hallgathatod meg újra a három kérdést. A képernyő jobb oldalán akkor lesznek használhatók, ha minden e-mailt és üzenetet elolvastál.",
+  "transparency.header": "Átláthatósági mód. {0} áttekintése. A Q billentyűvel hallgathatod meg újra a három kérdést. A képernyő jobb oldalán akkor lesznek használhatók, ha minden e-mailt és üzenetet elolvastál.",
   "transparency.no_active": "Jelenleg nincs aktív átláthatósági kérdés.",
   "transparency.emails_read": "{0} / {1} e-mail elolvasva.",
   "transparency.chats_read": "{0} / {1} szöveges beszélgetés elolvasva.",

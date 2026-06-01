@@ -186,7 +186,7 @@
   "chapter.state_one_episode": "{0}, 1 Episode",
   "chapter.state_n_episodes": "{0}, {1} Episoden",
 
-  "transparency.header": "Transparenzmodus. Überprüfung von {0}. Drücke Q auf dem Telefon-Startbildschirm, um die drei Fragen erneut anzuhören. Sie werden auf der rechten Bildschirmseite bedienbar, sobald alle E-Mails und Texte gelesen wurden.",
+  "transparency.header": "Transparenzmodus. Überprüfung von {0}. Drücke Q, um die drei Fragen erneut anzuhören. Sie werden auf der rechten Bildschirmseite bedienbar, sobald alle E-Mails und Texte gelesen wurden.",
   "transparency.no_active": "Derzeit sind keine Transparenz-Fragen aktiv.",
   "transparency.emails_read": "{0} von {1} E-Mails gelesen.",
   "transparency.chats_read": "{0} von {1} Textunterhaltungen gelesen.",

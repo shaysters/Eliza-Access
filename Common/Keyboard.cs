@@ -178,7 +178,17 @@ namespace ElizaAccess.Common
         /// </summary>
         public bool Pressed()
         {
-            short state = Keyboard.GetRawState(_vk);
+            // Skip when unfocused. The snapshot is preserved across
+            // focus blips so _wasHeld stays in sync; returning here
+            // just suppresses the comparison until focus comes back.
+            if (!Keyboard.IsGameFocused()) return false;
+            // Read from the per-tick snapshot (KeyboardSnapshot.Refresh
+            // is called once at the top of Main's poll iteration) so
+            // multiple readers in the same tick see the same 0x0001
+            // "pressed since last call" bit — without the cache, the
+            // first GetAsyncKeyState caller consumed it and any later
+            // KeyEdge silently missed the tap.
+            short state = KeyboardSnapshot.Get(_vk);
             bool nowHeld = (state & 0x8000) != 0;
             bool pressedSinceLast = (state & 0x0001) != 0;
             // Rising edge if either the key is currently held (and wasn't

@@ -186,7 +186,7 @@
   "chapter.state_one_episode": "{0}, 1 episode",
   "chapter.state_n_episodes": "{0}, {1} episodes",
 
-  "transparency.header": "Transparency Mode. Reviewing {0}. Press Q on the phone home screen to review the three questions. They become interactable on the right side of the screen once all emails and texts are read.",
+  "transparency.header": "Transparency Mode. Reviewing {0}. Press Q to review the three questions. They become interactable on the right side of the screen once all emails and texts are read.",
   "transparency.no_active": "No transparency questions active.",
   "transparency.emails_read": "{0} of {1} emails read.",
   "transparency.chats_read": "{0} of {1} text conversations read.",
