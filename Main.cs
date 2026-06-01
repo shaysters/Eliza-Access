@@ -104,6 +104,12 @@ namespace ElizaAccess
                 Path.GetDirectoryName(_logPath) ?? ".", "TextureDumps");
             // KeyEdge kbF9 = new KeyEdge(Keyboard.VK_F9);
 
+            // F10: dump every exploration-entry icon across every
+            // ShowExploration script step to PNGs under
+            // {logdir}/TextureDumps/ExplorationIcons/. One-shot; same
+            // render-thread piggyback the email dump uses.
+            KeyEdge kbF10 = new KeyEdge(Keyboard.VK_F10);
+
             _log("[Main] Entering poll loop (~200 Hz).");
 
             int locRefreshCounter = 0;
@@ -125,6 +131,12 @@ namespace ElizaAccess
                 //     TextureDumper.DumpRequested = true;
                 //     speech.Speak("Dumping email images.");
                 // }
+
+                if (kbF10.Pressed())
+                {
+                    TextureDumper.DumpExplorationRequested = true;
+                    speech.Speak("Dumping exploration icons.");
+                }
                 // Keep IsControllerActive pinned true. The Harmony prefix on
                 // VirtualInput.smethod_1 doesn't catch flips because the
                 // setter is inlined by the JIT; the field-rewrite here is
