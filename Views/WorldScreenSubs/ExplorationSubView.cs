@@ -953,6 +953,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
             string? texName = ReadEntryTextureName(entry);
             if (!string.IsNullOrEmpty(texName))
             {
+                // Try the curated name+description table first (keyed by
+                // chapter/asset). Sighted players see only an outline
+                // silhouette of the clickable object; the curated copy
+                // gives the equivalent — what the object IS plus what it
+                // looks like in the scene.
+                string? curated = TryLookupCurated(texName!);
+                if (curated != null) return curated;
                 return CleanTextureName(texName!);
             }
 
@@ -987,6 +994,55 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 return _maybeStringGetValue.Invoke(maybe, null) as string;
             }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// Look up a curated display name + description for this
+        /// exploration entry, keyed by the chapter folder + asset
+        /// basename. The dump at C:/.../TextureDumps/ExplorationIcons
+        /// confirmed every entry's hover sprite is just a pale outline
+        /// silhouette — the asset name alone tells a blind player less
+        /// than a sighted one sees. Curated copy bridges the gap.
+        ///
+        /// Loc keys: <c>exploration.entry.{chapter}.{asset}.name</c>
+        /// (always required) and <c>.desc</c> (optional — appended if
+        /// present). Returns <c>null</c> if the chapter or asset
+        /// couldn't be parsed, or if no name key is registered for
+        /// this asset; caller then falls back to
+        /// <see cref="CleanTextureName"/>.
+        /// </summary>
+        private static string? TryLookupCurated(string raw)
+        {
+            string s = raw.Trim();
+            int dot = s.LastIndexOf('.');
+            if (dot > 0) s = s.Substring(0, dot);
+            string[] parts = s.Split('/', '\\');
+            if (parts.Length < 2) return null;
+            string asset = StripStateSuffix(parts[parts.Length - 1]);
+            string chapter = parts[parts.Length - 2];
+            if (string.IsNullOrEmpty(asset) || string.IsNullOrEmpty(chapter)) return null;
+
+            string nameKey = $"exploration.entry.{chapter}.{asset}.name";
+            string descKey = $"exploration.entry.{chapter}.{asset}.desc";
+            string name = Loc.Get(nameKey);
+            // Loc.Get returns the key itself when missing — that's the
+            // signal to fall back to CleanTextureName.
+            if (name == nameKey) return null;
+
+            string desc = Loc.Get(descKey);
+            if (desc == descKey || string.IsNullOrWhiteSpace(desc)) return name;
+            return Loc.Fmt("exploration.entry.name_desc", name, desc);
+        }
+
+        private static string StripStateSuffix(string asset)
+        {
+            string[] stateSuffixes = { "_hover", "_highlight", "_idle", "_pressed", "_active" };
+            foreach (string suf in stateSuffixes)
+            {
+                if (asset.EndsWith(suf, StringComparison.OrdinalIgnoreCase))
+                    return asset.Substring(0, asset.Length - suf.Length);
+            }
+            return asset;
         }
 
         /// <summary>Turn an asset path like
