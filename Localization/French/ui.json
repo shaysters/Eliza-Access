@@ -150,6 +150,10 @@
   "chat.conversation_with": "Conversation avec {0}.",
   "dialogue.line": "{0} : {1}",
 
+  "history.entry_hint": "Historique. Appuyez sur haut ou bas pour parcourir les lignes de dialogue une par une.",
+  "history.at_top": "Début de l'historique.",
+  "history.at_bottom": "Fin de l'historique.",
+
   "eliza.intro": "Eliza. Trois onglets : 1 profil, 2 boîte de réception, 3 historique des sessions.",
   "eliza.tab_profile": "Onglet profil.",
   "eliza.tab_inbox": "Onglet boîte de réception.",

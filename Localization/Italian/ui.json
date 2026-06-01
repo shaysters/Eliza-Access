@@ -150,6 +150,10 @@
   "chat.conversation_with": "Conversazione con {0}.",
   "dialogue.line": "{0}: {1}",
 
+  "history.entry_hint": "Cronologia. Premi su o giù per scorrere le righe di dialogo una alla volta.",
+  "history.at_top": "Inizio della cronologia.",
+  "history.at_bottom": "Fine della cronologia.",
+
   "eliza.intro": "Eliza. Tre schede: 1 profilo, 2 posta in arrivo, 3 cronologia sessioni.",
   "eliza.tab_profile": "Scheda profilo.",
   "eliza.tab_inbox": "Scheda posta in arrivo.",

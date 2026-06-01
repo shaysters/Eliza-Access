@@ -150,6 +150,10 @@
   "chat.conversation_with": "Conversation with {0}.",
   "dialogue.line": "{0}: {1}",
 
+  "history.entry_hint": "History. Press up or down to navigate dialogue lines one at a time.",
+  "history.at_top": "Top of history.",
+  "history.at_bottom": "End of history.",
+
   "eliza.intro": "Eliza. Three tabs: 1 profile, 2 inbox, 3 session history.",
   "eliza.tab_profile": "Profile tab.",
   "eliza.tab_inbox": "Inbox tab.",

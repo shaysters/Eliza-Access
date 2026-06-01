@@ -7,26 +7,23 @@ namespace ElizaAccess.Views
 {
     /// <summary>
     /// Reads the HistoryScreen — the scrollable chat-log of every
-    /// dialogue line so far. Three behaviours:
+    /// dialogue line so far. Line-by-line navigation: each Up/Down
+    /// arrow tap steps the read cursor to the previous/next
+    /// DialogueLine entry and speaks it.
     ///
-    /// 1. <b>Entry announcement</b>. After a 600 ms delay (so the
-    ///    pause-menu's "History" announcement finishes first), speak
-    ///    the navigation hint plus the bottom-most visible dialogue
-    ///    line so the user knows where they're starting from.
+    /// The earlier "watch the scroll position, announce whatever
+    /// DL is at the bottom of the visible window" design was clunky
+    /// and missed lines when the engine's continuous scroll fired
+    /// between our settle ticks. Pure line-step nav is deterministic:
+    /// one tap = one announcement = one position.
     ///
-    /// 2. <b>Scroll tracking</b>. When the scroll position changes,
-    ///    recompute the bottom-most visible DialogueLine. When the
-    ///    user releases input (axis returns to 0) or 400 ms elapses,
-    ///    speak that line. Avoids spamming during a hold-scroll.
+    /// Vertical axis is suppressed via <see cref="InputSuppressor"/>
+    /// for the duration of this screen so the engine's own arrow-to-
+    /// scroll path can't fight us. We drive the scroller manually
+    /// via <c>Scroller.SetPosition</c> so sighted observers see the
+    /// visual roughly track the current line.
     ///
-    /// 3. <b>Keyboard navigation</b>. Up/Down on the keyboard either
-    ///    drives the scroller (when the list overflows the viewport)
-    ///    or walks an anchor index from one DialogueLine to the next
-    ///    (when the whole list already fits and the engine wouldn't
-    ///    otherwise respond). Either way the new line is spoken.
-    ///
-    /// HistoryScreen has no clickable hotspots — focus is "what
-    /// dialogue line is at the bottom of the visible window" — so
+    /// HistoryScreen has no clickable hotspots so
     /// <see cref="ReadCurrentFocus"/> returns null and all work
     /// happens in <see cref="OnUpdate"/>.
     /// </summary>
@@ -34,10 +31,13 @@ namespace ElizaAccess.Views
     {
         public override string ScreenTypeName => "HistoryScreen";
 
-        private const string Hint            = "History. Use D-pad up and down to navigate. Press and hold to scroll.";
-        private const int    EntryDelayMs    = 600;
-        private const int    SlowSettleMs    = 400;
-        private const float  KbScrollStep    = 150f;
+        private const int   EntryDelayMs = 600;
+        // Approximate pixel height of one DialogueLine entry — used to
+        // keep the visual scroll position roughly aligned with the
+        // line the user is currently hearing. Doesn't need to be
+        // exact; the blind player doesn't see it and a sighted
+        // observer just wants the right region on screen.
+        private const float ScrollStepPx = 150f;
 
         // ── Obfuscated names ───────────────────────────────────────────
         // History entry (the GClassNN tagged-union of BeginChapter /
@@ -52,33 +52,23 @@ namespace ElizaAccess.Views
         private const string DialogueLineTextField    = "#=qtyrJpA5pn9a39IUBdZVt5A==";
         private const string ScriptCharacterNameField = "#=qVcZOuQei28m8v7C2MtsdYA==";
 
-        private const string HistoryListField   = "#=qs8WfAVpAvgpN3uS$ouSByQ==";
-        private const string ScrollCacheField   = "#=qQUvvA6SIp0Z4BhvuMmKuNTHGjoAP$HUJygZrv6FLde8=";
-        private const string ScrollerField      = "#=qHPFzw1no_xGjBzJqEvK88Q==";
-        private const string LineHeightsField   = "#=qJad$nd$44WGzYp9Q2j2OTARmqRuCcmT7YmWo5zYyLBA=";
-        private const string ScrollerGetOrigin     = "#=qL3NKXZLdwuOtU9jcCm9jC3Zx025YeiaJc_WqHEzMNpk=";
-        private const string ScrollerMaxScrollPos  = "#=quAL7IZ33NpnwZJ2VYIJVeytYhk$3KNu_bGSWclHYG0s=";
-        private const string ScrollerSetPosition   = "#=qwp_MZlk8oypfEboUc0lURxGhlbj3CHrDYsyDG83oeJs=";
-
-        private const string VirtualInputGetAxis = "#=qemIzt2N4xA_skWiKqpcicQ==";
+        private const string HistoryListField        = "#=qs8WfAVpAvgpN3uS$ouSByQ==";
+        private const string ScrollerField           = "#=qHPFzw1no_xGjBzJqEvK88Q==";
+        private const string ScrollerMaxScrollPos    = "#=quAL7IZ33NpnwZJ2VYIJVeytYhk$3KNu_bGSWclHYG0s=";
+        private const string ScrollerSetPosition     = "#=qwp_MZlk8oypfEboUc0lURxGhlbj3CHrDYsyDG83oeJs=";
+        private const string ScrollCacheField        = "#=qQUvvA6SIp0Z4BhvuMmKuNTHGjoAP$HUJygZrv6FLde8=";
 
         // ── Reflected handles ──────────────────────────────────────────
-        private MethodInfo? _isBeginChapter;
         private MethodInfo? _isDialogueLine;
-        private MethodInfo? _isChangeLocation;
         private MethodInfo? _getDialogueLine;
         private FieldInfo?  _dlSpeakerField;
         private FieldInfo?  _dlTextField;
         private FieldInfo?  _speakerNameField;
         private FieldInfo?  _historyListField;
-        private FieldInfo?  _scrollCacheField;
         private FieldInfo?  _scrollerField;
-        private FieldInfo?  _lineHeightsField;
-        private MethodInfo? _getOriginMethod;
+        private FieldInfo?  _scrollCacheField;
         private MethodInfo? _maxScrollPosMethod;
         private MethodInfo? _setPositionMethod;
-        private MethodInfo? _getAxisMethod;
-        private FieldInfo?  _vec2YField; // resolved lazily off GetOrigin()'s return
 
         // ── Per-activation state ───────────────────────────────────────
         private readonly KeyEdge _kbUp   = new KeyEdge(Keyboard.VK_UP);
@@ -86,14 +76,12 @@ namespace ElizaAccess.Views
 
         private bool     _entrySpeechPending;
         private DateTime _entryTime;
-
-        private float    _lastScrollPos        = float.MinValue;
-        private int      _lastBottomVisibleDL  = -2;   // -2 unset, -1 none, ≥0 absolute index
-        private int      _pendingBottomDL      = -2;
-        private DateTime _pendingBottomTime;
-        private int      _spokenBottomDL       = -2;
-
-        private int      _kbAnchorDL           = -1;
+        // Absolute index into the history list. Always points at a
+        // DialogueLine entry (or -1 when the list has none).
+        private int _currentDLIndex = -1;
+        // True while we've claimed exclusive vertical-axis control —
+        // tracked so OnUnfocus / OnRemoved release exactly once.
+        private bool _axisSuppressed;
 
         protected override void OnAdded(object screen)
         {
@@ -103,9 +91,7 @@ namespace ElizaAccess.Views
             Type? tEntry = Nagoya.FindType(EntryTypeName);
             if (tEntry != null)
             {
-                _isBeginChapter   = tEntry.GetMethod(EntryIsBeginChapter,   inst);
                 _isDialogueLine   = tEntry.GetMethod(EntryIsDialogueLine,   inst);
-                _isChangeLocation = tEntry.GetMethod(EntryIsChangeLocation, inst);
                 _getDialogueLine  = tEntry.GetMethod(EntryGetDialogueLine,  inst);
                 if (_getDialogueLine != null)
                 {
@@ -119,179 +105,125 @@ namespace ElizaAccess.Views
 
             Type tScreen = screen.GetType();
             _historyListField = tScreen.GetField(HistoryListField, privInst);
-            _scrollCacheField = tScreen.GetField(ScrollCacheField, privInst);
             _scrollerField    = tScreen.GetField(ScrollerField,    privInst);
-            _lineHeightsField = tScreen.GetField(LineHeightsField, privInst);
+            _scrollCacheField = tScreen.GetField(ScrollCacheField, privInst);
             if (_scrollerField != null)
             {
                 Type st = _scrollerField.FieldType;
-                _getOriginMethod    = st.GetMethod(ScrollerGetOrigin,    inst);
                 _maxScrollPosMethod = st.GetMethod(ScrollerMaxScrollPos, inst);
                 _setPositionMethod  = st.GetMethod(ScrollerSetPosition,  inst);
             }
 
-            Type? tVI = Nagoya.FindType("VirtualInput");
-            if (tVI != null)
-                _getAxisMethod = tVI.GetMethod(VirtualInputGetAxis, BindingFlags.Public | BindingFlags.Static);
-
-            Log($"[HistoryView] added: entry-methods={(_isDialogueLine != null && _getDialogueLine != null)} " +
+            Log($"[HistoryView] added: dl-method={(_isDialogueLine != null && _getDialogueLine != null)} " +
                 $"dl-fields={(_dlSpeakerField != null && _dlTextField != null)} " +
                 $"list={(_historyListField != null)} scroll={(_scrollerField != null)} " +
-                $"heights={(_lineHeightsField != null)} axis={(_getAxisMethod != null)}");
+                $"setPos={(_setPositionMethod != null)}");
         }
 
         protected override void OnFocus()
         {
             if (ScreenInstance == null) return;
-            // Defer the entry speech so any prior "History" label (the
-            // pause-menu focus announcement) finishes first.
+            SuppressAxis();
+            // Start at the most recent dialogue line so the player is
+            // dropped where the conversation left off — same place a
+            // sighted player's eyes land when the screen opens.
+            _currentDLIndex = FindLastDL();
+            ScrollToCurrent();
+            // Defer the entry speech a bit so any prior "History"
+            // label (the pause-menu focus announcement) finishes first.
             _entrySpeechPending = true;
             _entryTime          = DateTime.Now;
-
-            _lastScrollPos = ReadScrollPos();
-            ComputeVisibleDLRange(out _, out int last);
-            _lastBottomVisibleDL = last;
-            _pendingBottomDL     = -2;
-            _spokenBottomDL      = -2;
-            _kbAnchorDL          = last;
             _kbUp.Reset(); _kbDown.Reset();
+        }
+
+        protected override void OnUnfocus()
+        {
+            ReleaseAxis();
         }
 
         protected override void OnUpdate()
         {
             if (ScreenInstance == null) return;
 
-            // (1) Deferred entry speech.
+            // (1) Deferred entry speech: hint + current line.
             if (_entrySpeechPending
                 && (DateTime.Now - _entryTime).TotalMilliseconds >= EntryDelayMs)
             {
                 _entrySpeechPending = false;
-                ComputeVisibleDLRange(out _, out int last);
-                _pendingBottomDL = last;
-                _spokenBottomDL  = last;
-                string anchorText = BuildAnchorSpeech(last);
-                string text = string.IsNullOrEmpty(anchorText) ? Hint : Hint + " " + anchorText;
+                string hint     = Loc.Get("history.entry_hint");
+                string lineText = BuildLineSpeech(_currentDLIndex);
+                string text     = string.IsNullOrEmpty(lineText) ? hint : hint + " " + lineText;
                 Speech.Speak(text);
-                Log($"[HistoryView] entry: \"{Trunc(text, 100)}\"");
+                Log($"[HistoryView] entry: dl={_currentDLIndex} \"{Trunc(lineText, 80)}\"");
             }
 
-            // (2) Scroll position change → recompute visible-bottom DL,
-            //     start settle timer.
-            float pos = ReadScrollPos();
-            if (pos != float.MinValue && pos != _lastScrollPos)
-            {
-                _lastScrollPos = pos;
-                int oldBottom = _lastBottomVisibleDL;
-                ComputeVisibleDLRange(out _, out int last);
-                _lastBottomVisibleDL = last;
-                if (last != oldBottom)
-                {
-                    _pendingBottomDL   = last;
-                    _pendingBottomTime = DateTime.Now;
-                }
-            }
-
-            // (3) Settle: speak when axis releases or timeout fires.
-            if (!_entrySpeechPending
-                && _pendingBottomDL != _spokenBottomDL
-                && _pendingBottomDL >= 0)
-            {
-                float axis         = ReadAxis1();
-                bool  released     = !float.IsNaN(axis) && axis == 0f;
-                bool  timedOut     = (DateTime.Now - _pendingBottomTime).TotalMilliseconds >= SlowSettleMs;
-                if (released || timedOut)
-                {
-                    _spokenBottomDL = _pendingBottomDL;
-                    string speech = BuildAnchorSpeech(_pendingBottomDL);
-                    if (!string.IsNullOrEmpty(speech))
-                    {
-                        Speech.Speak(speech);
-                        Log($"[HistoryView] scroll → dl={_pendingBottomDL} ({(released ? "released" : "timeout")}): \"{Trunc(speech, 100)}\"");
-                    }
-                }
-            }
-
-            // (4) Keyboard nav (rising edges only).
-            PollKbNav();
-        }
-
-        protected override (object? key, string? label) ReadCurrentFocus() => (null, null);
-
-        // ── Keyboard navigation ───────────────────────────────────────
-
-        private void PollKbNav()
-        {
+            // (2) Up/Down step. Rising edges only — no hold-to-scroll.
             bool up   = _kbUp.Pressed();
             bool down = _kbDown.Pressed();
             if (!up && !down) return;
 
-            float maxScroll = ReadMaxScrollPos();
-            // When the list overflows, drive the scroller. We add to
-            // whatever the engine's axis-driven scroll already did this
-            // tick — both feed into the same SetPosition, last write
-            // wins, so a tap visibly moves things even when the engine
-            // alone wouldn't.
-            if (maxScroll > 0f && _scrollerField != null && _setPositionMethod != null)
+            int next = up
+                ? FindAdjacentDL(_currentDLIndex, -1)
+                : FindAdjacentDL(_currentDLIndex, +1);
+            if (next < 0)
             {
-                try
-                {
-                    object? scroller = _scrollerField.GetValue(ScreenInstance);
-                    if (scroller != null)
-                    {
-                        float current = ReadScrollPos();
-                        if (current != float.MinValue)
-                        {
-                            float newPos = current + (up ? -KbScrollStep : KbScrollStep);
-                            if (newPos < 0f) newPos = 0f;
-                            if (newPos > maxScroll) newPos = maxScroll;
-                            _setPositionMethod.Invoke(scroller, new object[] { newPos });
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log($"[HistoryView] kb-scroll error: {ex.GetType().Name}: {ex.Message}");
-                }
+                // No further line in that direction — speak the edge
+                // hint so the user knows they've hit a boundary
+                // rather than thinking the key didn't register.
+                Speech.Speak(Loc.Get(up ? "history.at_top" : "history.at_bottom"));
+                Log($"[HistoryView] {(up ? "up" : "down")} → no further DL");
+                return;
             }
+            _currentDLIndex = next;
+            ScrollToCurrent();
+            string speech = BuildLineSpeech(_currentDLIndex);
+            if (!string.IsNullOrEmpty(speech))
+            {
+                Speech.Speak(speech);
+                Log($"[HistoryView] {(up ? "up" : "down")} → dl={_currentDLIndex}: \"{Trunc(speech, 80)}\"");
+            }
+        }
 
-            // Anchor step (always — when content fits the viewport this
-            // is the only way to step DLs; when it overflows this keeps
-            // the anchor in sync with what the user is hearing).
-            try
-            {
-                if (_kbAnchorDL < 0)
-                {
-                    ComputeVisibleDLRange(out _, out int l);
-                    _kbAnchorDL = l;
-                }
-                int next = FindAdjacentDL(_kbAnchorDL, up ? -1 : +1);
-                if (next >= 0) _kbAnchorDL = next;
+        protected override (object? key, string? label) ReadCurrentFocus() => (null, null);
 
-                // Only speak here when the engine isn't doing the
-                // scroll-driven speech — the settle path will handle
-                // that case and announce the new visible bottom.
-                if (maxScroll == 0f)
-                {
-                    string speech = BuildAnchorSpeech(_kbAnchorDL);
-                    if (!string.IsNullOrEmpty(speech))
-                    {
-                        Speech.Speak(speech);
-                        _spokenBottomDL  = _kbAnchorDL;
-                        _pendingBottomDL = _kbAnchorDL;
-                        Log($"[HistoryView] kb-anchor → dl={_kbAnchorDL} ({(up ? "up" : "down")}): \"{Trunc(speech, 100)}\"");
-                    }
-                }
-            }
-            catch (Exception ex)
+        // ── Vertical axis suppression lifecycle ──────────────────────
+
+        private void SuppressAxis()
+        {
+            if (_axisSuppressed) return;
+            InputSuppressor.SuppressAxis(InputSuppressor.AxisVertical);
+            _axisSuppressed = true;
+        }
+
+        private void ReleaseAxis()
+        {
+            if (!_axisSuppressed) return;
+            InputSuppressor.ReleaseAxis(InputSuppressor.AxisVertical);
+            _axisSuppressed = false;
+        }
+
+        // ── List discovery ────────────────────────────────────────────
+
+        private int FindLastDL()
+        {
+            if (!(_historyListField?.GetValue(ScreenInstance) is IList list)) return -1;
+            for (int i = list.Count - 1; i >= 0; i--)
             {
-                Log($"[HistoryView] kb-anchor error: {ex.GetType().Name}: {ex.Message}");
+                object? entry = list[i];
+                if (entry != null && InvokeBool(_isDialogueLine, entry)) return i;
             }
+            return -1;
         }
 
         private int FindAdjacentDL(int currentIndex, int direction)
         {
             if (!(_historyListField?.GetValue(ScreenInstance) is IList list)) return -1;
-            if (currentIndex < 0) return -1;
+            if (currentIndex < 0)
+            {
+                // No anchor yet — first up/down lands on the last or
+                // first DL respectively.
+                return direction < 0 ? FindLastDL() : FindFirstDL(list);
+            }
             for (int i = currentIndex + direction; i >= 0 && i < list.Count; i += direction)
             {
                 object? entry = list[i];
@@ -300,50 +232,19 @@ namespace ElizaAccess.Views
             return -1;
         }
 
-        // ── Visible-window math (mirrors HistoryScreen render at ~108-165) ──
-
-        private void ComputeVisibleDLRange(out int first, out int last)
+        private int FindFirstDL(IList list)
         {
-            first = -1; last = -1;
-            if (!(_historyListField?.GetValue(ScreenInstance) is IList list)) return;
-            float originY = ReadScrollerOriginY();
-            if (originY == float.MinValue) return;
-            IList? heights = _lineHeightsField?.GetValue(ScreenInstance) as IList;
-
-            float y    = originY - 39f;
-            bool  flag = true;
             for (int i = 0; i < list.Count; i++)
             {
                 object? entry = list[i];
-                if (entry == null) continue;
-                float topY = y;
-                bool  visible = topY > -400f && topY < 2000f;
-
-                bool isBC = InvokeBool(_isBeginChapter,   entry);
-                bool isDL = InvokeBool(_isDialogueLine,   entry);
-                bool isCL = InvokeBool(_isChangeLocation, entry);
-
-                if (isBC)      { y -= 133f; flag = true; }
-                else if (isCL) { if (!flag) { y -= 51f; flag = true; } }
-                else if (isDL)
-                {
-                    if (visible)
-                    {
-                        if (first < 0) first = i;
-                        last = i;
-                    }
-                    float h = 0f;
-                    if (heights != null && i < heights.Count) h = Convert.ToSingle(heights[i]);
-                    y -= h > 0f ? (h - 4f) : 50f;
-                    flag = false;
-                }
-                if (y < -500f) break;
+                if (entry != null && InvokeBool(_isDialogueLine, entry)) return i;
             }
+            return -1;
         }
 
         // ── Speech building ───────────────────────────────────────────
 
-        private string BuildAnchorSpeech(int dlIndex)
+        private string BuildLineSpeech(int dlIndex)
         {
             if (dlIndex < 0 || _getDialogueLine == null) return string.Empty;
             if (!(_historyListField?.GetValue(ScreenInstance) is IList list)) return string.Empty;
@@ -363,12 +264,67 @@ namespace ElizaAccess.Views
                     object? sp = _dlSpeakerField.GetValue(dl);
                     if (sp != null) speaker = _speakerNameField.GetValue(sp)?.ToString() ?? "";
                 }
-                return string.IsNullOrEmpty(speaker) ? text : $"{speaker}: {text}";
+                return string.IsNullOrEmpty(speaker)
+                    ? text
+                    : Loc.Fmt("dialogue.line", speaker, text);
             }
             catch { return string.Empty; }
         }
 
-        // ── Scroller / axis reads ─────────────────────────────────────
+        // ── Visual scroll alignment ──────────────────────────────────
+
+        // Move the engine's scroller toward the current DL. The
+        // mapping from "DL index N" to "scroll position P" is non-
+        // trivial (entries have variable heights), so we approximate:
+        // step the scroller by a fixed delta in the navigation
+        // direction. Good enough for sighted observers — the blind
+        // player doesn't see the scroll anyway.
+        private void ScrollToCurrent()
+        {
+            if (_scrollerField == null || _setPositionMethod == null) return;
+            float current = ReadScrollPos();
+            if (current == float.MinValue) return;
+            float maxScroll = ReadMaxScrollPos();
+            if (maxScroll <= 0f) return;
+
+            // Direction inferred from how _currentDLIndex moved
+            // relative to scroll: bigger index = further toward
+            // bottom = higher scroll value. Without a previous
+            // index to compare against on entry, just clamp.
+            // (Up/Down callers already moved _currentDLIndex; we
+            // can read it but we don't know the delta sign here.)
+            // Simpler: do nothing extra and let SetPosition clamp.
+            // The Up/Down handler calls this AFTER changing index,
+            // so we apply a step in the direction of motion.
+            // Track last index to know direction; if not yet set,
+            // jump to a position proportional to (index / count).
+            float target = ProportionalScrollFor(_currentDLIndex, maxScroll);
+            if (target < 0f) return;
+            try
+            {
+                object? scroller = _scrollerField.GetValue(ScreenInstance);
+                if (scroller == null) return;
+                _setPositionMethod.Invoke(scroller, new object[] { target });
+            }
+            catch (Exception ex)
+            {
+                Log($"[HistoryView] scroll error: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        // Map "I'm at DL index N out of M total entries" to a scroll
+        // position. Linear proportional mapping — close enough that
+        // the visual region around the current line is on-screen.
+        private float ProportionalScrollFor(int dlIndex, float maxScroll)
+        {
+            if (dlIndex < 0) return 0f;
+            if (!(_historyListField?.GetValue(ScreenInstance) is IList list)) return 0f;
+            if (list.Count <= 1) return 0f;
+            float t = (float)dlIndex / (list.Count - 1);
+            if (t < 0f) t = 0f;
+            if (t > 1f) t = 1f;
+            return t * maxScroll;
+        }
 
         private float ReadScrollPos()
         {
@@ -392,55 +348,6 @@ namespace ElizaAccess.Views
                 return v == null ? 0f : Convert.ToSingle(v);
             }
             catch { return 0f; }
-        }
-
-        private float ReadScrollerOriginY()
-        {
-            if (_scrollerField == null || _getOriginMethod == null || ScreenInstance == null) return float.MinValue;
-            try
-            {
-                object? scroller = _scrollerField.GetValue(ScreenInstance);
-                if (scroller == null) return float.MinValue;
-                object? origin = _getOriginMethod.Invoke(scroller, null);
-                if (origin == null) return float.MinValue;
-                if (_vec2YField == null)
-                {
-                    Type v2 = origin.GetType();
-                    _vec2YField = v2.GetField("Y", BindingFlags.Public | BindingFlags.Instance)
-                               ?? v2.GetField("y", BindingFlags.Public | BindingFlags.Instance);
-                    if (_vec2YField == null)
-                    {
-                        // Live runtime may have it as private + obfuscated;
-                        // pick the second float field on the type.
-                        int seen = 0;
-                        foreach (FieldInfo f in v2.GetFields(
-                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-                        {
-                            if (f.FieldType != typeof(float)) continue;
-                            if (seen == 1) { _vec2YField = f; break; }
-                            seen++;
-                        }
-                    }
-                }
-                if (_vec2YField == null) return float.MinValue;
-                object? yv = _vec2YField.GetValue(origin);
-                return yv == null ? float.MinValue : Convert.ToSingle(yv);
-            }
-            catch { return float.MinValue; }
-        }
-
-        private float ReadAxis1()
-        {
-            if (_getAxisMethod == null) return float.NaN;
-            try
-            {
-                ParameterInfo[] p = _getAxisMethod.GetParameters();
-                if (p.Length != 1) return float.NaN;
-                object axisArg = Enum.ToObject(p[0].ParameterType, 1);
-                object? v = _getAxisMethod.Invoke(null, new[] { axisArg });
-                return v == null ? float.NaN : Convert.ToSingle(v);
-            }
-            catch { return float.NaN; }
         }
 
         private static bool InvokeBool(MethodInfo? m, object target)

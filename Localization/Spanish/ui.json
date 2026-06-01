@@ -150,6 +150,10 @@
   "chat.conversation_with": "Conversación con {0}.",
   "dialogue.line": "{0}: {1}",
 
+  "history.entry_hint": "Historial. Pulsa arriba o abajo para recorrer las líneas de diálogo una a una.",
+  "history.at_top": "Inicio del historial.",
+  "history.at_bottom": "Fin del historial.",
+
   "eliza.intro": "Eliza. Tres pestañas: 1 perfil, 2 bandeja de entrada, 3 historial de sesiones.",
   "eliza.tab_profile": "Pestaña de perfil.",
   "eliza.tab_inbox": "Pestaña de bandeja de entrada.",

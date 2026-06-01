@@ -150,6 +150,10 @@
   "chat.conversation_with": "Unterhaltung mit {0}.",
   "dialogue.line": "{0}: {1}",
 
+  "history.entry_hint": "Verlauf. Mit Pfeil hoch oder runter kannst du die Dialogzeilen einzeln durchgehen.",
+  "history.at_top": "Anfang des Verlaufs.",
+  "history.at_bottom": "Ende des Verlaufs.",
+
   "eliza.intro": "Eliza. Drei Registerkarten: 1 Profil, 2 Posteingang, 3 Sitzungsverlauf.",
   "eliza.tab_profile": "Registerkarte Profil.",
   "eliza.tab_inbox": "Registerkarte Posteingang.",

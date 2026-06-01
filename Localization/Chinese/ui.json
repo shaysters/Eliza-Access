@@ -150,6 +150,10 @@
   "chat.conversation_with": "与 {0} 的对话。",
   "dialogue.line": "{0}：{1}",
 
+  "history.entry_hint": "历史。按上或下键可逐条浏览对话。",
+  "history.at_top": "历史顶端。",
+  "history.at_bottom": "历史末端。",
+
   "eliza.intro": "伊莱莎。三个标签页：1 个人资料，2 收件箱，3 咨询历史。",
   "eliza.tab_profile": "个人资料标签页。",
   "eliza.tab_inbox": "收件箱标签页。",

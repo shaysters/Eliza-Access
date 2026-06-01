@@ -150,6 +150,10 @@
   "chat.conversation_with": "{0} との会話。",
   "dialogue.line": "{0}: {1}",
 
+  "history.entry_hint": "履歴。上下キーで対話を 1 行ずつ移動できます。",
+  "history.at_top": "履歴の先頭です。",
+  "history.at_bottom": "履歴の末尾です。",
+
   "eliza.intro": "イライザ。3つのタブ: 1 プロフィール、2 受信箱、3 セッション履歴。",
   "eliza.tab_profile": "プロフィールタブ。",
   "eliza.tab_inbox": "受信箱タブ。",
