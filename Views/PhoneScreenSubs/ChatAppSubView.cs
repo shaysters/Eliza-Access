@@ -290,7 +290,15 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 // character. First-ever entry → lastSpoken=0 → speak the
                 // whole conversation (context for what they're replying
                 // to). Re-entry → speak only the delta since last visit.
-                int lastSpoken = _readCountByChar.TryGetValue(name, out int v) ? v : 0;
+                //
+                // Exception: in Transparency Mode the blind player can't
+                // "glance" at a chat to remind themselves what's in it.
+                // Each visit needs to re-read the whole thread, and the
+                // engine's "all texts read" gate (PhoneState.hashSet_3)
+                // is tracked separately so re-reading doesn't double-count.
+                int lastSpoken = TransparencyState.IsActive
+                    ? 0
+                    : (_readCountByChar.TryGetValue(name, out int v) ? v : 0);
                 int newCount   = curCount - lastSpoken;
 
                 Speech.Speak(Loc.Fmt("chat.conversation_with", name));
