@@ -40,5 +40,23 @@ namespace ElizaAccess.Common
         /// subject of the survey rather than the regular player
         /// character.</summary>
         public static string SubjectName = "";
+
+        /// <summary>The three conclusion statements the player is
+        /// asked to agree or disagree with, snapshotted on
+        /// <see cref="Views.WorldScreenSubs.TransparencySubView.OnEnter"/>.
+        /// Read by HomeGridSubView's Q-key handler so the player can
+        /// review the questions from the inline phone's home grid
+        /// without waiting for the engine to render the answer
+        /// buttons (which only become interactable after all emails
+        /// and texts are read).
+        ///
+        /// Empty when <see cref="IsActive"/> is false.</summary>
+        public static string[] Statements = System.Array.Empty<string>();
+
+        /// <summary>Current answer state per statement: null=unanswered,
+        /// true=Agreed, false=Disagreed. Kept in sync each tick by
+        /// TransparencySubView so the Q-key review reflects what the
+        /// player has answered so far.</summary>
+        public static bool?[] Answers = new bool?[3];
     }
 }

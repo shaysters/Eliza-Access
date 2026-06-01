@@ -186,7 +186,8 @@
   "chapter.state_one_episode": "{0}、1 エピソード",
   "chapter.state_n_episodes": "{0}、{1} エピソード",
 
-  "transparency.header": "透明性モード。{0} のレビュー。すべてのメールとテキストを読むと、画面右側の質問が操作可能になります。",
+  "transparency.header": "透明性モード。{0} のレビュー。電話のホーム画面で Q キーを押すと、3 つの質問を聞き直せます。すべてのメールとテキストを読むと、画面右側の質問が操作可能になります。",
+  "transparency.no_active": "現在、透明性モードの質問はアクティブではありません。",
   "transparency.emails_read": "{1} 件中 {0} 件のメールを既読。",
   "transparency.chats_read": "{1} 件中 {0} 件のテキスト会話を既読。",
   "transparency.three_conclusions": "評価すべき結論が3つ。",

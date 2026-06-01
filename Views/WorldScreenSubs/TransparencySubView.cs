@@ -186,14 +186,19 @@ namespace ElizaAccess.Views.WorldScreenSubs
             parts.Add(Loc.Get("transparency.three_conclusions"));
             Speech.Speak(string.Join(" ", parts));
 
+            // The conclusion text used to be spoken here as part of
+            // OnEnter. Per accessibility feedback that produced a long
+            // burst of speech with no way to review until the gated
+            // buttons unlocked — moved to an on-demand Q-key handler
+            // on HomeGridSubView, which pulls the cached snapshot
+            // from TransparencyState.
             _cachedStatements = ReadStatements();
             bool?[]  answers  = ReadAnswers();
+            TransparencyState.Statements = _cachedStatements;
             for (int i = 0; i < 3; i++)
             {
-                string state = AnswerStateLabel(answers[i]);
-                string text  = i < _cachedStatements.Length ? _cachedStatements[i] : "(unavailable)";
-                Speech.Speak(Loc.Fmt("transparency.statement_full", i + 1, text, state));
                 _lastAnswers[i] = answers[i];
+                TransparencyState.Answers[i] = answers[i];
             }
 
             _lastEmailsRead = emailRead;
@@ -205,6 +210,14 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         public override void OnLeave()
         {
+            // Clear the shared snapshot so HomeGridSubView's Q-key
+            // handler can detect "no transparency questions active"
+            // by an empty Statements array rather than IsActive alone
+            // (IsActive is owned by SessionSubView's polling, which
+            // may not have caught up to OnLeave's tick yet).
+            TransparencyState.Statements = Array.Empty<string>();
+            for (int i = 0; i < TransparencyState.Answers.Length; i++)
+                TransparencyState.Answers[i] = null;
             Log("[TransparencySub] left.");
         }
 
@@ -223,6 +236,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                         Log($"[TransparencySub] answer changed: statement {i + 1} → {verb}");
                     }
                     _lastAnswers[i] = answers[i];
+                    TransparencyState.Answers[i] = answers[i];
                 }
             }
 
@@ -407,12 +421,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
         }
 
         // ── Labels ─────────────────────────────────────────────────────
-
-        private static string AnswerStateLabel(bool? answer)
-        {
-            if (!answer.HasValue) return Loc.Get("transparency.answer_not_yet");
-            return Loc.Get(answer.Value ? "transparency.answer_agreed" : "transparency.answer_disagreed");
-        }
 
         // Speak focus for the given button index. Statement context
         // is announced only when the player moves into a new

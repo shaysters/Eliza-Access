@@ -94,6 +94,15 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         private int _pendingTick;
         private const int SettleMs = 60;
 
+        // Q hotkey: reads the three Transparency-Mode conclusion
+        // statements (with current answer state) on demand. The
+        // statements used to be spoken automatically on entry to
+        // Transparency Mode, but the answer buttons aren't
+        // interactable until all emails and texts are read — so the
+        // player needed a way to review the questions while working
+        // through the inbox. Q on the home grid provides that.
+        private readonly KeyEdge _kbQ = new KeyEdge(Keyboard.VK_Q);
+
         // ── Optional additional IsActive gate ──────────────────────────
         // Passed by the parent view. Lets the WorldScreen-mounted
         // instance require TransparencyState.IsActive so it only fires
@@ -250,6 +259,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         {
             _focusedIdx = -1;
             _pendingIdx = -1;
+            _kbQ.Reset();
 
             // Announce the screen context so the user knows where they
             // landed — whether they just opened the phone or just
@@ -289,6 +299,8 @@ namespace ElizaAccess.Views.PhoneScreenSubs
 
         public override void OnUpdate()
         {
+            if (_kbQ.Pressed()) SpeakTransparencyQuestions();
+
             if (_phoneStateField == null) return;
             object? phoneState;
             try { phoneState = _phoneStateField.GetValue(Parent); }
@@ -509,6 +521,38 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         {
             string? lbl = ExplorationState.CurrentSessionLabel;
             return !string.IsNullOrEmpty(lbl) && lbl.StartsWith("light-rail", StringComparison.Ordinal);
+        }
+
+        // ── Transparency-Mode question review (Q hotkey) ───────────────
+
+        // Speak the three conclusion statements with current answer
+        // state. Pulled from TransparencyState, populated by
+        // TransparencySubView on entry to Transparency Mode. Outside
+        // of Transparency Mode there are no questions, so speak a
+        // brief no-op announcement rather than silently swallowing
+        // the keypress — silence feels like a broken key to a blind
+        // player.
+        private void SpeakTransparencyQuestions()
+        {
+            string[] statements = TransparencyState.Statements;
+            if (!TransparencyState.IsActive || statements.Length == 0)
+            {
+                Speech.Speak(Loc.Get("transparency.no_active"), interrupt: true);
+                return;
+            }
+            bool?[] answers = TransparencyState.Answers;
+            var sb = new System.Text.StringBuilder();
+            sb.Append(Loc.Get("transparency.three_conclusions"));
+            for (int i = 0; i < statements.Length; i++)
+            {
+                bool? ans = i < answers.Length ? answers[i] : null;
+                string state = !ans.HasValue
+                    ? Loc.Get("transparency.answer_not_yet")
+                    : Loc.Get(ans.Value ? "transparency.answer_agreed" : "transparency.answer_disagreed");
+                sb.Append(' ');
+                sb.Append(Loc.Fmt("transparency.statement_full", i + 1, statements[i], state));
+            }
+            Speech.Speak(sb.ToString(), interrupt: true);
         }
 
         // ── Helpers ────────────────────────────────────────────────────

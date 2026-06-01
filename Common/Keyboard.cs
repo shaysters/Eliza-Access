@@ -105,6 +105,7 @@ namespace ElizaAccess.Common
         public const int VK_1      = 0x31;
         public const int VK_2      = 0x32;
         public const int VK_3      = 0x33;
+        public const int VK_Q      = 0x51;
         public const int VK_R      = 0x52;
         public const int VK_F5     = 0x74;
         public const int VK_F7     = 0x76;
