@@ -20,6 +20,17 @@
   "escape.pause_menu": "ポーズメニュー",
   "settings.title": "設定",
 
+  "language.English": "英語",
+  "language.Chinese": "中国語",
+  "language.Japanese": "日本語",
+  "language.German": "ドイツ語",
+  "language.Spanish": "スペイン語",
+  "language.French": "フランス語",
+  "language.Italian": "イタリア語",
+  "language.Hungarian": "ハンガリー語",
+  "language.Portuguese": "ポルトガル語",
+  "language.Russian": "ロシア語",
+
   "modsettings.title": "モッド設定",
   "modsettings.closed": "モッド設定を閉じました。",
   "modsettings.eliza_sessions": "イライザのセッション",

@@ -20,6 +20,17 @@
   "escape.pause_menu": "Меню паузы",
   "settings.title": "Настройки",
 
+  "language.English": "Английский",
+  "language.Chinese": "Китайский",
+  "language.Japanese": "Японский",
+  "language.German": "Немецкий",
+  "language.Spanish": "Испанский",
+  "language.French": "Французский",
+  "language.Italian": "Итальянский",
+  "language.Hungarian": "Венгерский",
+  "language.Portuguese": "Португальский",
+  "language.Russian": "Русский",
+
   "modsettings.title": "Настройки мода",
   "modsettings.closed": "Настройки мода закрыты.",
   "modsettings.eliza_sessions": "Сеансы Элизы",

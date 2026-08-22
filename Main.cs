@@ -53,7 +53,7 @@ namespace ElizaAccess
             // Localization: load the English table now (embedded, no
             // game state needed) and detect the current language.
             // Language detection may return English until the game's
-            // GameLogic singleton exists; the throttled RefreshLanguage
+            // GameLogic singleton exists; the per-tick RefreshLanguage
             // in the poll loop below picks up the real language once
             // it does, and re-loads on any mid-session change.
             Loc.Init(_log);
@@ -124,7 +124,6 @@ namespace ElizaAccess
 
             _log("[Main] Entering poll loop (~200 Hz).");
 
-            int locRefreshCounter = 0;
             while (true)
             {
                 // Read all 256 VK states ONCE into the shared snapshot.
@@ -136,16 +135,13 @@ namespace ElizaAccess
                 // happened" / lost arrow taps in fast nav).
                 KeyboardSnapshot.Refresh();
 
-                // Re-check the game language ~once per second (poll is
-                // ~200 Hz). Cheap reflection; reloads the table only on
-                // an actual change.
-                if (++locRefreshCounter >= 200)
-                {
-                    locRefreshCounter = 0;
-                    try   { Loc.RefreshLanguage(); }
-                    catch (Exception ex)
-                        { _log($"[Main] Loc refresh exception: {ex.GetType().Name}: {ex.Message}"); }
-                }
+                // Re-check the game language every tick so mod strings
+                // flip in the same tick the player changes it. The
+                // detection is a couple of reflection reads (~µs); the
+                // table reload only happens on an actual change.
+                try   { Loc.RefreshLanguage(); }
+                catch (Exception ex)
+                    { _log($"[Main] Loc refresh exception: {ex.GetType().Name}: {ex.Message}"); }
 
                 // if (kbF9.Pressed())
                 // {

@@ -85,9 +85,13 @@ namespace ElizaAccess.Views
         private string _slider3Label = "Music Volume";
 
         // ── Per-activation state ───────────────────────────────────────
-        // Sliders and language radios now live in the Elements
-        // registry and own their own baselines via
-        // PollReactiveChange — there's nothing to track here.
+        // Sliders and language radios live in the Elements registry
+        // and own their own baselines via PollReactiveChange. The one
+        // thing tracked here is which Loc language the elements were
+        // registered under — Settings is the only screen where the
+        // language can change with no screen transition after it, so
+        // OnUpdate rebuilds the registry when this goes stale.
+        private string _registeredLocLanguage = "";
 
         // ── Obfuscated names (stable across builds, source-confirmed) ──
         private const string GameLogicSettingsFieldName = "#=qcfPtknXZ5IEbjuOI2Z5gkg==";
@@ -207,7 +211,9 @@ namespace ElizaAccess.Views
             var languageRow = new RowContainer("Language");
             RegisterLanguageRadios(languageRow);
 
-            Log($"[SettingsView] registered {Elements.Count} element(s)");
+            _registeredLocLanguage = Loc.CurrentLanguage;
+            Log($"[SettingsView] registered {Elements.Count} element(s) " +
+                $"(language: {_registeredLocLanguage})");
         }
 
         // Build a RadioButtonElement, add it to the container, and
@@ -289,8 +295,20 @@ namespace ElizaAccess.Views
                 string enumName   = Enum.GetName(_languageEnumType, enumVal) ?? string.Empty;
                 if (!LanguageEnumNameToLabel.TryGetValue(enumName, out string? localized))
                     localized = enumName;
+                // Spoken label leads with the language's name in the
+                // player's current language, endonym in parens:
+                // "French (Français)". When the two coincide (the
+                // current language's own entry, or English in English)
+                // the parens would just repeat — say it once. The
+                // registry key stays the bare endonym because that's
+                // the on-screen text HotspotLabelCapture pairs against.
+                string locKey     = "language." + enumName;
+                string translated = Loc.Get(locKey);
+                string label = (translated == locKey || translated == localized)
+                    ? localized
+                    : $"{translated} ({localized})";
                 string key = $"Language: {localized}";
-                AddRadio(row, key, localized, () => TryReadLanguage() == intVal);
+                AddRadio(row, key, label, () => TryReadLanguage() == intVal);
             }
         }
 
@@ -313,8 +331,27 @@ namespace ElizaAccess.Views
             // Value-change announcements (slider percent, language
             // selection flip) are handled by the registered elements'
             // PollReactiveChange — ScreenView.NotifyUpdate drains
-            // them before delegating here. Nothing left to do at
-            // this layer.
+            // them before delegating here.
+            //
+            // The one job left at this layer: rebuild the element
+            // registry when the language changed while the screen
+            // stayed open. Element labels (language radios via Loc,
+            // slider labels via the game's Localizer) are baked at
+            // registration time, and the hotspot keys the cursor path
+            // matches against are redrawn by the game in the new
+            // language — both go stale together. Comparing against
+            // Loc.CurrentLanguage (not the engine field) means the
+            // rebuild can't run before Loc has loaded the new table:
+            // Main refreshes Loc at the top of every tick, ahead of
+            // the screen poll.
+            if (Loc.CurrentLanguage != _registeredLocLanguage)
+            {
+                Log($"[SettingsView] language changed " +
+                    $"({_registeredLocLanguage} → {Loc.CurrentLanguage}), rebuilding elements");
+                ResolveSliderLabels();
+                Elements.Clear();
+                RegisterElements();
+            }
         }
 
         // ── Reflection resolution ──────────────────────────────────────

@@ -20,6 +20,17 @@
   "escape.pause_menu": "Menu di pausa",
   "settings.title": "Impostazioni",
 
+  "language.English": "Inglese",
+  "language.Chinese": "Cinese",
+  "language.Japanese": "Giapponese",
+  "language.German": "Tedesco",
+  "language.Spanish": "Spagnolo",
+  "language.French": "Francese",
+  "language.Italian": "Italiano",
+  "language.Hungarian": "Ungherese",
+  "language.Portuguese": "Portoghese",
+  "language.Russian": "Russo",
+
   "modsettings.title": "Impostazioni del mod",
   "modsettings.closed": "Impostazioni del mod chiuse.",
   "modsettings.eliza_sessions": "Sessioni di Eliza",

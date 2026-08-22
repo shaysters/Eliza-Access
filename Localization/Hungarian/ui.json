@@ -20,6 +20,17 @@
   "escape.pause_menu": "Szünet menü",
   "settings.title": "Beállítások",
 
+  "language.English": "Angol",
+  "language.Chinese": "Kínai",
+  "language.Japanese": "Japán",
+  "language.German": "Német",
+  "language.Spanish": "Spanyol",
+  "language.French": "Francia",
+  "language.Italian": "Olasz",
+  "language.Hungarian": "Magyar",
+  "language.Portuguese": "Portugál",
+  "language.Russian": "Orosz",
+
   "modsettings.title": "Mod beállítások",
   "modsettings.closed": "Mod beállítások bezárva.",
   "modsettings.eliza_sessions": "Eliza foglalkozások",

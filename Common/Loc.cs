@@ -74,6 +74,13 @@ namespace ElizaAccess.Common
             _log($"[Loc] language → {lang} ({_current.Count} keys, English fallback {_english.Count})");
         }
 
+        /// <summary>The language the currently loaded table belongs to
+        /// ("English" until the first successful detection). Views that
+        /// bake Loc strings into registered elements compare against
+        /// this — not the engine's language field directly — so a
+        /// rebuild can never race ahead of the table reload.</summary>
+        public static string CurrentLanguage => _currentLanguage;
+
         /// <summary>Localized string for <paramref name="key"/>:
         /// current language → English → the key verbatim (so a missing
         /// key surfaces visibly rather than as an empty utterance).</summary>

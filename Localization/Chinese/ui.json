@@ -20,6 +20,17 @@
   "escape.pause_menu": "暂停菜单",
   "settings.title": "设置",
 
+  "language.English": "英语",
+  "language.Chinese": "中文",
+  "language.Japanese": "日语",
+  "language.German": "德语",
+  "language.Spanish": "西班牙语",
+  "language.French": "法语",
+  "language.Italian": "意大利语",
+  "language.Hungarian": "匈牙利语",
+  "language.Portuguese": "葡萄牙语",
+  "language.Russian": "俄语",
+
   "modsettings.title": "模组设置",
   "modsettings.closed": "模组设置已关闭。",
   "modsettings.eliza_sessions": "伊莱莎咨询",
