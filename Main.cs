@@ -110,6 +110,12 @@ namespace ElizaAccess
             // render-thread piggyback the email dump uses.
             KeyEdge kbF10 = new KeyEdge(Keyboard.VK_F10);
 
+            // F11: dump every location background and character sprite
+            // (base + per-location variants + phone portraits) from the
+            // static script registries, for the audio-description pass.
+            // One-shot; same render-thread piggyback as the other dumps.
+            KeyEdge kbF11 = new KeyEdge(Keyboard.VK_F11);
+
             // Q: on-demand review of the three Transparency-Mode
             // conclusion statements (with current Agreed/Disagreed
             // state). Polled globally rather than from
@@ -143,17 +149,6 @@ namespace ElizaAccess
                 catch (Exception ex)
                     { _log($"[Main] Loc refresh exception: {ex.GetType().Name}: {ex.Message}"); }
 
-                // if (kbF9.Pressed())
-                // {
-                //     TextureDumper.DumpRequested = true;
-                //     speech.Speak("Dumping email images.");
-                // }
-
-                if (kbF10.Pressed())
-                {
-                    TextureDumper.DumpExplorationRequested = true;
-                    speech.Speak("Dumping exploration icons.");
-                }
                 // Keep IsControllerActive pinned true. The Harmony prefix on
                 // VirtualInput.smethod_1 doesn't catch flips because the
                 // setter is inlined by the JIT; the field-rewrite here is
@@ -176,15 +171,45 @@ namespace ElizaAccess
                 catch (Exception ex)
                     { _log($"[Main] screens poll exception: {ex.GetType().Name}: {ex.Message}"); }
 
-                // Q is polled AFTER interrupter.Poll() so the
-                // interrupter's Stop() (fired by Q's own rising
-                // edge) doesn't wipe the announcement we're about
-                // to queue. Same rule the SubView path relied on
+                // Q / F10 / F11 are polled AFTER interrupter.Poll() so
+                // the interrupter's Stop() (fired by the hotkey's own
+                // rising edge) doesn't wipe the announcement we're
+                // about to queue. Same rule the SubView path relied on
                 // implicitly via Drive() running after interrupter.
+                // (F10/F11 originally ran before the interrupter and
+                // their announcements were silently wiped every time.)
                 if (kbQ.Pressed())
                 {
                     speech.Speak(TransparencyState.BuildReviewAnnouncement(),
                                  interrupt: true);
+                }
+
+                // if (kbF9.Pressed())
+                // {
+                //     TextureDumper.DumpRequested = true;
+                //     speech.Speak("Dumping email images.");
+                // }
+
+                if (kbF10.Pressed())
+                {
+                    TextureDumper.DumpExplorationRequested = true;
+                    speech.Speak("Dumping exploration icons.");
+                }
+
+                if (kbF11.Pressed())
+                {
+                    TextureDumper.DumpLocationsCharactersRequested = true;
+                    speech.Speak("Dumping location and character images.");
+                }
+
+                // The loc/char dump finishes asynchronously on the
+                // render thread; it leaves its completion message here
+                // for the speech thread to pick up.
+                string? dumpDone = TextureDumper.DoneAnnouncement;
+                if (dumpDone != null)
+                {
+                    TextureDumper.DoneAnnouncement = null;
+                    speech.Speak(dumpDone);
                 }
 
                 Thread.Sleep(5);
