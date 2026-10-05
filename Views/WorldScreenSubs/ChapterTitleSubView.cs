@@ -5,46 +5,44 @@ using ElizaAccess.Common;
 namespace ElizaAccess.Views.WorldScreenSubs
 {
     /// <summary>
-    /// Speaks the chapter title when the engine fires a
-    /// <c>BeginChapter</c> script event. The visual is the "Chapter N
-    /// — Title" overlay the engine fades onto the screen at chapter
-    /// transitions; a sighted player reads it there, and we surface
-    /// the same content for screen readers.
+    /// Speaks the "Chapter N" card the engine shows on a black screen at
+    /// chapter transitions.
     ///
-    /// Data comes off the current script event (WorldScreen.method_0()
-    /// returns a GClass10 tagged union). When its discriminator enum
-    /// reads <c>BeginChapter</c> (= 0, the first Enum0 value), the
-    /// instance's first <c>int</c> field is the chapter number and
-    /// the first LocalizedText (GClass23) field is the title.
+    /// The card is drawn by WorldScreen.method_6 while the current script
+    /// event (WorldScreen.method_0() → GClass10) is <c>ShowChapterTitle</c>.
+    /// That event blocks script advancement (the advance loop stops on it),
+    /// so it stays current for the whole time the card is up and a poll
+    /// reliably sees it. (The earlier <c>BeginChapter</c> event is consumed
+    /// within the same frame it's reached and is almost never observable —
+    /// and its LocalizedText payload is the checkpoint name, not a title.)
     ///
-    /// Dedup by (chapter number, title) so the announcement fires
-    /// once per chapter transition even though the BeginChapter event
-    /// may persist for several poll ticks before the engine moves on
-    /// to ShowChapterTitle / the first dialogue line.
+    /// The card's text is just <c>string.Format(Loc("Chapter {0}"),
+    /// phoneState.int_0 + 1)</c> — no subtitle — so we read the same
+    /// chapter field and the same localized format string.
+    ///
+    /// Speaks once per appearance of the card; a reload that shows the
+    /// same chapter's card again re-announces it.
     /// </summary>
     internal sealed class ChapterTitleSubView : SubView
     {
         // WorldScreen.method_0() → current ScriptEvent (GClass10).
-        private const string ScriptEventMethod        = "#=qMDFlLtHz0Ua9czODgxkx3p6mGjdLqbVep4UBRuPqjUQ=";
-        // LocalizedText.ToString equivalent (smethod_36 in clean,
-        // already used by ChatAppSubView / ElizaAppSubView).
-        private const string LocalizedTextToStringName = "#=qTivbHO_rGrDAcTGXa1E4rg==";
-        // ScriptCharacter.name field — used to resolve the
-        // LocalizedText type without hardcoding its obfuscated name.
-        private const string CharacterNameField        = "#=qVcZOuQei28m8v7C2MtsdYA==";
+        private const string ScriptEventMethod   = "#=qMDFlLtHz0Ua9czODgxkx3p6mGjdLqbVep4UBRuPqjUQ=";
+        // WorldScreen.phoneState_0 (same field ChatAppSubView reads).
+        private const string PhoneStateField     = "#=qzY9KTcekY7cB9h8RuKFjKw==";
+        // PhoneState.int_0 — current chapter index, 0-based.
+        private const string ChapterIndexField   = "#=qlSSqADYiwqAiTqbJgR43gaP_RGb3N92I4fqYfUGCImA=";
 
-        private const int BeginChapterEnumValue = 0;
+        // GClass10.Enum0: BeginChapter = 0, ShowChapterTitle = 1.
+        private const int ShowChapterTitleEnumValue = 1;
 
         // ── Reflected handles ──────────────────────────────────────────
         private MethodInfo? _scriptEventMethod;
         private FieldInfo?  _eventEnumField;     // GClass10 discriminator
-        private FieldInfo?  _chapterNumField;    // GClass10.int_0
-        private FieldInfo?  _chapterTitleField;  // GClass10.gclass23_0 (LocalizedText)
-        private MethodInfo? _localizedToString;
+        private FieldInfo?  _phoneStateField;
+        private FieldInfo?  _chapterIndexField;
 
-        // ── Per-activation state ───────────────────────────────────────
-        private int     _lastChapterNum   = int.MinValue;
-        private string? _lastChapterTitle;
+        // True while the card is up and has been spoken.
+        private bool _announced;
 
         public override void OnInit()
         {
@@ -66,90 +64,67 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 return;
             }
 
-            // Discriminator + payload fields on the script event type.
-            // First int field = int_0 (chapter number). First field of
-            // the LocalizedText type = gclass23_0 (title). Only enum-
-            // typed field = the Enum0 discriminator.
-            Type tEvent = _scriptEventMethod.ReturnType;
-            Type? tLocalizedText = ResolveLocalizedTextType(inst);
-            foreach (FieldInfo f in tEvent.GetFields(inst))
+            // The only enum-typed field on the script event is the Enum0
+            // discriminator.
+            foreach (FieldInfo f in _scriptEventMethod.ReturnType.GetFields(inst))
             {
-                if (_eventEnumField == null && f.FieldType.IsEnum)
-                    _eventEnumField = f;
-                else if (_chapterNumField == null && f.FieldType == typeof(int))
-                    _chapterNumField = f;
-                else if (_chapterTitleField == null
-                         && tLocalizedText != null && f.FieldType == tLocalizedText)
-                    _chapterTitleField = f;
-            }
-            if (tLocalizedText != null)
-            {
-                _localizedToString = tLocalizedText.GetMethod(
-                    LocalizedTextToStringName,
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly,
-                    null, Type.EmptyTypes, null);
+                if (f.FieldType.IsEnum) { _eventEnumField = f; break; }
             }
 
-            Log($"[ChapterTitleSub] init: scriptEvent={(_scriptEventMethod != null)} " +
-                $"enum={(_eventEnumField != null)} chapterNum={(_chapterNumField != null)} " +
-                $"title={(_chapterTitleField != null)} toString={(_localizedToString != null)}");
+            _phoneStateField   = tWS.GetField(PhoneStateField, inst);
+            _chapterIndexField = _phoneStateField?.FieldType.GetField(ChapterIndexField, inst);
+
+            Log($"[ChapterTitleSub] init: enum={(_eventEnumField != null)} " +
+                $"phoneState={(_phoneStateField != null)} chapterIndex={(_chapterIndexField != null)}");
         }
 
-        // LocalizedText (GClass23 in clean) is the type of
-        // ScriptCharacter.name. Resolving via that anchor avoids
-        // hardcoding the obfuscated type name.
-        private static Type? ResolveLocalizedTextType(BindingFlags inst)
-        {
-            Type? tChar = Nagoya.FindType("ScriptCharacter");
-            if (tChar == null) return null;
-            FieldInfo? nameField = tChar.GetField(CharacterNameField, inst);
-            return nameField?.FieldType;
-        }
-
-        public override bool IsActive => _scriptEventMethod != null;
+        public override bool IsActive => _scriptEventMethod != null && _eventEnumField != null;
 
         public override void OnUpdate()
         {
-            if (_scriptEventMethod == null || _eventEnumField == null
-                || _chapterNumField == null || _chapterTitleField == null) return;
+            if (!IsChapterCardShowing())
+            {
+                _announced = false;
+                return;
+            }
+            if (_announced) return;
+            _announced = true;
 
-            object? ev;
-            try { ev = _scriptEventMethod.Invoke(Parent, null); }
-            catch { return; }
-            if (ev == null) return;
-
-            int enumVal;
-            try { enumVal = Convert.ToInt32(_eventEnumField.GetValue(ev)); }
-            catch { return; }
-            if (enumVal != BeginChapterEnumValue) return;
-
-            int chapterNum;
-            try { chapterNum = (int)_chapterNumField.GetValue(ev)!; }
-            catch { return; }
-
-            string title = "";
+            string format = Localizer.TryLocalizeStringKey("Chapter {0}") ?? "Chapter {0}";
+            int? index = ReadChapterIndex();
+            string spoken;
             try
             {
-                object? titleObj = _chapterTitleField.GetValue(ev);
-                if (titleObj != null)
-                {
-                    title = _localizedToString != null
-                        ? (string)_localizedToString.Invoke(titleObj, null)! ?? ""
-                        : titleObj.ToString() ?? "";
-                    title = title.Trim();
-                }
+                spoken = index.HasValue
+                    ? string.Format(format, index.Value + 1)
+                    : format.Replace("{0}", "").Trim();
             }
-            catch { }
+            catch (FormatException) { spoken = $"Chapter {index + 1}"; }
 
-            if (chapterNum == _lastChapterNum && title == (_lastChapterTitle ?? "")) return;
-            _lastChapterNum   = chapterNum;
-            _lastChapterTitle = title;
-
-            string spoken = string.IsNullOrEmpty(title)
-                ? $"Chapter {chapterNum + 1}."
-                : $"Chapter {chapterNum + 1}. {title}.";
             Speech.Speak(spoken);
             Log($"[ChapterTitleSub] {spoken}");
+        }
+
+        private bool IsChapterCardShowing()
+        {
+            try
+            {
+                object? ev = _scriptEventMethod!.Invoke(Parent, null);
+                if (ev == null) return false;
+                return Convert.ToInt32(_eventEnumField!.GetValue(ev)) == ShowChapterTitleEnumValue;
+            }
+            catch { return false; }
+        }
+
+        private int? ReadChapterIndex()
+        {
+            if (_phoneStateField == null || _chapterIndexField == null) return null;
+            try
+            {
+                object? phoneState = _phoneStateField.GetValue(Parent);
+                return phoneState == null ? (int?)null : (int)_chapterIndexField.GetValue(phoneState)!;
+            }
+            catch { return null; }
         }
     }
 }

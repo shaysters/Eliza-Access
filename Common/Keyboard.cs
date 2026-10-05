@@ -150,10 +150,21 @@ namespace ElizaAccess.Common
         /// navigation.</summary>
         public bool BypassGlobalSuppress { get; set; }
 
-        public KeyEdge(int vk) { _vk = vk; }
+        // Arrow keys also fire on the matching controller direction, so
+        // every view that drives its own arrow navigation (look-around,
+        // Eliza profile grid, Solitaire, History) works on a controller
+        // with no per-view code.
+        private readonly PadDirection _pad;
 
-        /// <summary>True iff the key is currently held.</summary>
-        public bool IsHeld => Keyboard.IsHeld(_vk);
+        public KeyEdge(int vk)
+        {
+            _vk  = vk;
+            _pad = ControllerInput.DirectionForKey(vk);
+        }
+
+        /// <summary>True iff the key (or its controller direction) is
+        /// currently held.</summary>
+        public bool IsHeld => Keyboard.IsHeld(_vk) || ControllerInput.IsDirectionHeld(_pad);
 
         /// <summary>
         /// True iff the key was held at the previous call to <see cref="Pressed"/>.
@@ -190,7 +201,8 @@ namespace ElizaAccess.Common
             // first GetAsyncKeyState caller consumed it and any later
             // KeyEdge silently missed the tap.
             short state = KeyboardSnapshot.Get(_vk);
-            bool nowHeld = (state & 0x8000) != 0;
+            bool nowHeld = (state & 0x8000) != 0
+                        || ControllerInput.IsDirectionHeld(_pad);
             bool pressedSinceLast = (state & 0x0001) != 0;
             // Rising edge if either the key is currently held (and wasn't
             // last poll), or it was pressed since the last call (catches

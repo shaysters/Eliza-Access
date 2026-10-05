@@ -87,6 +87,11 @@ namespace ElizaAccess.Common.Patches
                 try { axis = Convert.ToInt32(__0); }
                 catch { return; }
 
+                // Record the pure controller value before suppression or
+                // keyboard injection touch it — views that drive their own
+                // nav read it via ControllerInput.
+                ControllerInput.RecordAxis(axis, __result);
+
                 if (InputSuppressor.IsAxisSuppressed(axis))
                 {
                     __result = 0f;
@@ -159,6 +164,8 @@ namespace ElizaAccess.Common.Patches
                 int btn;
                 try { btn = Convert.ToInt32(__0); }
                 catch { return; }
+
+                ControllerInput.RecordButton(btn, __result);
 
                 // Suppression check runs BEFORE the early-return on
                 // __result so a real controller's button press also gets

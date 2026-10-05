@@ -17,12 +17,10 @@ namespace ElizaAccess.Common
     /// this same iteration queues fresh into the now-empty queue.
     ///
     /// Notes:
-    /// - Keyboard-only by design. The Harmony emulation surface makes
-    ///   keyboard presses appear to the game as controller-button
-    ///   presses (Enter→A, Escape→B, arrows→D-pad), so detecting
-    ///   keyboard edges catches every input path the blind user has.
-    ///   Real controllers go through SDL and aren't covered; if that
-    ///   becomes a use case, add a smethod_18 sweep here.
+    /// - Covers keyboard and real controllers. Keyboard edges come from
+    ///   the shared snapshot; controller edges (stick/D-pad direction
+    ///   or any button) come from <see cref="ControllerInput"/>, which
+    ///   records what the engine read from SDL this frame.
     /// - First poll just snapshots state — it doesn't fire an interrupt
     ///   on whatever was held when the mod loaded.
     /// </summary>
@@ -30,6 +28,7 @@ namespace ElizaAccess.Common
     {
         private readonly SpeechEngine _speech;
         private readonly bool[] _wasHeld = new bool[256];
+        private int _padWasHeld;
         private bool _primed;
 
         public InputInterrupter(SpeechEngine speech)
@@ -57,6 +56,7 @@ namespace ElizaAccess.Common
                 // don't want to interrupt on that incidentally.
                 for (int vk = 0; vk < 256; vk++)
                     _wasHeld[vk] = KeyboardSnapshot.IsHeld(vk);
+                _padWasHeld = ControllerInput.HeldMask();
                 _primed = true;
                 return;
             }
@@ -72,6 +72,10 @@ namespace ElizaAccess.Common
                 if (held && !_wasHeld[vk]) risingEdge = true;
                 _wasHeld[vk] = held;
             }
+
+            int padHeld = ControllerInput.HeldMask();
+            if ((padHeld & ~_padWasHeld) != 0) risingEdge = true;
+            _padWasHeld = padHeld;
 
             if (risingEdge) _speech.Stop();
         }
