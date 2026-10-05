@@ -160,6 +160,7 @@
   "chat.no_recent": "Nessuna chat recente. Non hai voglia di chiacchierare? Ehi, è del tutto legittimo. Quando avrai di nuovo voglia di parlare, le tue chat recenti saranno disponibili qui.",
   "chat.conversation_with": "Conversazione con {0}.",
   "dialogue.line": "{0}: {1}",
+  "dialogue.ellipsis": "puntini di sospensione",
 
   "history.entry_hint": "Cronologia. Premi su o giù per scorrere le righe di dialogo una alla volta.",
   "history.at_top": "Inizio della cronologia.",

@@ -160,6 +160,7 @@
   "chat.no_recent": "No hay chats recientes. ¿No estás de humor para charlar? Oye, es totalmente válido. Cuando vuelvas a tener ganas de hablar, tus chats recientes estarán disponibles aquí.",
   "chat.conversation_with": "Conversación con {0}.",
   "dialogue.line": "{0}: {1}",
+  "dialogue.ellipsis": "puntos suspensivos",
 
   "history.entry_hint": "Historial. Pulsa arriba o abajo para recorrer las líneas de diálogo una a una.",
   "history.at_top": "Inicio del historial.",

@@ -160,6 +160,7 @@
   "chat.no_recent": "最近のチャットはありません。あまり話す気分じゃない? それも全然アリ。また話したくなったら、最近のチャットがここに表示されます。",
   "chat.conversation_with": "{0} との会話。",
   "dialogue.line": "{0}: {1}",
+  "dialogue.ellipsis": "三点リーダー",
 
   "history.entry_hint": "履歴。上下キーで対話を 1 行ずつ移動できます。",
   "history.at_top": "履歴の先頭です。",

@@ -18,9 +18,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
     ///   <c>#=q0opeQa51ufYxr7JOKJ$S5A==</c>  ScriptCharacter speaker
     ///   <c>#=qtyrJpA5pn9a39IUBdZVt5A==</c>  LocalizedText text wrapper
     ///   <c>#=q3jq43jt35t2Okh_SWk9dBQ==</c>  Maybe&lt;Sound&gt; voice clip
-    /// LocalizedText.GetText() → string; ScriptCharacter.GetDisplayName() →
-    /// string. Both methods are reflected by signature (first 0-arg public
-    /// method returning string) so we don't pin the obfuscated method names.
+    /// LocalizedText.GetText() → string is reflected by signature (first
+    /// 0-arg public method returning string). The speaker is read from
+    /// ScriptCharacter.firstName — what the dialogue box displays.
     ///
     /// Suppression rules:
     /// - Voiced lines are skipped (the game itself plays the voice clip; TTS
@@ -43,6 +43,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private const string DlSpeakerFieldName     = "#=q0opeQa51ufYxr7JOKJ$S5A==";
         private const string DlTextObjFieldName     = "#=qtyrJpA5pn9a39IUBdZVt5A==";
         private const string DlSoundFieldName       = "#=q3jq43jt35t2Okh_SWk9dBQ==";
+        // ScriptCharacter.firstName (gclass23_0) and LocalizedText.ToString.
+        private const string CharFirstNameField        = "#=qVcZOuQei28m8v7C2MtsdYA==";
+        private const string LocalizedTextToStringName = "#=qTivbHO_rGrDAcTGXa1E4rg==";
 
         // ── WorldScreen-level reflection (OnInit) ──────────────────────
         private FieldInfo?  _currentDialogueLineField;
@@ -54,7 +57,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private FieldInfo?  _dlSpeakerField;
         private FieldInfo?  _dlTextObjField;
         private MethodInfo? _dlGetTextMethod;
-        private MethodInfo? _dlGetDisplayName;
+        private FieldInfo?  _dlFirstNameField;
+        private MethodInfo? _dlNameToString;
         private FieldInfo?  _dlSoundField;
         private MethodInfo? _dlSoundHasValue;
 
@@ -208,12 +212,14 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         private string ReadSpeakerName(object lineVal)
         {
-            if (_dlSpeakerField == null || _dlGetDisplayName == null) return "?";
+            if (_dlSpeakerField == null || _dlFirstNameField == null || _dlNameToString == null) return "?";
             try
             {
                 object? sp = _dlSpeakerField.GetValue(lineVal);
                 if (sp == null) return "?";
-                string? n = _dlGetDisplayName.Invoke(sp, null) as string;
+                object? nameObj = _dlFirstNameField.GetValue(sp);
+                if (nameObj == null) return "?";
+                string? n = _dlNameToString.Invoke(nameObj, null) as string;
                 return string.IsNullOrWhiteSpace(n) ? "?" : n!;
             }
             catch { return "?"; }
@@ -233,9 +239,25 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         private string BuildUtterance(string speakerName, string text)
         {
+            // A silent beat is written as a lone "…" (U+2026), which
+            // screen readers don't voice at normal punctuation levels —
+            // the player would hear just the speaker name, or nothing.
+            if (IsEllipsisOnly(text)) text = Loc.Get("dialogue.ellipsis");
             if (speakerName != "?" && speakerName != _lastSpeakerName)
                 return speakerName + ": " + text;
             return text;
+        }
+
+        private static bool IsEllipsisOnly(string text)
+        {
+            bool any = false;
+            foreach (char c in text)
+            {
+                if (char.IsWhiteSpace(c)) continue;
+                if (c != '…' && c != '.') return false;
+                any = true;
+            }
+            return any;
         }
 
         private static bool IsPlayerReplyEcho(string text)
@@ -279,15 +301,17 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
                 if (_dlSpeakerField != null)
                 {
-                    Type charType = _dlSpeakerField.FieldType;
-                    foreach (MethodInfo m in charType.GetMethods(
-                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-                    {
-                        if (m.GetParameters().Length == 0 &&
-                            m.ReturnType == typeof(string) &&
-                            m.Name != "ToString")
-                        { _dlGetDisplayName = m; break; }
-                    }
+                    // The dialogue box shows ScriptCharacter.firstName
+                    // (upper-cased) — WorldScreen.smethod_3. The only
+                    // string method on ScriptCharacter is method_0,
+                    // "{lastName}, {firstName}", which is not what's
+                    // displayed (and reads "???, Evelyn" before her
+                    // surname is revealed).
+                    _dlFirstNameField = _dlSpeakerField.FieldType.GetField(CharFirstNameField, instAll);
+                    _dlNameToString = _dlFirstNameField?.FieldType.GetMethod(
+                        LocalizedTextToStringName,
+                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly,
+                        null, Type.EmptyTypes, null);
                 }
 
                 if (_dlSoundField != null)
@@ -303,7 +327,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
                 Log($"[DialogueSub] reflected DialogueLine={lineType.Name} " +
                     $"speaker={_dlSpeakerField != null} text={_dlTextObjField != null} " +
-                    $"getText={_dlGetTextMethod != null} getName={_dlGetDisplayName != null} " +
+                    $"getText={_dlGetTextMethod != null} firstName={_dlFirstNameField != null} " +
+                    $"nameToString={_dlNameToString != null} " +
                     $"sound={_dlSoundField != null} soundHas={_dlSoundHasValue != null}");
             }
             catch (Exception ex)

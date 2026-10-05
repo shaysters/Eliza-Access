@@ -160,6 +160,7 @@
   "chat.no_recent": "没有最近的聊天。最近不太想聊天？嘿，这很正常。等你又想聊的时候，最近的聊天会显示在这里。",
   "chat.conversation_with": "与 {0} 的对话。",
   "dialogue.line": "{0}：{1}",
+  "dialogue.ellipsis": "省略号",
 
   "history.entry_hint": "历史。按上或下键可逐条浏览对话。",
   "history.at_top": "历史顶端。",

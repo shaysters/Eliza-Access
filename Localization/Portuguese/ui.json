@@ -160,6 +160,7 @@
   "chat.no_recent": "Nenhuma conversa recente. Sem clima para conversar? Ei, tudo bem. Quando você estiver com vontade de conversar de novo, suas conversas recentes estarão disponíveis aqui.",
   "chat.conversation_with": "Conversa com {0}.",
   "dialogue.line": "{0}: {1}",
+  "dialogue.ellipsis": "reticências",
 
   "history.entry_hint": "Histórico. Pressione cima ou baixo para percorrer as linhas de diálogo uma a uma.",
   "history.at_top": "Início do histórico.",

@@ -160,6 +160,7 @@
   "chat.no_recent": "Nincsenek friss beszélgetések. Nem vagy beszédes hangulatban? Hé, ez teljesen rendben van. Ha újra beszélgetni támad kedved, a friss beszélgetéseid itt lesznek elérhetők.",
   "chat.conversation_with": "Beszélgetés vele: {0}.",
   "dialogue.line": "{0}: {1}",
+  "dialogue.ellipsis": "három pont",
 
   "history.entry_hint": "Előzmények. A fel és le nyilakkal soronként végigjárhatod a párbeszédet.",
   "history.at_top": "Az előzmények teteje.",

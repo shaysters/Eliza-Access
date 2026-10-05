@@ -160,6 +160,7 @@
   "chat.no_recent": "No recent chats. Not feeling very gabby lately? Hey, that's valid. When you're in a talkative mood again, your recent chats will be available here.",
   "chat.conversation_with": "Conversation with {0}.",
   "dialogue.line": "{0}: {1}",
+  "dialogue.ellipsis": "ellipsis",
 
   "history.entry_hint": "History. Press up or down to navigate dialogue lines one at a time.",
   "history.at_top": "Top of history.",

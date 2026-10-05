@@ -160,6 +160,7 @@
   "chat.no_recent": "Keine kürzlichen Chats. Gerade nicht in Plauderlaune? Hey, das ist völlig in Ordnung. Wenn du wieder reden möchtest, findest du deine letzten Chats hier.",
   "chat.conversation_with": "Unterhaltung mit {0}.",
   "dialogue.line": "{0}: {1}",
+  "dialogue.ellipsis": "Auslassungspunkte",
 
   "history.entry_hint": "Verlauf. Mit Pfeil hoch oder runter kannst du die Dialogzeilen einzeln durchgehen.",
   "history.at_top": "Anfang des Verlaufs.",
