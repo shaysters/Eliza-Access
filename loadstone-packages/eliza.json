@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 1,
+  "kind": "game",
+  "id": "eliza",
+  "name": "Eliza",
+  "detect": {
+    "steam": { "appId": 716500, "dirName": "Eliza" },
+    "markers": ["Eliza.exe"]
+  },
+  "userData": {
+    "windows": "${documents}/My Games/Eliza"
+  }
+}

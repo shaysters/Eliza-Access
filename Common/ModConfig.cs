@@ -6,7 +6,7 @@ namespace ElizaAccess.Common
 {
     /// <summary>
     /// User-facing mod settings persisted to
-    /// <c>{MyDocuments}\My Games\Eliza\Accessibility\config.json</c>
+    /// <c>{LocalAppData}\ElizaAccess\config.json</c>
     /// (a sibling of the Logs/ directory created by <see cref="Entry"/>).
     ///
     /// Sections are nested one level deep so related settings group

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Tiny AppDomainManager that loads the mod. Eliza.exe.config names this
+    assembly by exact display name, so AssemblyVersion is pinned and this
+    project should almost never change — mod updates touch only
+    ElizaAccessDll.dll. It has no compile-time reference to the mod: the
+    mod is loaded by path at runtime, so a missing or broken mod DLL can't
+    stop the game from launching.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <!-- Keep output at bin\$(Configuration)\net472 even when the environment sets
+         Platform (the VS developer prompt sets Platform=x64), so the bundle,
+         deploy and release script always find the files they just built. -->
+    <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
+    <OutputType>Library</OutputType>
+    <AssemblyName>ElizaAccessBootstrap</AssemblyName>
+    <RootNamespace>ElizaAccessBootstrap</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>

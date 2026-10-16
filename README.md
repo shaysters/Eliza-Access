@@ -15,15 +15,17 @@ than visual polish.
 
 | Path | Purpose |
 |---|---|
-| `ElizaAccess-v2.csproj` | Project file. net472, x64. Builds `ElizaAccessDll.dll`. |
+| `ElizaAccess-v2.csproj` | Project file. net472, x64. Builds `ElizaAccessDll.dll` (and the loader below). |
+| `Bootstrap/` | The loader: `ElizaAccessBootstrap.dll` (an `AppDomainManager`) and the `Eliza.exe.config` that activates it. See *Injection method*. |
 | `Entry.cs` / `Main.cs` / `SpeechEngine.cs` / `Polyfills.cs` | Top-level entry, poll loop, TTS, net472 polyfills |
 | `Common/` | Framework primitives (`Nagoya`, `ScreenView`, `SubView`, `ScreenViewManager`, `CursorFocus`, `SpeechEngine`, `PrismNative`, etc.) |
 | `Views/` | Per-game-screen `ScreenView` and per-screen `SubView` implementations |
 | `prism.dll` | Vendored native screen-reader abstraction. Lifted from the Prismatoid NuGet package's `runtimes/win-x64/native/` because the managed wrapper is `net10.0`-only. |
 | `README.md` | This file. |
 
-End-user install is just four flat files in the game directory, all
-produced by the Release build (see *Building* below).
+End-user install is five flat files in the game directory, all
+produced by the Release build (see *Building* below). None of them
+replaces a file the game ships.
 
 ### Game source (not in this repo)
 
@@ -87,6 +89,7 @@ game directory so the next launch of Eliza picks them up:
 - `ElizaAccessDll.dll` (+ `.pdb`)
 - `0Harmony.dll` (from the `Lib.Harmony` NuGet package)
 - `prism.dll` (vendored at repo root)
+- `ElizaAccessBootstrap.dll` and `Eliza.exe.config` (the loader)
 
 This is the `DeployToGameDir` MSBuild target in
 `ElizaAccess-v2.csproj`. It auto-skips when the game directory
@@ -104,19 +107,15 @@ after the deploy and emits a flat zip the user can drop straight into
 their game directory:
 
 ```
-bin/Release/net472/Eliza-Accessibility.zip
+bin/Release/net472/ElizaAccess.zip
 ├── ElizaAccessDll.dll
 ├── 0Harmony.dll
 ├── prism.dll
-└── libvorbisfile.dll     ← CLR-bootstrap proxy (see "Injection method")
+├── ElizaAccessBootstrap.dll  ← loader (see "Injection method")
+└── Eliza.exe.config          ← activates the loader
 ```
 
-`libvorbisfile.dll` isn't built by this project. The bundle pulls
-whatever copy is currently installed in the game directory (a one-time
-manual install). Override the source with `/p:ProxyDll=<path>`.
-
-The bundle target auto-skips when no proxy DLL is available
-(`/p:SkipBundle=true` opts out explicitly).
+`/p:SkipBundle=true` opts out.
 
 ### MSBuild property overrides
 
@@ -125,15 +124,20 @@ The bundle target auto-skips when no proxy DLL is available
 | `/p:GameDir='<path>'` | Use a non-default game install path (default is the standard Steam path) |
 | `/p:SkipDeploy=true` | Build but don't deploy |
 | `/p:SkipBundle=true` | Release: build but don't bundle zip |
-| `/p:ProxyDll='<path>'` | Release: pull the proxy from a specific path |
 
 ## Runtime log
 
 The mod writes a per-session log to:
 
 ```
-%USERPROFILE%\Documents\My Games\Eliza\Accessibility\Logs\eliza-access.log
+%LOCALAPPDATA%\ElizaAccess\Logs\eliza-access.log
 ```
+
+Settings (`config.json`) live in the same `ElizaAccess` folder. It's in
+Local AppData rather than Documents so OneDrive folder redirection and
+syncing never touch it. Older versions used
+`Documents\My Games\Eliza\Accessibility`; on first run the mod copies
+`config.json` over from there.
 
 (Previous session is preserved as `eliza-access.prev.log` — the file
 rotates on each `Entry.Initialize` call.)
@@ -149,23 +153,49 @@ Useful patterns:
 
 ## Injection method
 
-A native proxy DLL named `libvorbisfile.dll` lives in the game
-directory. The original Ogg Vorbis decoder DLL is preserved alongside
-as `libvorbisfile_orig.dll` (the user renames their original during
-install). When the game loads what it thinks is the Vorbis decoder,
-our proxy is what actually loads; it forwards all the vorbis calls to
-the original DLL and, on a background thread, bootstraps the managed
-mod via `ICLRRuntimeHost::ExecuteInDefaultAppDomain`, calling:
+Eliza is a .NET Framework 4 program and ships no `Eliza.exe.config`.
+We add one, and it names our loader as the process's
+`AppDomainManager`:
+
+```xml
+<appDomainManagerAssembly value="ElizaAccessBootstrap, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+<appDomainManagerType value="ElizaAccessBootstrap.Bootstrap" />
+```
+
+The .NET runtime constructs `ElizaAccessBootstrap.Bootstrap` in the
+default domain before the game's `Main` runs. It starts a background
+thread that loads `ElizaAccessDll.dll` from the game folder by path and
+calls:
 
 ```csharp
 ElizaAccess.Entry.Initialize(string gamePath) → int
 ```
 
-`gamePath` is the game directory, passed in from the C++ side.
+`gamePath` is the game directory. The mod waits for the game assembly
+(Nagoya) to load before doing anything, so starting early is fine.
 
-The proxy isn't part of this repo — it was built once and lives only
-in the installed game directory. The Release bundler grabs whatever is
-currently installed.
+Why a separate loader assembly:
+
+- **Stable identity.** The config names the loader by exact display
+  name, so its `AssemblyVersion` is pinned to 1.0.0.0 and the project
+  rarely changes. Mod updates only replace `ElizaAccessDll.dll`.
+- **Fail-safe.** The loader runs before the game; an exception escaping
+  it would stop the game launching. It catches everything (logging to
+  `%TEMP%eliza-access-bootstrap.log`) and has no compile-time
+  reference to the mod, so a missing or broken mod just means no mod.
+
+Delete `Eliza.exe.config` to launch the game without the mod. Steam's
+"Verify integrity of game files" leaves our files alone.
+
+**Old manual installs** used a native proxy `libvorbisfile.dll` (with
+the real one renamed to `libvorbisfile_orig.dll`), which called the
+same `Entry.Initialize`. If that proxy is still present alongside the
+new loader, both call in; `Entry.Initialize` records a flag on the
+AppDomain and only the first call starts the mod. (A static flag
+wouldn't work — the two loaders load the assembly in different load
+contexts.) To clean up an old install, run Steam's "Verify integrity of
+game files", which restores the real `libvorbisfile.dll`; the leftover
+`libvorbisfile_orig.dll` is harmless and can be deleted.
 
 ## Engine facts
 
@@ -182,7 +212,7 @@ currently installed.
 - Strings used in the game are encrypted in the assembly and decoded
   at runtime; `Common/Localizer.cs` wraps the decode pipeline so we
   can look up game-rendered text by integer key.
-- Game bitness is x64 — all native binaries (Prism, the proxy) must
+- Game bitness is x64 — all native binaries (Prism) must
   match.
 
 ## Architecture

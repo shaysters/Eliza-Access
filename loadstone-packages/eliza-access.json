@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "eliza-access",
+  "name": "Eliza Access",
+  "description": "Screen reader accessibility for Eliza by Zachtronics. Speaks every screen, dialogue line, phone app and therapy session, describes scenes and characters, and adds full keyboard and controller navigation.",
+  "authors": ["Shaysters", "Bradley Renshaw"],
+  "game": "eliza",
+  "distributions": { "steam": "supported" },
+  "channels": {
+    "stable": { "source": "release" },
+    "prerelease": { "source": "release", "includePrereleases": true }
+  },
+  "install": [
+    {
+      "step": "extract-archive",
+      "routes": [ { "from": "**", "to": "${gameDir}" } ]
+    },
+    {
+      "step": "expect",
+      "checks": [
+        { "fileExists": "${gameDir}/ElizaAccessDll.dll", "message": "The archive didn't contain the mod (no ElizaAccessDll.dll)." },
+        { "fileExists": "${gameDir}/ElizaAccessBootstrap.dll", "message": "The archive didn't contain the mod loader (no ElizaAccessBootstrap.dll)." },
+        { "fileExists": "${gameDir}/Eliza.exe.config", "message": "The archive didn't contain the loader config (no Eliza.exe.config)." }
+      ]
+    }
+  ],
+  "userData": [ "${localAppData}/ElizaAccess" ],
+  "packaging": {
+    "artifacts": [ { "file": "../bin/Release/net472/ElizaAccess.zip" } ]
+  }
+}

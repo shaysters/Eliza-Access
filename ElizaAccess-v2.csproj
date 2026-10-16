@@ -1,8 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
+    <!-- Keep output at bin\$(Configuration)\net472 even when the environment sets
+         Platform (the VS developer prompt sets Platform=x64), so the bundle,
+         deploy and release script always find the files they just built. -->
+    <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
     <OutputType>Library</OutputType>
     <AssemblyName>ElizaAccessDll</AssemblyName>
+    <!-- Mod version: the Loadstone release version (build_release.sh reads it). -->
+    <Version>0.9.0</Version>
+    <!-- The Loadstone submodule and release staging are not part of this project. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);loadstone\**;release\**</DefaultItemExcludes>
     <RootNamespace>ElizaAccess</RootNamespace>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
@@ -26,6 +34,24 @@
       the game and re-run.
     -->
     <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Eliza</GameDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The loader lives in its own project (pinned assembly identity, no
+      dependency on this one). Keep its sources out of this assembly and
+      build it alongside: ReferenceOutputAssembly=false builds it first
+      without referencing it.
+    -->
+    <Compile Remove="Bootstrap\**" />
+    <None Remove="Bootstrap\**" />
+    <ProjectReference Include="Bootstrap\ElizaAccessBootstrap.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <BootstrapDll>$(MSBuildThisFileDirectory)Bootstrap\bin\$(Configuration)\net472\ElizaAccessBootstrap.dll</BootstrapDll>
+    <ExeConfig>$(MSBuildThisFileDirectory)Bootstrap\Eliza.exe.config</ExeConfig>
   </PropertyGroup>
 
   <ItemGroup>
@@ -88,59 +114,45 @@
           DestinationFolder="$(GameDir)"
           OverwriteReadOnlyFiles="true"
           Condition="Exists('$(TargetDir)prism.dll')" />
+    <!--
+      Loader: Eliza.exe.config makes the .NET runtime create the
+      AppDomainManager in ElizaAccessBootstrap.dll, which starts the mod.
+    -->
+    <Copy SourceFiles="$(BootstrapDll);$(ExeConfig)"
+          DestinationFolder="$(GameDir)"
+          OverwriteReadOnlyFiles="true" />
   </Target>
 
   <!--
-    Release-build redistributable bundle. Stages every file an end-
-    user needs to install the mod into a fresh Eliza directory, then
-    zips them flat so the user can drop the archive's contents
-    straight into the game folder.
+    Release-build redistributable bundle: every file an end user needs,
+    zipped flat so the archive's contents drop straight into the game
+    folder. Nothing in it replaces a file the game ships.
 
     Contents:
-      ElizaAccessDll.dll  — this project's build output
-      0Harmony.dll        — Harmony runtime, from Lib.Harmony NuGet
-      prism.dll           — native screen-reader abstraction
-      libvorbisfile.dll   — patched proxy DLL that bootstraps the CLR
-                            and calls ElizaAccess.Entry.Initialize.
-                            The proxy isn't built by this project; we
-                            copy whatever is currently installed in
-                            $(GameDir). Set /p:ProxyDll='<path>' to
-                            override.
+      ElizaAccessDll.dll        - the mod (this project's build output)
+      0Harmony.dll              - Harmony runtime, from Lib.Harmony NuGet
+      prism.dll                 - native screen-reader abstraction
+      ElizaAccessBootstrap.dll  - AppDomainManager that loads the mod
+      Eliza.exe.config          - tells the .NET runtime to use it
 
-    Skipped automatically when libvorbisfile.dll isn't available
-    (so a fresh clone on a non-gaming machine still builds Release
-    cleanly — it just doesn't produce a zip).
-
-    Set /p:SkipBundle=true to opt out explicitly.
+    Set /p:SkipBundle=true to opt out.
   -->
-  <PropertyGroup>
-    <ProxyDll Condition="'$(ProxyDll)' == ''">$(GameDir)\libvorbisfile.dll</ProxyDll>
-  </PropertyGroup>
-
   <Target Name="BundleRelease" AfterTargets="Build"
-          Condition="'$(Configuration)' == 'Release' AND '$(SkipBundle)' != 'true' AND Exists('$(ProxyDll)')">
+          Condition="'$(Configuration)' == 'Release' AND '$(SkipBundle)' != 'true'">
     <!-- Evaluate paths inside the target so $(TargetDir) is fully
          resolved by Build's preceding tasks. Using these at property-
          group time gives an empty / project-relative result. -->
     <PropertyGroup>
       <BundleStageDir>$(TargetDir)bundle</BundleStageDir>
-      <BundleZipPath>$(TargetDir)Eliza-Accessibility.zip</BundleZipPath>
+      <BundleZipPath>$(TargetDir)ElizaAccess.zip</BundleZipPath>
     </PropertyGroup>
     <Message Importance="high" Text="Bundling release zip → $(BundleZipPath)" />
     <RemoveDir Directories="$(BundleStageDir)" Condition="Exists('$(BundleStageDir)')" />
     <MakeDir Directories="$(BundleStageDir)" />
-    <Copy SourceFiles="$(TargetPath)"             DestinationFolder="$(BundleStageDir)" />
-    <Copy SourceFiles="$(TargetDir)0Harmony.dll"  DestinationFolder="$(BundleStageDir)" />
-    <Copy SourceFiles="$(TargetDir)prism.dll"     DestinationFolder="$(BundleStageDir)" />
-    <Copy SourceFiles="$(ProxyDll)"               DestinationFolder="$(BundleStageDir)" />
+    <Copy SourceFiles="$(TargetPath);$(TargetDir)0Harmony.dll;$(TargetDir)prism.dll;$(BootstrapDll);$(ExeConfig)"
+          DestinationFolder="$(BundleStageDir)" />
     <Delete Files="$(BundleZipPath)" Condition="Exists('$(BundleZipPath)')" />
     <ZipDirectory SourceDirectory="$(BundleStageDir)"
                   DestinationFile="$(BundleZipPath)" />
-  </Target>
-
-  <Target Name="BundleReleaseSkipped" AfterTargets="Build"
-          Condition="'$(Configuration)' == 'Release' AND '$(SkipBundle)' != 'true' AND !Exists('$(ProxyDll)')">
-    <Message Importance="high"
-             Text="Skipping release bundle: proxy DLL not found at '$(ProxyDll)'. Set /p:ProxyDll=&lt;path&gt; to override." />
   </Target>
 </Project>

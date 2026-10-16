@@ -1,0 +1,7 @@
+{
+  "mode": "single-mod",
+  "mod": "eliza-access",
+  "title": "Eliza Access Installer",
+  "registries": ["github:shaysters/Eliza-Access"],
+  "lockRegistries": true
+}
