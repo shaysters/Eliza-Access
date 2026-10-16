@@ -43,6 +43,14 @@ mkdir -p "$ASSETS_DIR"
 cp changes-latest.md "$RELEASE_DIR/"
 cp bin/Release/net472/ElizaAccess.zip "$ASSETS_DIR/"
 
+# Git Bash's GNU /usr/bin/link shadows MSVC's link.exe, which breaks cargo
+# build scripts (both the installer build, whose CMake step runs cargo for
+# the bridge, and the CLI below); put the MSVC bin directory (where cl.exe
+# lives) first.
+if command -v cl.exe >/dev/null 2>&1; then
+    PATH="$(dirname "$(command -v cl.exe)"):$PATH"
+fi
+
 echo "=== Building Loadstone standalone installer ==="
 cmake -S "$MODMANAGER_DIR/app" -B "$MODMANAGER_DIR/build" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
@@ -50,12 +58,6 @@ cmake -S "$MODMANAGER_DIR/app" -B "$MODMANAGER_DIR/build" -G Ninja \
     -DLOADSTONE_EMBED_PROFILE="$SCRIPT_DIR/installer/loadstone-profile.json" >/dev/null
 cmake --build "$MODMANAGER_DIR/build"
 cp "$MODMANAGER_DIR/build/loadstone-manager.exe" "$ASSETS_DIR/ElizaAccessInstaller.exe"
-
-# Git Bash's GNU /usr/bin/link shadows MSVC's link.exe, which breaks cargo
-# build scripts; put the MSVC bin directory (where cl.exe lives) first.
-if command -v cl.exe >/dev/null 2>&1; then
-    PATH="$(dirname "$(command -v cl.exe)"):$PATH"
-fi
 
 echo "=== Building loadstone-release.json ==="
 (cd "$MODMANAGER_DIR" && cargo build --release -p loadstone-cli >/dev/null)
