@@ -94,6 +94,21 @@ namespace ElizaAccess.Views
                 ? Loc.Fmt("chapter.sel_part", sel + 1)
                 : "";
             Speech.Speak(Loc.Fmt("chapter.select", chapters, selPart));
+            _kbHome.Reset();
+            _kbEnd.Reset();
+        }
+
+        // Home / End jump to the first / last focusable row (hotspots
+        // register in list order: chapter rows, with the expanded
+        // chapter's episodes after its row). The normal focus diff
+        // announces wherever the cursor lands.
+        private readonly KeyEdge _kbHome = new KeyEdge(Keyboard.VK_HOME);
+        private readonly KeyEdge _kbEnd  = new KeyEdge(Keyboard.VK_END);
+
+        protected override void OnUpdate()
+        {
+            if (_kbHome.Pressed()) CursorFocus.MoveCursorToHotspot(0);
+            if (_kbEnd.Pressed())  CursorFocus.MoveCursorToHotspot(-1);
         }
 
         protected override (object? key, string? label) ReadCurrentFocus()

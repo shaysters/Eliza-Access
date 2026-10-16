@@ -95,6 +95,50 @@ namespace ElizaAccess.Common
             return screen != null && screen.GetType().Name == typeName;
         }
 
+        // ScreenStack.smethod_2() → List<IScreen>, bottom first. The known
+        // name has drifted in at least one build, so a signature scan
+        // (no-arg static returning List<T : IScreen>) backs it up.
+        private const string StackListMethodName = "#=qaiNQEzpL$O8U_lFatuh9CQ==";
+        private static MethodInfo? _stackListMethod;
+        private static bool _stackListResolved;
+
+        /// <summary>Name of the resolved stack-list method, for logging.</summary>
+        public static string StackListMethodResolved => _stackListMethod?.Name ?? "<not resolved>";
+
+        /// <summary>The game's screen stack, bottom first, or null.</summary>
+        public static System.Collections.IList? GetStack()
+        {
+            if (!_stackListResolved)
+            {
+                _stackListResolved = true;
+                Type? tStack = Nagoya.FindType("ScreenStack");
+                Type? tIScreen = Nagoya.FindType("IScreen");
+                if (tStack != null && tIScreen != null)
+                {
+                    const BindingFlags stat = BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly;
+                    foreach (MethodInfo m in tStack.GetMethods(stat))
+                    {
+                        if (m.Name == StackListMethodName && m.GetParameters().Length == 0)
+                        { _stackListMethod = m; break; }
+                    }
+                    if (_stackListMethod == null)
+                    {
+                        foreach (MethodInfo m in tStack.GetMethods(stat))
+                        {
+                            if (m.GetParameters().Length != 0) continue;
+                            Type rt = m.ReturnType;
+                            if (!rt.IsGenericType || rt.GetGenericTypeDefinition() != typeof(System.Collections.Generic.List<>)) continue;
+                            if (!tIScreen.IsAssignableFrom(rt.GetGenericArguments()[0])) continue;
+                            _stackListMethod = m;
+                            break;
+                        }
+                    }
+                }
+            }
+            try { return _stackListMethod?.Invoke(null, null) as System.Collections.IList; }
+            catch { return null; }
+        }
+
         // ── Resolution ─────────────────────────────────────────────────────
 
         private static void ResolveTopScreenMethod()

@@ -165,5 +165,86 @@ namespace ElizaAccess.Common
             }
             return -1;
         }
+
+        // VirtualInputHotspot.vector2_0 (snap point the engine moves the
+        // controller cursor to) and VirtualInput.SetCursor(Vector2).
+        private const string HotspotCenterField = "#=q3L3_c1bsKCjNb4hkOQx8vg==";
+        private const string SetCursorMethod    = "#=qT_SlnKGmQty0k3OLe9Ydng==";
+        private static bool        _moveResolved;
+        private static FieldInfo?  _hotspotCenterField;
+        private static MethodInfo? _setCursor;
+
+        /// <summary>
+        /// Move the controller cursor onto hotspot <paramref name="index"/>
+        /// of <c>VirtualInput.list_0</c> (negative counts from the end, so
+        /// -1 is the last). The engine keeps the cursor on whichever
+        /// hotspot contains it, so this is a real focus move; the view's
+        /// normal focus-change speech then announces it. Returns false if
+        /// there's no such hotspot.
+        /// </summary>
+        public static bool MoveCursorToHotspot(int index)
+        {
+            EnsureResolved();
+            if (!_moveResolved)
+            {
+                _moveResolved = true;
+                const BindingFlags any = BindingFlags.Public | BindingFlags.NonPublic;
+                _hotspotCenterField = Nagoya.FindType("VirtualInputHotspot")?.GetField(HotspotCenterField, any | BindingFlags.Instance);
+                Type? tVec = Nagoya.FindType("Vector2");
+                if (tVec != null)
+                    _setCursor = Nagoya.FindType("VirtualInput")?.GetMethod(SetCursorMethod, any | BindingFlags.Static, null, new[] { tVec }, null);
+            }
+            if (_list0Field == null || _hotspotCenterField == null || _setCursor == null) return false;
+            try
+            {
+                if (!(_list0Field.GetValue(null) is IList list) || list.Count == 0) return false;
+                if (index < 0) index += list.Count;
+                if (index < 0 || index >= list.Count) return false;
+                object? center = _hotspotCenterField.GetValue(list[index]);
+                if (center == null) return false;
+                _setCursor.Invoke(null, new[] { center });
+                return true;
+            }
+            catch { return false; }
+        }
+
+        // PhoneScreen.vector2_2 — the phone's on-screen size.
+        private const string PhoneSizeField = "#=q2N_S4MJ2CIwFAxov_uuTdA==";
+        private static bool          _phoneSizeResolved;
+        private static object?       _phoneSize;
+        private static PropertyInfo? _boundsSizeProp;
+
+        /// <summary>
+        /// True iff the cursor is on the inline phone's own hotspot. In
+        /// Transparency Mode the open Mail/Chat app registers one hotspot
+        /// covering the whole phone (Bounds2.WithSize(origin,
+        /// PhoneScreen.vector2_2)), and only scrolls while the cursor is
+        /// inside it; the question buttons are separate hotspots.
+        /// </summary>
+        public static bool IsCursorOnPhoneHotspot()
+        {
+            int idx = FindHotspotIndex();
+            if (idx < 0 || _list0Field == null || _hotspotBoundsField == null) return false;
+            if (!_phoneSizeResolved)
+            {
+                _phoneSizeResolved = true;
+                try
+                {
+                    _phoneSize = Nagoya.FindType("PhoneScreen")?.GetField(PhoneSizeField,
+                        BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null);
+                }
+                catch { }
+            }
+            if (_phoneSize == null) return false;
+            try
+            {
+                if (!(_list0Field.GetValue(null) is IList list) || idx >= list.Count) return false;
+                object? bounds = _hotspotBoundsField.GetValue(list[idx]);
+                if (bounds == null) return false;
+                _boundsSizeProp ??= bounds.GetType().GetProperty("Size", BindingFlags.Public | BindingFlags.Instance);
+                return Equals(_boundsSizeProp?.GetValue(bounds), _phoneSize);
+            }
+            catch { return false; }
+        }
     }
 }

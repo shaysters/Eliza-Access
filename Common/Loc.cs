@@ -34,6 +34,7 @@ namespace ElizaAccess.Common
         private const string DefaultLanguage = "English";
         private const string ResourcePrefix  = "ElizaAccess.Localization.";
         private const string ResourceSuffix   = ".ui.json";
+        private const string ImagesResourceSuffix = ".images.json";
 
         private static Action<string> _log = _ => { };
 
@@ -92,6 +93,17 @@ namespace ElizaAccess.Common
             return key;
         }
 
+        /// <summary>Like <see cref="Get"/> but null when the key is in
+        /// neither table — for optional content such as image
+        /// descriptions, where a missing entry means "skip".</summary>
+        public static string? TryGet(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return null;
+            if (_current.TryGetValue(key, out string? v) && !string.IsNullOrEmpty(v)) return v;
+            if (_english.TryGetValue(key, out string? e) && !string.IsNullOrEmpty(e)) return e;
+            return null;
+        }
+
         /// <summary><see cref="Get"/> + <see cref="string.Format"/>.
         /// Templates carry {0}, {1}, … placeholders.</summary>
         public static string Fmt(string key, params object[] args)
@@ -109,16 +121,30 @@ namespace ElizaAccess.Common
 
         // ── Table loading (embedded resources) ─────────────────────────
 
+        // A language folder holds ui.json (mod UI strings) and optionally
+        // images.json (scene / character / avatar descriptions, keyed
+        // image.*). Both merge into one table so lookups and English
+        // fallback work the same for either.
         private static Dictionary<string, string>? LoadTable(string language)
         {
-            string resource = ResourcePrefix + language + ResourceSuffix;
+            Dictionary<string, string>? table = LoadResource(language, ResourceSuffix, required: true);
+            if (table == null) return null;
+            Dictionary<string, string>? images = LoadResource(language, ImagesResourceSuffix, required: false);
+            if (images != null)
+                foreach (var kv in images) table[kv.Key] = kv.Value;
+            return table;
+        }
+
+        private static Dictionary<string, string>? LoadResource(string language, string suffix, bool required)
+        {
+            string resource = ResourcePrefix + language + suffix;
             try
             {
                 Assembly asm = typeof(Loc).Assembly;
                 using Stream? s = asm.GetManifestResourceStream(resource);
                 if (s == null)
                 {
-                    _log($"[Loc] resource not found: {resource}");
+                    if (required) _log($"[Loc] resource not found: {resource}");
                     return null;
                 }
                 using var reader = new StreamReader(s);

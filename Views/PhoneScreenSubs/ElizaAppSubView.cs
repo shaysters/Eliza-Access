@@ -51,6 +51,8 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         private const string ElizaSelectedEmailField    = "#=qbYlytfAZ0Ogw23um81BgMw==";
         private const string ElizaSelectedIndexField    = "#=q4yGblOWKvfzO2$xbKtr7yR7XmI3405kT02R2gcah2eU=";
         private const string ElizaHoveredAchField       = "#=q30BMtiujWVmTMFZl0G6yhA==";
+        // ElizaApp.gclass45_1 — the open Skandha message's scroller.
+        private const string ElizaDetailScrollerField   = "#=qQFX8EzbxmCg$Pk_6FJW51yXvYYYq0guN07fr5Kh8r68=";
         private const string AchievementNameField       = "#=qHsTjiFKVEKoKYH35a5ldKQ==";
         private const string AchievementDescField       = "#=qjQW7__BYNjGboD17ww2YCQ==";
         // PhoneState members. The Eliza inbox is a different IEnumerable
@@ -105,6 +107,8 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         private MethodInfo? _maybeAppHasValue;
         private MethodInfo? _maybeAppGetValue;
         private Type?       _tElizaApp;
+        private FieldInfo?  _detailScrollerField;
+        private LineReader? _reader;
         private FieldInfo?  _elizaTabField;
         private FieldInfo?  _elizaSelectedEmailField;
         private FieldInfo?  _elizaSelectedIndexField;
@@ -271,6 +275,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 _elizaTabField           = _tElizaApp.GetField(ElizaTabField, inst);
                 _elizaSelectedEmailField = _tElizaApp.GetField(ElizaSelectedEmailField, inst);
                 _elizaSelectedIndexField = _tElizaApp.GetField(ElizaSelectedIndexField, inst);
+                _detailScrollerField     = _tElizaApp.GetField(ElizaDetailScrollerField, inst);
                 if (_elizaSelectedEmailField != null)
                 {
                     _maybeElizaEmailHasValue = ResolveMaybeMethod(_elizaSelectedEmailField.FieldType, MaybeHasValueName);
@@ -344,7 +349,10 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 _emailDateField        = tScriptEmail.GetField(EmailDateField, inst);
             }
 
+            _reader = new LineReader(Speech, Log, "ElizaAppSub");
+
             Log($"[ElizaAppSub] init: phoneState={(_phoneStateField != null)} " +
+                $"detailScroller={(_detailScrollerField != null)} " +
                 $"elizaApp={(_tElizaApp != null)} tab={(_elizaTabField != null)} " +
                 $"selEmail={(_elizaSelectedEmailField != null)} selIdx={(_elizaSelectedIndexField != null)} " +
                 $"hoveredAch={(_elizaHoveredAchField != null)} ach.name={(_achievementNameField != null)} " +
@@ -378,6 +386,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
 
         public override void OnLeave()
         {
+            _reader?.Close();
             Log("[ElizaAppSub] left.");
         }
 
@@ -394,6 +403,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 _lastTab           = tab;
                 _lastInboxIndex    = -1;
                 _inboxDetailActive = false;
+                _reader?.Close();
                 AnnounceTab(tab, phoneState);
             }
 
@@ -652,6 +662,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 if (_inboxDetailActive)
                 {
                     _inboxDetailActive = false;
+                    _reader?.Close();
                     Log("[ElizaAppSub] inbox: returned to list.");
                 }
                 int idx;
@@ -672,8 +683,9 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     object? email;
                     try { email = _maybeElizaEmailGetValue.Invoke(maybe, null); }
                     catch { return; }
-                    if (email != null) SpeakMailDetail(email);
+                    if (email != null) OpenDetail(email, elizaApp);
                 }
+                _reader?.Poll();
             }
         }
 
@@ -735,11 +747,11 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             }
         }
 
-        // Mirror of MailAppSubView.SpeakMailDetail. Kept separate so the
-        // ElizaApp inbox can evolve independently if its formatting
-        // needs to differ (e.g. distinguishing AI-generated from human-
-        // authored emails). For now identical wording.
-        private void SpeakMailDetail(object email)
+        // Skandha messages draw exactly like MailApp's email detail, so
+        // the line building is shared (EmailLines). Read everything on
+        // open with the cursor on the header; Up/Down browse line by
+        // line and scroll the view to follow.
+        private void OpenDetail(object email, object elizaApp)
         {
             if (_emailSenderField == null || _emailSubjectField == null || _emailBodyField == null) return;
             try
@@ -748,44 +760,20 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 string subject = _emailSubjectField.GetValue(email)?.ToString() ?? "";
                 string body    = _emailBodyField.GetValue(email)?.ToString() ?? "";
                 string date    = ReadEmailDate(email);
-                string dateChunk = date.Length > 0 ? $" {date}." : "";
 
-                Speech.Speak($"{sender}.{dateChunk} {subject}.");
-
-                int spoken = 0;
-                foreach (string raw in body.Split('\n'))
+                List<LineReader.Line> lines = EmailLines.Build(sender, date, subject, body);
+                EmailLines.SpeakAll(Speech, lines);
+                _reader?.Open(lines, 0, () =>
                 {
-                    string line = raw.Trim();
-                    if (line.Length == 0) continue;
-                    // Embedded image token — see MailAppSubView for
-                    // the full rationale. "{hedonic}" → "Image:
-                    // hedonic" so TTS doesn't read literal braces.
-                    if (line.StartsWith("{") && line.EndsWith("}") && line.Length > 2)
-                    {
-                        string key = line.Substring(1, line.Length - 2).Trim();
-                        string? desc = EmailImageDescriptions.TryGet(key);
-                        if (desc != null)
-                        {
-                            Speech.Speak(Loc.Fmt("image.desc", desc));
-                        }
-                        else if (key.Length > 0)
-                        {
-                            Speech.Speak(Loc.Fmt("image.desc", key.Replace("_", " ")));
-                        }
-                        spoken++;
-                        continue;
-                    }
-                    if (line.StartsWith(":") && line.EndsWith(":") && line.Length > 2)
-                        line = line.Substring(1, line.Length - 2);
-                    Speech.Speak(line);
-                    spoken++;
-                }
+                    try { return _detailScrollerField?.GetValue(elizaApp); }
+                    catch { return null; }
+                });
 
-                Log($"[ElizaAppSub] detail: {sender} / {subject} / {date} ({spoken} body lines)");
+                Log($"[ElizaAppSub] detail: {sender} / {subject} / {date} ({lines.Count} lines)");
             }
             catch (Exception ex)
             {
-                Log($"[ElizaAppSub] SpeakMailDetail error: {ex.GetType().Name}: {ex.Message}");
+                Log($"[ElizaAppSub] OpenDetail error: {ex.GetType().Name}: {ex.Message}");
             }
         }
 

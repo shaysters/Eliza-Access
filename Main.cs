@@ -128,6 +128,12 @@ namespace ElizaAccess
             // key.
             KeyEdge kbQ = new KeyEdge(Keyboard.VK_Q);
 
+            // J / L browse the images on screen (scene background +
+            // characters, or conversation avatars); K describes the
+            // current one. Polled after the screens so it sees this
+            // tick's state, and after the interrupter like Q.
+            ImageBrowser images = new ImageBrowser(speech);
+
             _log("[Main] Entering poll loop (~200 Hz).");
 
             while (true)
@@ -178,6 +184,10 @@ namespace ElizaAccess
                 // implicitly via Drive() running after interrupter.
                 // (F10/F11 originally ran before the interrupter and
                 // their announcements were silently wiped every time.)
+                try   { images.Poll(); }
+                catch (Exception ex)
+                    { _log($"[Main] images poll exception: {ex.GetType().Name}: {ex.Message}"); }
+
                 if (kbQ.Pressed())
                 {
                     speech.Speak(TransparencyState.BuildReviewAnnouncement(),

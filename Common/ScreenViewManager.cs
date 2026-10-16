@@ -35,15 +35,6 @@ namespace ElizaAccess.Common
         // screen instance with the view we created for it.
         private readonly List<MirrorEntry> _mirror = new List<MirrorEntry>(8);
 
-        // Reflection cache for ScreenStack.smethod_2() → List<IScreen>
-        private bool _stackResolved;
-        private MethodInfo? _stackListMethod;
-
-        // smethod_2 on ScreenStack returns the visible stack as a List<IScreen>
-        // — used everywhere in the game for stack iteration. We prefer the
-        // known name and fall back to a signature scan if the hash rotates.
-        private const string StackListMethodName = "#=qaiNQEzpL$O8U_lFatuh9CQ==";
-
         public ScreenViewManager(Action<string> log, SpeechEngine speech)
         {
             _log = log;
@@ -226,44 +217,17 @@ namespace ElizaAccess.Common
 
         // ── ScreenStack reflection ─────────────────────────────────────
 
+        private bool _stackLogged;
+
         private IList? ReadGameStack()
         {
-            if (!_stackResolved)
+            IList? stack = ScreenStackBinding.GetStack();
+            if (!_stackLogged)
             {
-                _stackResolved = true;
-                Type? tStack = Nagoya.FindType("ScreenStack");
-                Type? tIScreen = Nagoya.FindType("IScreen");
-                if (tStack != null && tIScreen != null)
-                {
-                    // Preferred: known obfuscated name.
-                    foreach (MethodInfo m in tStack.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly))
-                    {
-                        if (m.Name != StackListMethodName) continue;
-                        if (m.GetParameters().Length != 0) continue;
-                        _stackListMethod = m;
-                        break;
-                    }
-                    // Fallback: signature scan — no-arg static returning
-                    // List<T> where T : IScreen.
-                    if (_stackListMethod == null)
-                    {
-                        foreach (MethodInfo m in tStack.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly))
-                        {
-                            if (m.GetParameters().Length != 0) continue;
-                            Type rt = m.ReturnType;
-                            if (!rt.IsGenericType) continue;
-                            if (rt.GetGenericTypeDefinition() != typeof(List<>)) continue;
-                            if (!tIScreen.IsAssignableFrom(rt.GetGenericArguments()[0])) continue;
-                            _stackListMethod = m;
-                            break;
-                        }
-                    }
-                }
-                _log($"[ScreenViewManager] stack-list method: {_stackListMethod?.Name ?? "<not resolved>"}");
+                _stackLogged = true;
+                _log($"[ScreenViewManager] stack-list method: {ScreenStackBinding.StackListMethodResolved}");
             }
-            if (_stackListMethod == null) return null;
-            try { return _stackListMethod.Invoke(null, null) as IList; }
-            catch { return null; }
+            return stack;
         }
     }
 }

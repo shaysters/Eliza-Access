@@ -51,6 +51,10 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         private const string LocalizedTextToStringName = "#=qTivbHO_rGrDAcTGXa1E4rg==";
         private const string EntryTypeField            = "#=qaG2NfIrHQHsZSpfYKbj8jQ==";
         private const string EntryTextField            = "#=qyUpzQtPynmEGvfYtNiwRrg==";
+        // ChatApp.gclass45_1 — the open conversation's scroller.
+        // PhoneState.method_10 — the phone owner's ScriptCharacter.
+        private const string OwnerCharMethodName       = "#=qRIcHaxHuMyXhtWXCNPkUnt$mTokvAQPYcxZ2vK0abnI=";
+        private const string ConvoScrollerField        = "#=qEP1zIByRl_j0OYx4rj3Nah_jGHnOPzI8wvonwKp1spI=";
 
         // Player character display name. The game hardcodes this in
         // GClass146.scriptCharacter_0 — the localized-text wrapper is
@@ -69,6 +73,9 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         private MethodInfo? _maybeCharHasValue;
         private MethodInfo? _maybeCharGetValue;
         private MethodInfo? _chatHistoryMethod;
+        private FieldInfo?  _convoScrollerField;
+        private MethodInfo? _ownerCharMethod;   // PhoneState.method_10 → phone owner
+        private LineReader? _reader;
 
         // ScriptCharacter → name string. Reflected on first chat-app entry.
         private bool        _charReflectDone;
@@ -122,6 +129,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     _maybeAppGetValue = ResolveMaybeGetValue(_activeAppField.FieldType);
                 }
                 _chatHistoryMethod = tPhoneState.GetMethod(ChatHistoryMethodName, inst);
+                _ownerCharMethod   = tPhoneState.GetMethod(OwnerCharMethodName, inst);
             }
 
             _tChatApp = Nagoya.FindType(ChatAppTypeName);
@@ -129,6 +137,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             {
                 _chatSelectedCharField  = _tChatApp.GetField(ChatSelectedCharField, inst);
                 _chatSelectedIndexField = _tChatApp.GetField(ChatSelectedIndexField, inst);
+                _convoScrollerField     = _tChatApp.GetField(ConvoScrollerField, inst);
                 if (_chatSelectedCharField != null)
                 {
                     _maybeCharHasValue = ResolveMaybeMethod(_chatSelectedCharField.FieldType, typeof(bool));
@@ -136,7 +145,10 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 }
             }
 
+            _reader = new LineReader(Speech, Log, "ChatAppSub");
+
             Log($"[ChatAppSub] init: phoneState={(_phoneStateField != null)} " +
+                $"convoScroller={(_convoScrollerField != null)} " +
                 $"activeApp={(_activeAppField != null)} " +
                 $"chatApp={(_tChatApp != null)} " +
                 $"chatHistory={(_chatHistoryMethod != null)} " +
@@ -193,6 +205,8 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             _focusedListIdx           = -1;
             _inConversation           = false;
             _conversationLastMsgCount = -1;
+            _reader?.Close();
+            PhoneAvatarState.Clear();
             Log("[ChatAppSub] chat app left.");
         }
 
@@ -221,6 +235,8 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 {
                     _inConversation           = false;
                     _conversationLastMsgCount = -1;
+                    _reader?.Close();
+                    PhoneAvatarState.Clear();
                     Log("[ChatAppSub] returned to list.");
                 }
                 int idx;
@@ -246,8 +262,22 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     _inConversation           = true;
                     _conversationLastMsgCount = -1;
                     SpeakConversationEntry(phoneState, character);
+                    // Line cursor starts on the newest message; Up walks
+                    // back through the thread.
+                    var lines = BuildConversationLines(phoneState, character, GetCharName(character));
+                    _reader?.Open(lines, lines.Count - 1, () => ReadConvoScroller(chatApp));
+                    // J/K/L: the two avatars in this conversation.
+                    // ScriptCharacter.ToString() is its internal name.
+                    PhoneAvatarState.PartnerKey = character.ToString();
+                    try { PhoneAvatarState.OwnerKey = _ownerCharMethod?.Invoke(phoneState, null)?.ToString(); }
+                    catch { PhoneAvatarState.OwnerKey = null; }
                 }
-                SpeakNewMessages(phoneState, character);
+                if (SpeakNewMessages(phoneState, character))
+                {
+                    var lines = BuildConversationLines(phoneState, character, GetCharName(character));
+                    _reader?.Update(lines, lines.Count - 1);
+                }
+                _reader?.Poll();
             }
         }
 
@@ -321,8 +351,10 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             }
         }
 
-        private void SpeakNewMessages(object phoneState, object character)
+        // Returns true when new messages arrived (and were spoken).
+        private bool SpeakNewMessages(object phoneState, object character)
         {
+            bool arrived = false;
             try
             {
                 List<object> msgs = GetMessages(phoneState, character);
@@ -344,6 +376,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     // re-entering this conversation later doesn't re-speak
                     // these messages.
                     _readCountByChar[charName] = msgs.Count;
+                    arrived = true;
                 }
                 _conversationLastMsgCount = msgs.Count;
             }
@@ -351,48 +384,50 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             {
                 Log($"[ChatAppSub] SpeakNewMessages error: {ex.GetType().Name}: {ex.Message}");
             }
+            return arrived;
         }
 
         // Speak a single TextingHistoryEntry with speaker attribution.
-        // PhoneState.cs:53 / ChatApp.cs:83-84: type==2 is NPC (the
-        // conversation partner); type==1 is the player. type==0 is a
-        // separator and is filtered out before this is called. Live
-        // arrivals pass suppressPlayer=true because the player just
+        // Live arrivals pass suppressPlayer=true because the player just
         // confirmed the reply via ChoiceSub and an immediate echo would
         // get cut off by the next NPC bubble; history reads pass
         // suppressPlayer=false so the player hears both sides.
         private void SpeakChatEntry(object entry, string partnerName, bool suppressPlayer)
         {
-            if (_entryTextField == null) return;
+            string? speech = FormatChatEntry(entry, partnerName, out bool isPlayer);
+            if (speech == null) return;
+            if (isPlayer && suppressPlayer)
+            {
+                Log($"[ChatAppSub] msg (player, suppressed): \"{speech}\"");
+                return;
+            }
+            Speech.Speak(speech);
+            Log($"[ChatAppSub] msg: \"{speech}\"");
+        }
+
+        // "Speaker: text" for one TextingHistoryEntry, or null for a
+        // separator / empty entry. PhoneState.cs:53 / ChatApp.cs:83-84:
+        // type==2 is NPC (the conversation partner); type==1 is the
+        // player; type==0 is a separator.
+        private string? FormatChatEntry(object entry, string partnerName, out bool isPlayer)
+        {
+            isPlayer = false;
+            if (_entryTextField == null) return null;
             try
             {
+                int t = ReadEntryType(entry);
+                if (t == 0) return null;
                 // The text field is a localized-text wrapper (GClass23 in
                 // the decompile) with a user-defined `implicit operator
                 // string`. `as string` does NOT trigger user-defined
-                // conversions, so it returns null and every message is
-                // silently dropped. ToString() (which GClass23 overrides
-                // to return the current-language string) is the universal
-                // fallback; still accept a raw string if a future build
-                // changes the field type.
+                // conversions, so ToString() (which GClass23 overrides to
+                // return the current-language string) is the fallback.
                 object? raw = _entryTextField.GetValue(entry);
-                if (raw == null) return;
+                if (raw == null) return null;
                 string? text = raw as string ?? raw.ToString();
-                if (string.IsNullOrEmpty(text)) return;
+                if (string.IsNullOrEmpty(text)) return null;
 
-                int t = -1;
-                if (_entryTypeField != null)
-                {
-                    object? typeVal = _entryTypeField.GetValue(entry);
-                    t = typeVal is Enum e ? Convert.ToInt32(e)
-                      : typeVal is int   i ? i
-                      : -1;
-                }
-                bool isPlayer = t == 1;
-                if (isPlayer && suppressPlayer)
-                {
-                    Log($"[ChatAppSub] msg (player, suppressed): \"{text}\"");
-                    return;
-                }
+                isPlayer = t == 1;
                 // In Transparency Mode the inline phone shows the
                 // patient's chat history, not Evelyn's — so player-
                 // side messages (type==1) were written BY the patient
@@ -403,13 +438,22 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     ? TransparencyState.SubjectName
                     : PlayerName;
                 string speaker = isPlayer ? playerLabel : partnerName;
-                Speech.Speak(Loc.Fmt("dialogue.line", speaker, text));
-                Log($"[ChatAppSub] msg: {speaker}: \"{text}\"");
+                return Loc.Fmt("dialogue.line", speaker, text);
             }
             catch (Exception ex)
             {
-                Log($"[ChatAppSub] SpeakChatEntry error: {ex.GetType().Name}: {ex.Message}");
+                Log($"[ChatAppSub] FormatChatEntry error: {ex.GetType().Name}: {ex.Message}");
+                return null;
             }
+        }
+
+        private int ReadEntryType(object entry)
+        {
+            if (_entryTypeField == null) return -1;
+            object? typeVal = _entryTypeField.GetValue(entry);
+            return typeVal is Enum e ? Convert.ToInt32(e)
+                 : typeVal is int  i ? i
+                 : -1;
         }
 
         // ── PhoneState navigation ──────────────────────────────────────
@@ -444,86 +488,120 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         /// list (oldest first).</summary>
         private List<object> GetMessages(object phoneState, object character)
         {
-            if (_chatHistoryMethod == null) return new List<object>();
-
-            object? dictRaw = _chatHistoryMethod.Invoke(phoneState, null);
-            if (dictRaw == null) return new List<object>();
-
-            IDictionary outerDict = (IDictionary)dictRaw;
-            if (!outerDict.Contains(character)) return new List<object>();
-
-            object? innerRaw = outerDict[character];
-            if (innerRaw == null) return new List<object>();
-
-            IDictionary innerDict = (IDictionary)innerRaw;
-            object? historyList   = null;
-
-            // Try language-singleton lookup; fall back to first key on
-            // failure. ChatApp uses a game language singleton to look up
-            // the current language. The singleton type isn't compile-
-            // time known, so we probe via the inner dictionary's key
-            // type and find a matching static no-arg method.
-            try
+            var result = new List<object>();
+            foreach (object entry in GetHistory(phoneState, character))
             {
-                Type keyType = null!;
-                foreach (DictionaryEntry de in innerDict) { keyType = de.Key.GetType(); break; }
-
-                if (keyType != null)
-                {
-                    object? langValue = null;
-                    foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
-                    {
-                        if (langValue != null) break;
-                        try
-                        {
-                            foreach (Type t in a.GetTypes())
-                            {
-                                if (langValue != null) break;
-                                foreach (MethodInfo m in t.GetMethods(
-                                    BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly))
-                                {
-                                    if (m.GetParameters().Length == 0 && m.ReturnType == keyType)
-                                    {
-                                        try { langValue = m.Invoke(null, null); } catch { }
-                                        if (langValue != null) break;
-                                    }
-                                }
-                            }
-                        }
-                        catch { }
-                    }
-
-                    if (langValue != null && innerDict.Contains(langValue))
-                        historyList = innerDict[langValue];
-                }
+                if (ReadEntryType(entry) == 0) continue;
+                result.Add(entry);
             }
-            catch { }
+            return result;
+        }
 
-            // Fallback: use first available key
+        /// <summary>The character's full TextingHistoryEntry list in the
+        /// current language — separators included, exactly what
+        /// ChatApp.smethod_0 lays out.</summary>
+        private List<object> GetHistory(object phoneState, object character)
+        {
+            var result = new List<object>();
+            if (_chatHistoryMethod == null) return result;
+
+            if (!(_chatHistoryMethod.Invoke(phoneState, null) is IDictionary outerDict)) return result;
+            if (!outerDict.Contains(character)) return result;
+            if (!(outerDict[character] is IDictionary innerDict)) return result;
+
+            // Inner dictionary is keyed by game Language; ChatApp reads
+            // the current language's list. Fall back to the first list.
+            object? historyList = null;
+            object? lang = CurrentGameLanguage(innerDict);
+            if (lang != null && innerDict.Contains(lang)) historyList = innerDict[lang];
             if (historyList == null)
             {
                 foreach (DictionaryEntry de in innerDict) { historyList = de.Value; break; }
             }
-
-            if (historyList == null) return new List<object>();
+            if (historyList == null) return result;
 
             // Deferred reflection: capture TextingHistoryEntry fields
             // from the first live element.
             if (!_entryReflectDone) DoEntryReflect(historyList);
 
-            var result = new List<object>();
             foreach (object entry in (IEnumerable)historyList)
-            {
-                if (entry == null) continue;
-                if (_entryTypeField != null)
-                {
-                    object? typeVal = _entryTypeField.GetValue(entry);
-                    if (typeVal is int t && t == 0) continue;
-                    if (typeVal is Enum e && Convert.ToInt32(e) == 0) continue;
-                }
-                result.Add(entry);
-            }
+                if (entry != null) result.Add(entry);
             return result;
+        }
+
+        // The game's current-Language getter (GClass147.smethod_2 — a
+        // public static no-arg method returning the Language enum).
+        // Found by return type the first time, then cached; the old
+        // per-call scan walked every type in every loaded assembly.
+        private MethodInfo? _currentLanguageMethod;
+        private bool        _currentLanguageSearched;
+
+        private object? CurrentGameLanguage(IDictionary innerDict)
+        {
+            if (!_currentLanguageSearched)
+            {
+                Type? keyType = null;
+                foreach (DictionaryEntry de in innerDict) { keyType = de.Key.GetType(); break; }
+                if (keyType == null) return null;
+                _currentLanguageSearched = true;
+                foreach (Type t in Nagoya.Types)
+                {
+                    MethodInfo[] methods;
+                    try { methods = t.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly); }
+                    catch { continue; }
+                    foreach (MethodInfo m in methods)
+                    {
+                        if (m.GetParameters().Length != 0 || m.ReturnType != keyType) continue;
+                        try { if (m.Invoke(null, null) != null) { _currentLanguageMethod = m; break; } }
+                        catch { }
+                    }
+                    if (_currentLanguageMethod != null) break;
+                }
+                Log($"[ChatAppSub] language getter: {(_currentLanguageMethod != null)}");
+            }
+            try { return _currentLanguageMethod?.Invoke(null, null); }
+            catch { return null; }
+        }
+
+        // ── Conversation layout (ChatApp.smethod_0) ────────────────────
+        // Content starts 74 below the scroller top. A separator advances
+        // 50. A message measures its text (phone font, scale 1, double-
+        // newline 0.6, wrap 955; left-aligned for the partner, right for
+        // the player), rounds the height to even (-8 for CJK), draws its
+        // bubble from 48 above the text origin, and advances height + 42.
+        private const float ConvoTopOffset   = 74f;
+        private const float SeparatorAdvance = 50f;
+        private const float BubbleAboveText  = 48f;
+        private const float MessageGap       = 42f;
+        private const float ConvoWrapWidth   = 955f;
+
+        private List<LineReader.Line> BuildConversationLines(object phoneState, object character, string partnerName)
+        {
+            var lines = new List<LineReader.Line>();
+            string lang = Loc.CurrentLanguage;
+            bool cjk = lang == "Chinese" || lang == "Japanese" || lang == "Korean";
+            float y = ConvoTopOffset;
+            foreach (object entry in GetHistory(phoneState, character))
+            {
+                if (ReadEntryType(entry) == 0) { y += SeparatorAdvance; continue; }
+                string? speech = FormatChatEntry(entry, partnerName, out bool isPlayer);
+                if (speech == null) continue;
+                lines.Add(new LineReader.Line(speech, y - BubbleAboveText));
+
+                string text = _entryTextField?.GetValue(entry)?.ToString() ?? "";
+                float h = TextLayout.MeasureHeight(text, TextLayout.Font.Phone, isPlayer ? 2 : 0,
+                                                   1f, 0.6f, ConvoWrapWidth) ?? 0f;
+                h = (float)(Math.Round(h / 2f) * 2f);
+                if (cjk) h -= 8f;
+                y += h + MessageGap;
+            }
+            return lines;
+        }
+
+        private object? ReadConvoScroller(object chatApp)
+        {
+            try { return _convoScrollerField?.GetValue(chatApp); }
+            catch { return null; }
         }
 
         private List<object> SortedChatKeys(IDictionary dict)

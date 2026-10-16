@@ -66,6 +66,9 @@ namespace ElizaAccess.Views
                 additionalGate: () => Common.TransparencyState.IsActive,
                 phoneOriginX:   523f,
                 phoneOriginY:   268f));
+            // SceneSub before DialogueSub: a new location / arriving
+            // character is spoken ahead of the first line said there.
+            _subs.Add(new SceneSubView());
             _subs.Add(new DialogueSubView());
             _subs.Add(new NotificationSubView());
             _subs.Add(new NarrationSubView());

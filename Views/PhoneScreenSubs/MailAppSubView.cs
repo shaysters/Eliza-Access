@@ -26,7 +26,9 @@ namespace ElizaAccess.Views.PhoneScreenSubs
     ///   plain strings split on newline; emoji shortcodes like
     ///   <c>:fire:</c> (MailApp.cs:195-204 renders these as icons via a
     ///   texture dictionary) are stripped of the surrounding colons so
-    ///   TTS speaks the keyword.
+    ///   TTS speaks the keyword. A <see cref="LineReader"/> then lets
+    ///   Up/Down browse the header and body line by line, scrolling the
+    ///   email to follow (line building shared via <see cref="EmailLines"/>).
     ///
     /// Controller-only path: <c>MailApp.selectedIndex</c> is only updated
     /// by the game when VirtualInput controller mode is active
@@ -63,8 +65,12 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         private const string EmailBodyField          = "#=qj9q0554wTUaB3Ay8iPJ80g==";
         private const string EmailPlaceholderField   = "#=q6jB6zTsQ0W9G3bubWwlN3ph0MHOJjGshAIKC8O5xXg4==";
         private const string EmailDateField          = "#=qwg$KVuFrMweHKbfK0W5mdA==";
+        // MailApp.gclass45_1 — the open email's scroller.
+        private const string MailDetailScrollerField = "#=qmmCbYzQqQ67EuOxzae6jEd69lWgFfTkewugBiKzlN48=";
 
         // ── Reflection (OnInit) ────────────────────────────────────────
+        private FieldInfo?  _detailScrollerField;
+        private LineReader? _reader;
         private FieldInfo?  _phoneStateField;
         private FieldInfo?  _activeAppField;
         private MethodInfo? _maybeAppHasValue;
@@ -125,6 +131,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             {
                 _mailSelectedEmailField = _tMailApp.GetField(MailSelectedEmailField, inst);
                 _mailSelectedIndexField = _tMailApp.GetField(MailSelectedIndexField, inst);
+                _detailScrollerField    = _tMailApp.GetField(MailDetailScrollerField, inst);
                 if (_mailSelectedEmailField != null)
                 {
                     _maybeEmailHasValue = ResolveMaybeMethod(_mailSelectedEmailField.FieldType, typeof(bool));
@@ -142,12 +149,15 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 _emailDateField        = tScriptEmail.GetField(EmailDateField, inst);
             }
 
+            _reader = new LineReader(Speech, Log, "MailAppSub");
+
             Log($"[MailAppSub] init: phoneState={(_phoneStateField != null)} " +
                 $"activeApp={(_activeAppField != null)} " +
                 $"mailApp={(_tMailApp != null)} " +
                 $"inbox={(_inboxMethod != null)} " +
                 $"selectedEmail={(_mailSelectedEmailField != null)} " +
                 $"selectedIndex={(_mailSelectedIndexField != null)} " +
+                $"detailScroller={(_detailScrollerField != null)} layout={TextLayout.IsReady} " +
                 $"maybeEmail.Has={(_maybeEmailHasValue != null)} Get={(_maybeEmailGetValue != null)} " +
                 $"scriptEmail={(_emailSenderField != null && _emailSubjectField != null && _emailBodyField != null)}");
         }
@@ -175,6 +185,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         {
             _focusedListIdx = -1;
             _inDetailView   = false;
+            _reader?.Close();
             Log("[MailAppSub] mail app left.");
         }
 
@@ -202,6 +213,7 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 if (_inDetailView)
                 {
                     _inDetailView = false;
+                    _reader?.Close();
                     Log("[MailAppSub] returned to list.");
                 }
                 int idx;
@@ -215,9 +227,9 @@ namespace ElizaAccess.Views.PhoneScreenSubs
             }
             else
             {
-                // State B — detail view. Fire once on the transition;
-                // body lines queue and would interrupt if we re-spoke
-                // every poll.
+                // State B — detail view. Open the reader once on the
+                // transition (it auto-reads the email), then let it
+                // drive Up/Down line browsing every poll.
                 if (!_inDetailView)
                 {
                     _inDetailView = true;
@@ -225,8 +237,9 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                     object? email;
                     try { email = _maybeEmailGetValue.Invoke(emailMaybe, null); }
                     catch { return; }
-                    if (email != null) SpeakMailDetail(email);
+                    if (email != null) OpenDetail(email, mailApp);
                 }
+                _reader?.Poll();
             }
         }
 
@@ -327,7 +340,12 @@ namespace ElizaAccess.Views.PhoneScreenSubs
 
         // ── Detail view ────────────────────────────────────────────────
 
-        private void SpeakMailDetail(object email)
+        // Read the whole email on open (header, then every body line)
+        // with the line cursor on the header; Up/Down then browse line
+        // by line and scroll the view to follow. Line building (image
+        // descriptions, emoji shortcodes, layout offsets) is shared
+        // with the Eliza app's Skandha inbox — see EmailLines.
+        private void OpenDetail(object email, object mailApp)
         {
             if (_emailSenderField == null || _emailSubjectField == null || _emailBodyField == null) return;
             try
@@ -336,62 +354,23 @@ namespace ElizaAccess.Views.PhoneScreenSubs
                 string subject = _emailSubjectField.GetValue(email)?.ToString() ?? "";
                 string body    = _emailBodyField.GetValue(email)?.ToString() ?? "";
                 string date    = ReadEmailDate(email);
-                string dateChunk = date.Length > 0 ? $" {date}." : "";
 
-                // Match the visible header row: sender on the left, date
-                // on the right, subject on the next line. No "From"
-                // prefix — the UI doesn't have one.
-                Speech.Speak($"{sender}.{dateChunk} {subject}.");
+                List<LineReader.Line> lines = EmailLines.Build(sender, date, subject, body);
+                EmailLines.SpeakAll(Speech, lines);
+                _reader?.Open(lines, 0, () => ReadField(_detailScrollerField, mailApp));
 
-                int spoken = 0;
-                foreach (string raw in body.Split('\n'))
-                {
-                    string line = raw.Trim();
-                    if (line.Length == 0) continue;
-                    // MailApp.cs:195-204 — lines starting with "{"
-                    // are embedded image tokens (e.g. "{hedonic}").
-                    // The engine looks the key up in
-                    // GClass127.dictionary_0 and renders the
-                    // matching Texture inline (the HEDONIC email is
-                    // mostly an event-flyer image). For the screen
-                    // reader, announce "Image: {key}" so the player
-                    // knows there's a picture there and what it
-                    // depicts at a high level. Underscores in the
-                    // key get spaces.
-                    if (line.StartsWith("{") && line.EndsWith("}") && line.Length > 2)
-                    {
-                        string key = line.Substring(1, line.Length - 2).Trim();
-                        string? desc = EmailImageDescriptions.TryGet(key);
-                        if (desc != null)
-                        {
-                            Speech.Speak(Loc.Fmt("image.desc", desc));
-                        }
-                        else if (key.Length > 0)
-                        {
-                            // Unknown token — surface the key so we
-                            // know to add a description for it.
-                            Speech.Speak(Loc.Fmt("image.desc", key.Replace("_", " ")));
-                        }
-                        spoken++;
-                        continue;
-                    }
-                    // MailApp.cs:195-204: lines like ":fire:" are emoji
-                    // shortcodes the email author put in as expressive
-                    // content (rendered as icons via a texture
-                    // dictionary). Strip the colons so TTS speaks the
-                    // keyword instead of "colon fire colon".
-                    if (line.StartsWith(":") && line.EndsWith(":") && line.Length > 2)
-                        line = line.Substring(1, line.Length - 2);
-                    Speech.Speak(line);
-                    spoken++;
-                }
-
-                Log($"[MailAppSub] detail: {sender} / {subject} / {date} ({spoken} body lines)");
+                Log($"[MailAppSub] detail: {sender} / {subject} / {date} ({lines.Count} lines)");
             }
             catch (Exception ex)
             {
-                Log($"[MailAppSub] SpeakMailDetail error: {ex.GetType().Name}: {ex.Message}");
+                Log($"[MailAppSub] OpenDetail error: {ex.GetType().Name}: {ex.Message}");
             }
+        }
+
+        private static object? ReadField(FieldInfo? field, object target)
+        {
+            try { return field?.GetValue(target); }
+            catch { return null; }
         }
 
         // ── PhoneState navigation ──────────────────────────────────────
