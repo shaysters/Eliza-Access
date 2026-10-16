@@ -345,11 +345,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 sameRow.Sort((a, b) => a.X.CompareTo(b.X));
                 int pos = sameRow.FindIndex(t => t.Idx == idx);
                 if (pos < 0) return null;
-                // Rating reads right-to-left: the rightmost star in the
-                // row is "1 of 5", leftmost is "5 of 5". Sort gives us
-                // pos=0 for leftmost; flip so the announced number
-                // matches the rating direction the player expects.
-                int n = 5 - pos;
+                // Stars run left to right: WorldScreen.method_8 draws
+                // star i at x = 315 + 92*i, and clicking star i fills
+                // stars 0..i. So the leftmost (pos 0) is 1 star.
+                int n = pos + 1;
                 return $"{n} of 5 stars";
             }
             catch { return null; }
