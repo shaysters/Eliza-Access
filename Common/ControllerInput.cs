@@ -1,3 +1,7 @@
+using System;
+using System.Collections;
+using System.Reflection;
+
 namespace ElizaAccess.Common
 {
     /// <summary>D-pad / left-stick direction, for matching a real
@@ -5,36 +9,59 @@ namespace ElizaAccess.Common
     internal enum PadDirection { None, Up, Down, Left, Right }
 
     /// <summary>
-    /// Latest raw state of any connected real controller, as the game
-    /// itself read it this frame.
+    /// State of any connected real controller, as of the current poll
+    /// tick.
     ///
-    /// Filled by the <see cref="Patches.KeyboardToController"/> postfixes,
-    /// which see the engine's own SDL reads (<c>VirtualInput.smethod_19</c>
-    /// for axes — left stick + D-pad combined — and <c>smethod_18</c> for
-    /// buttons) BEFORE our keyboard injection or any
-    /// <see cref="InputSuppressor"/> masking is applied. So a view that
-    /// has suppressed an axis to drive navigation itself can still see
-    /// what the controller is doing, exactly as it reads the arrow keys
-    /// via <see cref="KeyEdge"/>.
+    /// Left stick + D-pad and buttons are recorded by the
+    /// <see cref="Patches.KeyboardToController"/> postfixes, which see the
+    /// engine's own SDL reads (<c>VirtualInput.smethod_19</c> for axes,
+    /// <c>smethod_18</c> for buttons) on the game thread BEFORE our
+    /// keyboard injection or any <see cref="InputSuppressor"/> masking is
+    /// applied. So a view that has suppressed an axis to drive navigation
+    /// itself can still see what the controller is doing, exactly as it
+    /// reads the arrow keys via <see cref="KeyEdge"/>.
     ///
-    /// Written on the game thread every frame (the engine's per-frame
-    /// input update polls every button, and buttons 0–3 read both axes),
-    /// read from the mod's poll thread. Single-word volatile fields, so
-    /// no lock needed.
+    /// The right stick, which the game never reads (smethod_19 only looks
+    /// at SDL axes 0/1), is read straight from <c>SdlController</c> — it's
+    /// free for mod controls.
+    ///
+    /// <see cref="Refresh"/> runs once at the top of each poll tick,
+    /// beside <see cref="KeyboardSnapshot.Refresh"/>, and fixes which
+    /// directions count as held for the whole tick. Every reader in a tick
+    /// then agrees — otherwise a quick flick could change between the
+    /// ImageBrowser's read and the InputInterrupter's, and the interrupter
+    /// would see a late "press" and cut off what was just spoken.
     /// </summary>
     internal static class ControllerInput
     {
-        // Stick deflection past this counts as a direction press. The
-        // engine has already applied its own deadzone, and the D-pad
+        // A direction becomes held past PressThreshold and stays held until
+        // the stick falls back under ReleaseThreshold (near the deadzone),
+        // so a stick hovering around the press point doesn't chatter, and
+        // returning to centre always counts as a release. The D-pad
         // reports exactly ±1.
-        private const float DirectionThreshold = 0.5f;
+        private const float PressThreshold = 0.5f;
+        private const float ReleaseThreshold = 0.25f;
 
+        // Raw values, written on the game thread.
         private static volatile float _horizontal;
         private static volatile float _vertical;
         // Bit n set ⇔ GEnum22 button n held. Only buttons ≥ 4 are
         // recorded: 0–3 are the D-pad, which smethod_18 derives from the
         // (keyboard-injected) axes — directions come from the raw axes.
         private static volatile int _buttons;
+
+        // Per-tick snapshot, written and read on the poll thread.
+        private static PadDirection _left = PadDirection.None;
+        private static PadDirection _right = PadDirection.None;
+        private static int _buttonsSnapshot;
+
+        private static MethodInfo? _getControllers;   // SdlController.GetAllConnectedControllers()
+        private static MethodInfo? _getAxisRaw;       // SdlController.GetAxisRaw(axis enum)
+        private static object? _axisRightX, _axisRightY;
+        private static bool _rightStickBroken;
+
+        // Set by HarmonyBootstrap alongside the patches that call in here.
+        public static Action<string>? Log;
 
         internal static void RecordAxis(int axis, float value)
         {
@@ -50,33 +77,114 @@ namespace ElizaAccess.Common
             _buttons = held ? (cur | bit) : (cur & ~bit);
         }
 
-        /// <summary>True iff the controller is pushed in this direction.
-        /// Diagonal stick input resolves to the dominant axis so one push
-        /// never fires two directions.</summary>
-        public static bool IsDirectionHeld(PadDirection dir)
+        /// <summary>Fix this tick's controller state. Call once per poll
+        /// tick, before any reader.</summary>
+        public static void Refresh()
         {
-            float h = _horizontal, v = _vertical;
-            bool vertical = System.Math.Abs(v) >= System.Math.Abs(h);
-            switch (dir)
+            _left = Resolve(_left, _horizontal, _vertical);
+            _buttonsSnapshot = _buttons;
+            if (ReadRightStick(out float h, out float v))
+                _right = Resolve(_right, h, v);
+        }
+
+        /// <summary>Which direction a stick at (h, v) holds, given what it
+        /// held last tick. A held direction persists until its axis drops
+        /// under the release threshold; a new one needs the press threshold
+        /// on the dominant axis, so a diagonal never fires two.</summary>
+        private static PadDirection Resolve(PadDirection was, float h, float v)
+        {
+            switch (was)
             {
-                case PadDirection.Up:    return  vertical && v <= -DirectionThreshold;
-                case PadDirection.Down:  return  vertical && v >=  DirectionThreshold;
-                case PadDirection.Left:  return !vertical && h <= -DirectionThreshold;
-                case PadDirection.Right: return !vertical && h >=  DirectionThreshold;
-                default: return false;
+                case PadDirection.Up:    if (v <= -ReleaseThreshold) return was; break;
+                case PadDirection.Down:  if (v >=  ReleaseThreshold) return was; break;
+                case PadDirection.Left:  if (h <= -ReleaseThreshold) return was; break;
+                case PadDirection.Right: if (h >=  ReleaseThreshold) return was; break;
+            }
+            if (Math.Abs(v) >= Math.Abs(h))
+            {
+                if (v <= -PressThreshold) return PadDirection.Up;
+                if (v >=  PressThreshold) return PadDirection.Down;
+            }
+            else
+            {
+                if (h <= -PressThreshold) return PadDirection.Left;
+                if (h >=  PressThreshold) return PadDirection.Right;
+            }
+            return PadDirection.None;
+        }
+
+        /// <summary>Sum the right stick over every connected controller
+        /// (SDL axes 2 = right X, 3 = right Y, Y positive down). The
+        /// engine's per-controller axis array is only written by its event
+        /// pump, so reading it from the poll thread is safe; a controller
+        /// plugged in mid-read just skips this tick. Any reflection failure
+        /// turns the right stick off for the session.</summary>
+        private static bool ReadRightStick(out float h, out float v)
+        {
+            h = v = 0f;
+            if (_rightStickBroken) return false;
+            try
+            {
+                if (_getAxisRaw == null)
+                {
+                    Type? t = Nagoya.FindType("SdlController");
+                    _getControllers = t?.GetMethod("GetAllConnectedControllers",
+                        BindingFlags.Public | BindingFlags.Static);
+                    _getAxisRaw = t?.GetMethod("GetAxisRaw",
+                        BindingFlags.Public | BindingFlags.Instance);
+                    if (_getControllers == null || _getAxisRaw == null)
+                    {
+                        _rightStickBroken = true;
+                        Log?.Invoke("[Controller] SdlController axis API not found; right stick unavailable");
+                        return false;
+                    }
+                    Type axisType = _getAxisRaw.GetParameters()[0].ParameterType;
+                    _axisRightX = Enum.ToObject(axisType, 2);
+                    _axisRightY = Enum.ToObject(axisType, 3);
+                }
+
+                if (_getControllers!.Invoke(null, null) is IEnumerable controllers)
+                {
+                    foreach (object c in controllers)
+                    {
+                        h += (int)_getAxisRaw.Invoke(c, new[] { _axisRightX }) / 32767f;
+                        v += (int)_getAxisRaw.Invoke(c, new[] { _axisRightY }) / 32767f;
+                    }
+                }
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                // Controller list changed under us (hotplug); try next tick.
+                return false;
+            }
+            catch (Exception e)
+            {
+                _rightStickBroken = true;
+                Log?.Invoke($"[Controller] right stick read failed: {e.GetType().Name}: {e.Message}");
+                return false;
             }
         }
 
-        /// <summary>Bitmask of everything currently held: bits 0–3 are
-        /// Up/Down/Left/Right, higher bits are GEnum22 buttons. Used by
+        /// <summary>True iff the left stick / D-pad holds this direction
+        /// this tick.</summary>
+        public static bool IsDirectionHeld(PadDirection dir)
+            => dir != PadDirection.None && _left == dir;
+
+        /// <summary>Same as <see cref="IsDirectionHeld"/> for the right
+        /// stick.</summary>
+        public static bool IsRightStickHeld(PadDirection dir)
+            => dir != PadDirection.None && _right == dir;
+
+        /// <summary>Bitmask of everything held this tick: bits 0–3 are the
+        /// left stick's Up/Down/Left/Right, bits 4–30 are GEnum22 buttons,
+        /// bits 32–35 are the right stick's directions. Used by
         /// <see cref="InputInterrupter"/> to spot any new press.</summary>
-        public static int HeldMask()
+        public static long HeldMask()
         {
-            int mask = _buttons;
-            if (IsDirectionHeld(PadDirection.Up))    mask |= 1 << 0;
-            if (IsDirectionHeld(PadDirection.Down))  mask |= 1 << 1;
-            if (IsDirectionHeld(PadDirection.Left))  mask |= 1 << 2;
-            if (IsDirectionHeld(PadDirection.Right)) mask |= 1 << 3;
+            long mask = _buttonsSnapshot;
+            if (_left != PadDirection.None)  mask |= 1L << ((int)_left - 1);
+            if (_right != PadDirection.None) mask |= 1L << (32 + (int)_right - 1);
             return mask;
         }
 

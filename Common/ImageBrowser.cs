@@ -6,7 +6,9 @@ namespace ElizaAccess.Common
     /// J / L step through the images currently on screen that we have
     /// descriptions for, speaking a short label; K speaks the full
     /// description of the current one. (Not A/S/D: plain A is the
-    /// game's own auto-advance toggle in WorldScreen.) Moving past either end is silent.
+    /// game's own auto-advance toggle in WorldScreen.) On a controller the
+    /// right stick does the same: left / right step, up describes (the
+    /// game never reads the right stick). Moving past either end is silent.
     ///
     /// What's on screen depends on context:
     /// - A Messages conversation is open → the partner's avatar, then the
@@ -32,9 +34,9 @@ namespace ElizaAccess.Common
         }
 
         private readonly SpeechEngine _speech;
-        private readonly KeyEdge _kbPrev     = new KeyEdge(Keyboard.VK_J);
-        private readonly KeyEdge _kbNext     = new KeyEdge(Keyboard.VK_L);
-        private readonly KeyEdge _kbDescribe = new KeyEdge(Keyboard.VK_K);
+        private readonly KeyEdge _kbPrev     = new KeyEdge(Keyboard.VK_J, PadDirection.Left);
+        private readonly KeyEdge _kbNext     = new KeyEdge(Keyboard.VK_L, PadDirection.Right);
+        private readonly KeyEdge _kbDescribe = new KeyEdge(Keyboard.VK_K, PadDirection.Up);
         private string? _currentId;
 
         public ImageBrowser(SpeechEngine speech) { _speech = speech; }

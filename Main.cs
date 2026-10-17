@@ -146,6 +146,10 @@ namespace ElizaAccess
                 // taps — the dominant cause of "I pressed Q and nothing
                 // happened" / lost arrow taps in fast nav).
                 KeyboardSnapshot.Refresh();
+                // Same for the controller: one view of the sticks and
+                // buttons per tick, so every reader agrees on what was
+                // pressed.
+                ControllerInput.Refresh();
 
                 // Re-check the game language every tick so mod strings
                 // flip in the same tick the player changes it. The

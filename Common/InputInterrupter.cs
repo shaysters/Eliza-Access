@@ -28,7 +28,7 @@ namespace ElizaAccess.Common
     {
         private readonly SpeechEngine _speech;
         private readonly bool[] _wasHeld = new bool[256];
-        private int _padWasHeld;
+        private long _padWasHeld;
         private bool _primed;
 
         public InputInterrupter(SpeechEngine speech)
@@ -73,7 +73,7 @@ namespace ElizaAccess.Common
                 _wasHeld[vk] = held;
             }
 
-            int padHeld = ControllerInput.HeldMask();
+            long padHeld = ControllerInput.HeldMask();
             if ((padHeld & ~_padWasHeld) != 0) risingEdge = true;
             _padWasHeld = padHeld;
 

@@ -45,6 +45,7 @@ namespace ElizaAccess.Common
                 InputFlipGuard.LogPath = logPath;
                 HotspotLabelCapture.LogPath = logPath;
                 RawInputGate.Log = log;
+                ControllerInput.Log = log;
 
                 var harmony = new Harmony(HarmonyId);
                 harmony.PatchAll(typeof(HarmonyBootstrap).Assembly);
