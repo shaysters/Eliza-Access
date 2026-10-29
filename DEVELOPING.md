@@ -117,6 +117,9 @@ bin/Release/net472/ElizaAccess.zip
 └── ElizaAccess-README.md     ← the user guide (README.md)
 ```
 
+`build_release.sh` also adds `ElizaAccess-README.html` to the release
+copy of the zip (rendered by `scripts/readme_html.py` through `uv`).
+
 `/p:SkipBundle=true` opts out.
 
 ### MSBuild property overrides

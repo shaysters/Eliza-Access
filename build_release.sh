@@ -43,6 +43,11 @@ mkdir -p "$ASSETS_DIR"
 cp changes-latest.md "$RELEASE_DIR/"
 cp bin/Release/net472/ElizaAccess.zip "$ASSETS_DIR/"
 
+# The zip already holds ElizaAccess-README.md; add an HTML copy for
+# reading in a browser.
+echo "=== Adding the README as HTML ==="
+uv run --no-project --with markdown==3.7 python scripts/readme_html.py README.md "$ASSETS_DIR/ElizaAccess.zip"
+
 # Git Bash's GNU /usr/bin/link shadows MSVC's link.exe, which breaks cargo
 # build scripts (both the installer build, whose CMake step runs cargo for
 # the bridge, and the CLI below); put the MSVC bin directory (where cl.exe
