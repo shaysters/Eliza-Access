@@ -151,6 +151,11 @@
     <MakeDir Directories="$(BundleStageDir)" />
     <Copy SourceFiles="$(TargetPath);$(TargetDir)0Harmony.dll;$(TargetDir)prism.dll;$(BootstrapDll);$(ExeConfig)"
           DestinationFolder="$(BundleStageDir)" />
+    <!-- The user guide, so a downloaded copy can be read offline. It
+         lands in the game folder with the rest of the zip, hence the
+         prefixed name. -->
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md"
+          DestinationFiles="$(BundleStageDir)\ElizaAccess-README.md" />
     <Delete Files="$(BundleZipPath)" Condition="Exists('$(BundleZipPath)')" />
     <ZipDirectory SourceDirectory="$(BundleStageDir)"
                   DestinationFile="$(BundleZipPath)" />

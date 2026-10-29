@@ -113,7 +113,8 @@ bin/Release/net472/ElizaAccess.zip
 ├── 0Harmony.dll
 ├── prism.dll
 ├── ElizaAccessBootstrap.dll  ← loader (see "Injection method")
-└── Eliza.exe.config          ← activates the loader
+├── Eliza.exe.config          ← activates the loader
+└── ElizaAccess-README.md     ← the user guide (README.md)
 ```
 
 `/p:SkipBundle=true` opts out.

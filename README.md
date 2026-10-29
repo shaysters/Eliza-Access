@@ -34,7 +34,7 @@ If you'd rather not use the installer, download **ElizaAccess.zip** from the sam
 C:\Program Files (x86)\Steam\steamapps\common\Eliza
 ```
 
-To uninstall a manual install, delete these files from the game folder: `ElizaAccessDll.dll`, `ElizaAccessBootstrap.dll`, `0Harmony.dll`, `prism.dll` and `Eliza.exe.config`. The mod doesn't change any of the game's own files.
+To uninstall a manual install, delete these files from the game folder: `ElizaAccessDll.dll`, `ElizaAccessBootstrap.dll`, `0Harmony.dll`, `prism.dll`, `Eliza.exe.config` and `ElizaAccess-README.md`. The mod doesn't change any of the game's own files.
 
 ### Upgrading from a very old version
 
