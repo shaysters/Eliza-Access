@@ -58,6 +58,10 @@ namespace ElizaAccess
             // it does, and re-loads on any mid-session change.
             Loc.Init(_log);
 
+            // Look for a newer release in the background; the title
+            // screen announces it once it's known.
+            UpdateChecker.Start(_log);
+
             // Every screen is owned by a view registered below. The
             // manager mirrors the game's ScreenStack and dispatches
             // lifecycle hooks (added/focused/updated/unfocused/removed)

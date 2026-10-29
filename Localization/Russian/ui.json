@@ -33,6 +33,8 @@
 
   "modsettings.title": "Настройки мода",
   "modsettings.read_voiced_dialogue": "Читать вслух озвученные диалоги",
+  "modsettings.check_for_updates": "Сообщать о доступных обновлениях при запуске",
+  "update.available": "Доступна версия Eliza Access {0}. У вас установлена {1}. Чтобы обновиться, запустите установщик Eliza Access.",
   "modsettings.closed": "Настройки мода закрыты.",
   "modsettings.eliza_sessions": "Сеансы Элизы",
   "modsettings.read_bootup": "Читать текст загрузки",

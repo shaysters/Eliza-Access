@@ -33,6 +33,8 @@
 
   "modsettings.title": "Mod beállítások",
   "modsettings.read_voiced_dialogue": "Szinkronizált párbeszédek felolvasása",
+  "modsettings.check_for_updates": "Elérhető frissítések jelzése indításkor",
+  "update.available": "Elérhető az Eliza Access {0}. A jelenlegi verziód: {1}. A frissítéshez futtasd az Eliza Access telepítőjét.",
   "modsettings.closed": "Mod beállítások bezárva.",
   "modsettings.eliza_sessions": "Eliza foglalkozások",
   "modsettings.read_bootup": "Indítási szöveg felolvasása",

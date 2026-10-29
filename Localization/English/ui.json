@@ -33,6 +33,8 @@
 
   "modsettings.title": "Mod settings",
   "modsettings.read_voiced_dialogue": "Read voiced dialogue aloud",
+  "modsettings.check_for_updates": "Announce available updates at launch",
+  "update.available": "Eliza Access {0} is available. You have {1}. Run the Eliza Access installer to update.",
   "modsettings.closed": "Mod settings closed.",
   "modsettings.eliza_sessions": "Eliza sessions",
   "modsettings.read_bootup": "Read bootup text",

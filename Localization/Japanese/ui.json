@@ -33,6 +33,8 @@
 
   "modsettings.title": "モッド設定",
   "modsettings.read_voiced_dialogue": "音声付きのセリフを読み上げる",
+  "modsettings.check_for_updates": "起動時に利用可能な更新を通知する",
+  "update.available": "Eliza Access {0} が利用可能です。現在のバージョンは {1} です。更新するには Eliza Access のインストーラーを実行してください。",
   "modsettings.closed": "モッド設定を閉じました。",
   "modsettings.eliza_sessions": "イライザのセッション",
   "modsettings.read_bootup": "起動テキストを読み上げる",

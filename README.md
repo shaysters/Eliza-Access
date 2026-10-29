@@ -21,7 +21,7 @@ If the installer won't start and mentions `VCRUNTIME140.dll`, install the [Micro
 
 ### Updating and uninstalling
 
-Keep the installer. Run it again to update to the newest version, or to uninstall. Close the game first.
+Keep the installer. Run it again to update to the newest version, or to uninstall. Close the game first. The mod tells you on the title screen when an update is available.
 
 ### Installing by hand
 
@@ -39,73 +39,45 @@ Versions before 0.9.0 were installed by replacing the game's `libvorbisfile.dll`
 
 ## Keys
 
-The mod turns on the game's controller mode, so the keyboard and a controller work the same way. Arrow keys move, Enter selects.
+The mod turns on the game's controller mode, so the keyboard and a controller work the same way. Where a key has no controller button, the Controller column says "None".
 
-### Everywhere
+| Keyboard | Controller | Where | What it does |
+|---|---|---|---|
+| Arrow keys | D-pad or left stick | Everywhere | Move between options. |
+| Enter or Space | A | Everywhere | Select, or continue to the next line. |
+| Escape | B | Everywhere | Go back, or open the pause menu. |
+| Any key | Any button | Everywhere | Stop the current speech. |
+| R | None | Everywhere | Repeat the last line of story: dialogue, Evelyn's thoughts, or a look-around description. |
+| F5 | Back (View) | Everywhere | Open or close the mod's settings. |
+| J | Right stick left | Scenes | Previous image: the background, then each character from left to right. |
+| L | Right stick right | Scenes | Next image. Reads the name and position, then the full description. |
+| K | Right stick up | Scenes | Read the current image's description again. |
+| A | Right bumper | Story | Turn the game's auto-advance on or off. |
+| Up and Down | D-pad or left stick | Look-around | Move between the things you can look at. Enter or A looks at one. |
+| Tab | Y | Look-around | Continue the story. |
+| Up and Down | D-pad or left stick | Emails, text conversations, Skandha messages | Read line by line. |
+| Home and End | None | Emails, text conversations, Skandha messages | Jump to the first or last line. |
+| 1, 2, 3 | X, left bumper, right bumper | Eliza app | Switch between the Profile, Inbox and Sessions tabs. |
+| Arrow keys | D-pad or left stick | Eliza app profile | Move around the grid of badges. |
+| F8 | Right stick click | Eliza sessions | Turn the emotion meter readout ("Sentiment analyzer: …") on or off. |
+| Q | None | Eliza sessions | When reviewing Eliza's conclusions about a client, read the three conclusions and whether you agreed with each. |
+| Home and End | None | Chapter select | Jump to the first or last chapter. |
+| Up and Down | D-pad or left stick | History (the game's log of past dialogue) | Read one line at a time. |
+| Up and Down | D-pad or left stick | Solitaire | Move between the main piles and the free cells. Left and Right move along a row. |
 
-| Key | Controller | What it does |
-|---|---|---|
-| Arrow keys | D-pad or left stick | Move between options. |
-| Enter | A | Select, or continue to the next line. |
-| Space | | Continue to the next line. |
-| Escape | B | Go back, or open the pause menu. |
-| R | | Repeat the last line of story: dialogue, Evelyn's thoughts, or a look-around description. |
-| Any key | Any button | Stop the current speech. |
-| F5 | Back (View) | Open or close the mod's settings. |
+Notes:
 
-### Scenes and characters
-
-| Key | Controller | What it does |
-|---|---|---|
-| J | Right stick left | Previous image: the background, then each character from left to right. |
-| L | Right stick right | Next image. Reads the name and position, then the full description. |
-| K | Right stick up | Read the current image's description again. |
-
-The mod also announces when the location changes and when characters arrive or leave. In a text conversation on the phone, J, K and L describe the two people's profile pictures instead.
-
-Positions (left, centre, right) are approximate. They say which third of the screen the character is in.
-
-### Story
-
-| Key | What it does |
-|---|---|
-| A | Turn the game's auto-advance on or off. This is the game's own key. |
-
-In look-around scenes, use Up and Down to move between the things you can look at, and Enter to look at one.
-
-### Phone apps
-
-| Key | Where | What it does |
-|---|---|---|
-| Up and Down | Emails, text conversations, Skandha messages | Read line by line. |
-| Home and End | Same places | Jump to the first or last line. |
-| 1, 2, 3 | Eliza app | Switch between the Profile, Inbox and Sessions tabs. |
-| Arrow keys | Eliza app profile | Move around the grid of badges. |
-
-In a text conversation, the cursor starts on the newest message.
-
-### Eliza sessions
-
-| Key | Controller | What it does |
-|---|---|---|
-| F8 | Right stick click | Turn the emotion meter readout ("Sentiment analyzer: …") on or off. |
-| Q | | When reviewing Eliza's conclusions about a client, read the three conclusions and whether you agreed with each. |
-
-The headset's other messages can be turned on or off in the F5 settings, under **Eliza sessions**.
-
-### Menus and minigames
-
-| Key | Where | What it does |
-|---|---|---|
-| Home and End | Chapter select | Jump to the first or last chapter. |
-| Up and Down | History (the game's log of past dialogue) | Read one line at a time. |
-| Up and Down | Solitaire | Move between the main piles and the free cells. Left and Right move along a row. |
+- The mod announces when the location changes and when characters arrive or leave. In a text conversation on the phone, J, K and L describe the two people's profile pictures instead of the scene.
+- Positions (left, centre, right) are approximate. They say which third of the screen the character is in.
+- In a text conversation, the cursor starts on the newest message.
+- The headset's other messages during Eliza sessions can be turned on or off in the settings, under **Eliza sessions**.
 
 ## Settings
 
 Press **F5**, or **Back** (View) on a controller, anywhere in the game. Use Up and Down to move. Enter, Space or A turns a setting on or off, or opens a group. Escape or B goes back, and closes the menu from the top level. F5 or Back also closes it. Changes are saved immediately.
 
 - **Read voiced dialogue aloud** (off by default): also read the lines that have voice acting, including what Evelyn says after you pick a reply. Turn this on if you use braille, or if you're playing in a language other than English.
+- **Announce available updates at launch** (on by default): when a newer version of the mod is out, say so on the title screen.
 - **Eliza sessions**: choose which of the headset's messages are read during a session:
   - Read bootup text (the headset's startup messages)
   - Read sentiment analyzer (the emotion meter; F8 toggles this too)

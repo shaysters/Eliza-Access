@@ -35,6 +35,12 @@ namespace ElizaAccess.Common
             /// (the voice acting is English only).
             /// </summary>
             public static bool ReadVoicedDialogue = false;
+
+            /// <summary>
+            /// Whether to check GitHub for a newer release at launch and
+            /// announce it on the title screen (<see cref="UpdateChecker"/>).
+            /// </summary>
+            public static bool CheckForUpdates = true;
         }
 
         /// <summary>Eliza-therapy-session behaviour knobs.</summary>
@@ -211,6 +217,9 @@ namespace ElizaAccess.Common
                             case "read_voiced_dialogue":
                                 if (TryAsBool(kv.Value, out bool g1)) General.ReadVoicedDialogue = g1;
                                 break;
+                            case "check_for_updates":
+                                if (TryAsBool(kv.Value, out bool g2)) General.CheckForUpdates = g2;
+                                break;
                             default:
                                 remaining[kv.Key] = kv.Value;
                                 break;
@@ -263,6 +272,7 @@ namespace ElizaAccess.Common
                     new Dictionary<string, object?>(StringComparer.Ordinal)
                     {
                         { "read_voiced_dialogue", General.ReadVoicedDialogue },
+                        { "check_for_updates",    General.CheckForUpdates    },
                     }
                 },
                 {

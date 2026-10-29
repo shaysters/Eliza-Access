@@ -74,10 +74,23 @@ namespace ElizaAccess.Views
 
         protected override void OnUpdate()
         {
-            if (_firstFocusSeen || _loadingAnnounced) return;
-            if (DateTime.UtcNow - _focusedAtUtc < LoadingAnnounceAfter) return;
-            _loadingAnnounced = true;
-            Speech.Speak(Loc.Get("common.scene_loading"));
+            if (!_firstFocusSeen && !_loadingAnnounced
+                && DateTime.UtcNow - _focusedAtUtc >= LoadingAnnounceAfter)
+            {
+                _loadingAnnounced = true;
+                Speech.Speak(Loc.Get("common.scene_loading"));
+            }
+
+            // Update notice: queued right behind "Scene loading." while the
+            // player waits for the menu (speaking earlier would be lost to
+            // the window gaining focus during load). The check runs in the
+            // background, so it may land later: then it follows whatever
+            // was last said, loading cue or the menu's first focus.
+            if ((_loadingAnnounced || _firstFocusSeen) && UpdateChecker.NewerVersion is string newer)
+            {
+                UpdateChecker.MarkAnnounced();
+                Speech.Speak(Loc.Fmt("update.available", newer, UpdateChecker.CurrentVersion));
+            }
         }
 
         protected override void OnFocusChanged(object? key, string label)

@@ -33,6 +33,8 @@
 
   "modsettings.title": "Mod-Einstellungen",
   "modsettings.read_voiced_dialogue": "Vertonte Dialoge vorlesen",
+  "modsettings.check_for_updates": "Beim Start auf verfügbare Updates hinweisen",
+  "update.available": "Eliza Access {0} ist verfügbar. Installiert ist {1}. Starte das Eliza-Access-Installationsprogramm, um zu aktualisieren.",
   "modsettings.closed": "Mod-Einstellungen geschlossen.",
   "modsettings.eliza_sessions": "Eliza-Sitzungen",
   "modsettings.read_bootup": "Boot-Text vorlesen",

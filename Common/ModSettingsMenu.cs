@@ -133,6 +133,10 @@ namespace ElizaAccess.Common
                     () => ModConfig.General.ReadVoicedDialogue,
                     () => ModConfig.General.ReadVoicedDialogue
                        = !ModConfig.General.ReadVoicedDialogue),
+                Toggle("modsettings.check_for_updates",
+                    () => ModConfig.General.CheckForUpdates,
+                    () => ModConfig.General.CheckForUpdates
+                       = !ModConfig.General.CheckForUpdates),
                 SubmenuEntry("modsettings.eliza_sessions", elizaSessions),
             });
         }
