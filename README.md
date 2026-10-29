@@ -107,7 +107,7 @@ To report a problem or suggest something, open an issue on the [GitHub page](htt
 
 ## Credits
 
-Eliza Access is made by Shaysters and Bradley Renshaw. A lot of the code, and the descriptions of the scenes and characters, were written with Claude Code, Anthropic's AI coding assistant.
+This project was developed by [Shaysters](https://github.com/shaysters) with assistance from [Bradley Renshaw](https://github.com/bradjrenshaw). A lot of the code, and the descriptions of the scenes and characters, were written with Claude Code, Anthropic's AI coding assistant.
 
 Eliza is made by Zachtronics. This mod isn't affiliated with or endorsed by Zachtronics.
 
