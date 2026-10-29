@@ -4,6 +4,9 @@ Eliza Access is a mod that makes Eliza, the visual novel by Zachtronics, playabl
 
 It works with NVDA, JAWS and other Windows screen readers, and falls back to Windows' built-in voices if no screen reader is running. You can play with the keyboard or a controller.
 
+- Join the Discord to chat, get help or report problems: https://discord.gg/KNDXhztGGK
+- Support the project on Ko-fi: https://ko-fi.com/shaysters
+
 ## Requirements
 
 - Eliza for Windows, from Steam: https://store.steampowered.com/app/716500/Eliza/
