@@ -105,6 +105,12 @@ You can paste that into the Run dialog (Windows+R) to open it. The log for the l
 
 To report a problem or suggest something, open an issue on the [GitHub page](https://github.com/shaysters/Eliza-Access/issues).
 
+## Credits
+
+Eliza Access is made by Shaysters and Bradley Renshaw. A lot of the code, and the descriptions of the scenes and characters, were written with Claude Code, Anthropic's AI coding assistant.
+
+Eliza is made by Zachtronics. This mod isn't affiliated with or endorsed by Zachtronics.
+
 ## For developers
 
 Build instructions and how the mod works are in [DEVELOPING.md](https://github.com/shaysters/Eliza-Access/blob/main/DEVELOPING.md).
