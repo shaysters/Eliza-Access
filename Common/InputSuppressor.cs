@@ -53,6 +53,10 @@ namespace ElizaAccess.Common
         public const int ButtonDpadLeft  = 2;
         public const int ButtonDpadRight = 3;
         public const int ButtonConfirmA  = 4;
+        // GEnum22 5 is the controller's physical B button (SDL button 1);
+        // 7, despite the name below, is Start (SDL 6), which the game
+        // binds to Escape / its pause menu.
+        public const int ButtonCancelB   = 5;
         public const int ButtonBackB     = 7;
 
         private static readonly object _lock = new object();

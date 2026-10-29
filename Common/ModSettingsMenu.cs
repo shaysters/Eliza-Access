@@ -30,12 +30,14 @@ namespace ElizaAccess.Common
     {
         private readonly SpeechEngine   _speech;
         private readonly Action<string> _log;
-        private readonly KeyEdge _kbF5     = new KeyEdge(Keyboard.VK_F5);
+        // Controller: Back/View opens and closes, A activates, B goes
+        // back. Read straight from SDL, beside the matching keys.
+        private readonly KeyEdge _kbF5     = new KeyEdge(Keyboard.VK_F5, PadButton.Back);
         private readonly KeyEdge _kbUp     = new KeyEdge(Keyboard.VK_UP);
         private readonly KeyEdge _kbDown   = new KeyEdge(Keyboard.VK_DOWN);
-        private readonly KeyEdge _kbEnter  = new KeyEdge(Keyboard.VK_RETURN);
+        private readonly KeyEdge _kbEnter  = new KeyEdge(Keyboard.VK_RETURN, PadButton.A);
         private readonly KeyEdge _kbSpace  = new KeyEdge(Keyboard.VK_SPACE);
-        private readonly KeyEdge _kbEscape = new KeyEdge(Keyboard.VK_ESCAPE);
+        private readonly KeyEdge _kbEscape = new KeyEdge(Keyboard.VK_ESCAPE, PadButton.B);
 
         private bool _active;
         private bool _inputSuppressed;
@@ -316,6 +318,7 @@ namespace ElizaAccess.Common
             InputSuppressor.SuppressAxis(InputSuppressor.AxisVertical);
             InputSuppressor.SuppressButton(InputSuppressor.ButtonConfirmA);
             InputSuppressor.SuppressButton(InputSuppressor.ButtonBackB);
+            InputSuppressor.SuppressButton(InputSuppressor.ButtonCancelB);
             _inputSuppressed = true;
         }
 
@@ -326,6 +329,7 @@ namespace ElizaAccess.Common
             InputSuppressor.ReleaseAxis(InputSuppressor.AxisVertical);
             InputSuppressor.ReleaseButton(InputSuppressor.ButtonConfirmA);
             InputSuppressor.ReleaseButton(InputSuppressor.ButtonBackB);
+            InputSuppressor.ReleaseButton(InputSuppressor.ButtonCancelB);
             _inputSuppressed = false;
         }
     }

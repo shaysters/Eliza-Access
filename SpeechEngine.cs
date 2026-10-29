@@ -40,6 +40,10 @@ namespace ElizaAccess
         private IntPtr _ctx;
         private IntPtr _backend;
         private string _backendName = "<none>";
+        // Cleared the first time prism_backend_output reports
+        // NotImplemented (speech-only backend); Speak then uses
+        // prism_backend_speak.
+        private bool _outputSupported = true;
 
         // When Stop() was last called, in Environment.TickCount.
         // Speak() blocks the remainder of StopSettleMs before
@@ -179,7 +183,20 @@ namespace ElizaAccess
             IntPtr p = PrismNative.Utf8Alloc(text);
             try
             {
-                PrismNative.PrismError err = PrismNative.prism_backend_speak(_backend, p, interrupt);
+                // Output = speech + braille. Backends without braille
+                // report NotImplemented; remember that and just speak.
+                PrismNative.PrismError err = PrismNative.PrismError.NotImplemented;
+                if (_outputSupported)
+                {
+                    err = PrismNative.prism_backend_output(_backend, p, interrupt);
+                    if (err == PrismNative.PrismError.NotImplemented)
+                    {
+                        _outputSupported = false;
+                        _log($"[Speech] {_backendName} has no braille output; speaking only");
+                    }
+                }
+                if (!_outputSupported)
+                    err = PrismNative.prism_backend_speak(_backend, p, interrupt);
                 if (err != PrismNative.PrismError.Ok)
                 {
                     string errStr = PrismNative.Utf8Decode(PrismNative.prism_error_string(err));

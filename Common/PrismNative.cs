@@ -85,6 +85,12 @@ namespace ElizaAccess.Common
         public static extern PrismError prism_backend_speak(
             IntPtr backend, IntPtr utf8Text, [MarshalAs(UnmanagedType.I1)] bool interrupt);
 
+        // Speech AND braille (screen readers with a braille display);
+        // NotImplemented on speech-only backends such as SAPI.
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl, EntryPoint = "prism_backend_output")]
+        public static extern PrismError prism_backend_output(
+            IntPtr backend, IntPtr utf8Text, [MarshalAs(UnmanagedType.I1)] bool interrupt);
+
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl, EntryPoint = "prism_backend_stop")]
         public static extern PrismError prism_backend_stop(IntPtr backend);
 

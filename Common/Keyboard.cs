@@ -158,21 +158,29 @@ namespace ElizaAccess.Common
         // Eliza profile grid, Solitaire, History) works on a controller
         // with no per-view code.
         private readonly PadDirection _pad;
-        // Optional right-stick direction that also fires this key, for
-        // mod-only keys a controller otherwise couldn't reach.
+        // Optional right-stick direction or controller button that also
+        // fires this key, for mod-only keys a controller otherwise
+        // couldn't reach.
         private readonly PadDirection _rightStick;
+        private readonly PadButton _button;
 
-        public KeyEdge(int vk) : this(vk, PadDirection.None) { }
+        public KeyEdge(int vk) : this(vk, PadDirection.None, PadButton.None) { }
 
-        public KeyEdge(int vk, PadDirection rightStick)
+        public KeyEdge(int vk, PadDirection rightStick) : this(vk, rightStick, PadButton.None) { }
+
+        public KeyEdge(int vk, PadButton button) : this(vk, PadDirection.None, button) { }
+
+        private KeyEdge(int vk, PadDirection rightStick, PadButton button)
         {
             _vk  = vk;
             _pad = ControllerInput.DirectionForKey(vk);
             _rightStick = rightStick;
+            _button = button;
         }
 
         private bool PadHeld => ControllerInput.IsDirectionHeld(_pad)
-                             || ControllerInput.IsRightStickHeld(_rightStick);
+                             || ControllerInput.IsRightStickHeld(_rightStick)
+                             || ControllerInput.IsButtonHeld(_button);
 
         /// <summary>True iff the key (or its controller direction) is
         /// currently held.</summary>

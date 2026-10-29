@@ -8,6 +8,10 @@ namespace ElizaAccess.Common
     /// controller against an arrow key.</summary>
     internal enum PadDirection { None, Up, Down, Left, Right }
 
+    /// <summary>Controller buttons the mod reads straight from SDL. The
+    /// values are SDL_GameControllerButton indices.</summary>
+    internal enum PadButton { None = -1, A = 0, B = 1, Back = 4 }
+
     /// <summary>
     /// State of any connected real controller, as of the current poll
     /// tick.
@@ -54,10 +58,15 @@ namespace ElizaAccess.Common
         private static PadDirection _left = PadDirection.None;
         private static PadDirection _right = PadDirection.None;
         private static int _buttonsSnapshot;
+        // Bit n set = SDL button n held this tick (A, B, Back only).
+        private static int _sdlButtons;
 
         private static MethodInfo? _getControllers;   // SdlController.GetAllConnectedControllers()
         private static MethodInfo? _getAxisRaw;       // SdlController.GetAxisRaw(axis enum)
+        private static MethodInfo? _getButton;        // SdlController.GetButton(button enum)
         private static object? _axisRightX, _axisRightY;
+        private static readonly PadButton[] SdlButtonsRead = { PadButton.A, PadButton.B, PadButton.Back };
+        private static object?[]? _sdlButtonArgs;
         private static bool _rightStickBroken;
 
         // Set by HarmonyBootstrap alongside the patches that call in here.
@@ -83,8 +92,11 @@ namespace ElizaAccess.Common
         {
             _left = Resolve(_left, _horizontal, _vertical);
             _buttonsSnapshot = _buttons;
-            if (ReadRightStick(out float h, out float v))
+            if (ReadSdl(out float h, out float v, out int sdlButtons))
+            {
                 _right = Resolve(_right, h, v);
+                _sdlButtons = sdlButtons;
+            }
         }
 
         /// <summary>Which direction a stick at (h, v) holds, given what it
@@ -114,14 +126,16 @@ namespace ElizaAccess.Common
         }
 
         /// <summary>Sum the right stick over every connected controller
-        /// (SDL axes 2 = right X, 3 = right Y, Y positive down). The
-        /// engine's per-controller axis array is only written by its event
-        /// pump, so reading it from the poll thread is safe; a controller
-        /// plugged in mid-read just skips this tick. Any reflection failure
-        /// turns the right stick off for the session.</summary>
-        private static bool ReadRightStick(out float h, out float v)
+        /// (SDL axes 2 = right X, 3 = right Y, Y positive down), and collect
+        /// the SDL buttons in <see cref="SdlButtonsRead"/> held on any of
+        /// them. The engine's per-controller state arrays are only written
+        /// by its event pump, so reading them from the poll thread is safe;
+        /// a controller plugged in mid-read just skips this tick. Any
+        /// reflection failure turns these reads off for the session.</summary>
+        private static bool ReadSdl(out float h, out float v, out int buttons)
         {
             h = v = 0f;
+            buttons = 0;
             if (_rightStickBroken) return false;
             try
             {
@@ -132,15 +146,21 @@ namespace ElizaAccess.Common
                         BindingFlags.Public | BindingFlags.Static);
                     _getAxisRaw = t?.GetMethod("GetAxisRaw",
                         BindingFlags.Public | BindingFlags.Instance);
-                    if (_getControllers == null || _getAxisRaw == null)
+                    _getButton = t?.GetMethod("GetButton",
+                        BindingFlags.Public | BindingFlags.Instance);
+                    if (_getControllers == null || _getAxisRaw == null || _getButton == null)
                     {
                         _rightStickBroken = true;
-                        Log?.Invoke("[Controller] SdlController axis API not found; right stick unavailable");
+                        Log?.Invoke("[Controller] SdlController API not found; right stick and controller buttons unavailable");
                         return false;
                     }
                     Type axisType = _getAxisRaw.GetParameters()[0].ParameterType;
                     _axisRightX = Enum.ToObject(axisType, 2);
                     _axisRightY = Enum.ToObject(axisType, 3);
+                    Type buttonType = _getButton.GetParameters()[0].ParameterType;
+                    _sdlButtonArgs = new object?[SdlButtonsRead.Length];
+                    for (int i = 0; i < SdlButtonsRead.Length; i++)
+                        _sdlButtonArgs[i] = Enum.ToObject(buttonType, (int)SdlButtonsRead[i]);
                 }
 
                 if (_getControllers!.Invoke(null, null) is IEnumerable controllers)
@@ -149,6 +169,9 @@ namespace ElizaAccess.Common
                     {
                         h += (int)_getAxisRaw.Invoke(c, new[] { _axisRightX }) / 32767f;
                         v += (int)_getAxisRaw.Invoke(c, new[] { _axisRightY }) / 32767f;
+                        for (int i = 0; i < SdlButtonsRead.Length; i++)
+                            if ((bool)_getButton!.Invoke(c, new[] { _sdlButtonArgs![i] }))
+                                buttons |= 1 << (int)SdlButtonsRead[i];
                     }
                 }
                 return true;
@@ -161,7 +184,7 @@ namespace ElizaAccess.Common
             catch (Exception e)
             {
                 _rightStickBroken = true;
-                Log?.Invoke($"[Controller] right stick read failed: {e.GetType().Name}: {e.Message}");
+                Log?.Invoke($"[Controller] controller read failed: {e.GetType().Name}: {e.Message}");
                 return false;
             }
         }
@@ -170,6 +193,11 @@ namespace ElizaAccess.Common
         /// this tick.</summary>
         public static bool IsDirectionHeld(PadDirection dir)
             => dir != PadDirection.None && _left == dir;
+
+        /// <summary>True iff this controller button is held this
+        /// tick.</summary>
+        public static bool IsButtonHeld(PadButton button)
+            => button != PadButton.None && (_sdlButtons & (1 << (int)button)) != 0;
 
         /// <summary>Same as <see cref="IsDirectionHeld"/> for the right
         /// stick.</summary>
