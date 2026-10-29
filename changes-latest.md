@@ -1,8 +1,8 @@
-# Eliza Access 0.9.1
+# Eliza Access 0.9.2
 
 Run **ElizaAccessInstaller.exe** (or the one you already have) to update. Close the game first.
 
 ## Changes
 
-- Scene and character descriptions now work on a controller: push the right stick left or right to step through the images on screen, and up to read the full description (the same as J, L and K).
-- Controller directions are more reliable. Quick repeated flicks of a stick no longer get lost or cut off their own speech, and a direction counts as released once the stick returns near the centre. This applies everywhere the mod uses the controller: look-around, profile badges, Solitaire, History and line-by-line reading.
+- New setting at the top of the F5 mod settings menu: **Read voiced dialogue aloud** (off by default). When on, lines that have voice acting are also read by your screen reader and shown in braille, including the lines Evelyn says after you pick a reply. Useful for braille users and for playing in a language other than English.
+- J and L (or the right stick) now read the full description straight after the name and position. Press any key to cut it short; K still reads the description again on its own.

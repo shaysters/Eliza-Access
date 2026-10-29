@@ -32,6 +32,7 @@
   "language.Russian": "ロシア語",
 
   "modsettings.title": "モッド設定",
+  "modsettings.read_voiced_dialogue": "音声付きのセリフを読み上げる",
   "modsettings.closed": "モッド設定を閉じました。",
   "modsettings.eliza_sessions": "イライザのセッション",
   "modsettings.read_bootup": "起動テキストを読み上げる",

@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AssemblyName>ElizaAccessDll</AssemblyName>
     <!-- Mod version: the Loadstone release version (build_release.sh reads it). -->
-    <Version>0.9.1</Version>
+    <Version>0.9.2</Version>
     <!-- The Loadstone submodule and release staging are not part of this project. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);loadstone\**;release\**</DefaultItemExcludes>
     <RootNamespace>ElizaAccess</RootNamespace>

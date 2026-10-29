@@ -32,6 +32,7 @@
   "language.Russian": "Русский",
 
   "modsettings.title": "Настройки мода",
+  "modsettings.read_voiced_dialogue": "Читать вслух озвученные диалоги",
   "modsettings.closed": "Настройки мода закрыты.",
   "modsettings.eliza_sessions": "Сеансы Элизы",
   "modsettings.read_bootup": "Читать текст загрузки",

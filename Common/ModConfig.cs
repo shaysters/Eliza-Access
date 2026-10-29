@@ -23,6 +23,20 @@ namespace ElizaAccess.Common
     {
         // ── Sections ────────────────────────────────────────────────────
 
+        /// <summary>Settings that apply across the whole game (the F5
+        /// menu's top level).</summary>
+        public static class General
+        {
+            /// <summary>
+            /// Whether to speak dialogue lines that have a voice clip.
+            /// Off by default: the game plays the recording, and TTS over
+            /// it would talk across the actor. On for braille users, or
+            /// anyone who wants the text read in the game's language
+            /// (the voice acting is English only).
+            /// </summary>
+            public static bool ReadVoicedDialogue = false;
+        }
+
         /// <summary>Eliza-therapy-session behaviour knobs.</summary>
         public static class ElizaSessions
         {
@@ -187,7 +201,24 @@ namespace ElizaAccess.Common
 
             foreach (var section in data)
             {
-                if (section.Key == "eliza_sessions")
+                if (section.Key == "general")
+                {
+                    var remaining = new Dictionary<string, object?>(StringComparer.Ordinal);
+                    foreach (var kv in section.Value)
+                    {
+                        switch (kv.Key)
+                        {
+                            case "read_voiced_dialogue":
+                                if (TryAsBool(kv.Value, out bool g1)) General.ReadVoicedDialogue = g1;
+                                break;
+                            default:
+                                remaining[kv.Key] = kv.Value;
+                                break;
+                        }
+                    }
+                    if (remaining.Count > 0) extras[section.Key] = remaining;
+                }
+                else if (section.Key == "eliza_sessions")
                 {
                     var remaining = new Dictionary<string, object?>(StringComparer.Ordinal);
                     foreach (var kv in section.Value)
@@ -227,6 +258,13 @@ namespace ElizaAccess.Common
         {
             return new Dictionary<string, Dictionary<string, object?>>(StringComparer.Ordinal)
             {
+                {
+                    "general",
+                    new Dictionary<string, object?>(StringComparer.Ordinal)
+                    {
+                        { "read_voiced_dialogue", General.ReadVoicedDialogue },
+                    }
+                },
                 {
                     "eliza_sessions",
                     new Dictionary<string, object?>(StringComparer.Ordinal)

@@ -24,7 +24,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
     ///
     /// Suppression rules:
     /// - Voiced lines are skipped (the game itself plays the voice clip; TTS
-    ///   would step on it).
+    ///   would step on it) unless <see cref="ModConfig.General.ReadVoicedDialogue"/>
+    ///   is on, for braille users and players reading in another language.
     /// - Player-reply echo: when the player just confirmed a chat choice
     ///   <see cref="ChoiceState.LastConfirmedChoiceText"/> matches the
     ///   incoming line within ~4 s, we suppress (they just picked it).
@@ -171,7 +172,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 bool   voiced      = ReadVoiced(lineVal);
                 string utterance   = BuildUtterance(speakerName, text!);
 
-                if (voiced)
+                if (voiced && !ModConfig.General.ReadVoicedDialogue)
                 {
                     _lastDialogueText = text;
                     // Stay silent (the engine plays the voice clip)
@@ -188,10 +189,15 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     ChoiceState.LastConfirmedChoiceText = null;
                     // Same idea — the player just chose this line so
                     // we don't need to echo it, but R-key should still
-                    // be able to repeat what they said.
-                    Speech.RecordSilent(utterance);
-                    Log($"[DialogueSub] line rejected: player-reply echo");
-                    return;
+                    // be able to repeat what they said. A voiced echo
+                    // only gets here with ReadVoicedDialogue on, and
+                    // then it's read like any other voiced line.
+                    if (!voiced)
+                    {
+                        Speech.RecordSilent(utterance);
+                        Log($"[DialogueSub] line rejected: player-reply echo");
+                        return;
+                    }
                 }
 
                 _lastDialogueText = text;

@@ -32,6 +32,7 @@
   "language.Russian": "俄语",
 
   "modsettings.title": "模组设置",
+  "modsettings.read_voiced_dialogue": "朗读有配音的对话",
   "modsettings.closed": "模组设置已关闭。",
   "modsettings.eliza_sessions": "伊莱莎咨询",
   "modsettings.read_bootup": "朗读启动文本",

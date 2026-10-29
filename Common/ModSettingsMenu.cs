@@ -127,6 +127,10 @@ namespace ElizaAccess.Common
 
             return new Submenu("modsettings.title", new List<MenuItem>
             {
+                Toggle("modsettings.read_voiced_dialogue",
+                    () => ModConfig.General.ReadVoicedDialogue,
+                    () => ModConfig.General.ReadVoicedDialogue
+                       = !ModConfig.General.ReadVoicedDialogue),
                 SubmenuEntry("modsettings.eliza_sessions", elizaSessions),
             });
         }

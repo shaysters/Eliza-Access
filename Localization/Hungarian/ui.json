@@ -32,6 +32,7 @@
   "language.Russian": "Orosz",
 
   "modsettings.title": "Mod beállítások",
+  "modsettings.read_voiced_dialogue": "Szinkronizált párbeszédek felolvasása",
   "modsettings.closed": "Mod beállítások bezárva.",
   "modsettings.eliza_sessions": "Eliza foglalkozások",
   "modsettings.read_bootup": "Indítási szöveg felolvasása",

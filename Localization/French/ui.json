@@ -32,6 +32,7 @@
   "language.Russian": "Russe",
 
   "modsettings.title": "Paramètres du mod",
+  "modsettings.read_voiced_dialogue": "Lire à voix haute les dialogues doublés",
   "modsettings.closed": "Paramètres du mod fermés.",
   "modsettings.eliza_sessions": "Sessions Eliza",
   "modsettings.read_bootup": "Lire le texte de démarrage",

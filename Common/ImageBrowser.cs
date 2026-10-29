@@ -4,8 +4,9 @@ namespace ElizaAccess.Common
 {
     /// <summary>
     /// J / L step through the images currently on screen that we have
-    /// descriptions for, speaking a short label; K speaks the full
-    /// description of the current one. (Not A/S/D: plain A is the
+    /// descriptions for, speaking a short label (name, position) followed
+    /// by the full description; K repeats the description of the current
+    /// one. (Not A/S/D: plain A is the
     /// game's own auto-advance toggle in WorldScreen.) On a controller the
     /// right stick does the same: left / right step, up describes (the
     /// game never reads the right stick). Moving past either end is silent.
@@ -64,7 +65,10 @@ namespace ElizaAccess.Common
             int target = idx < 0 ? 0 : idx + (next ? 1 : -1);
             if (target < 0 || target >= items.Count) return;
             _currentId = items[target].Id;
+            // Name and position, then the full description queued behind
+            // it; the next key press cuts it off (InputInterrupter).
             _speech.Speak(items[target].Label);
+            if (items[target].Description != null) _speech.Speak(items[target].Description!);
         }
 
         private static List<Item> BuildItems()

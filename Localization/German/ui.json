@@ -32,6 +32,7 @@
   "language.Russian": "Russisch",
 
   "modsettings.title": "Mod-Einstellungen",
+  "modsettings.read_voiced_dialogue": "Vertonte Dialoge vorlesen",
   "modsettings.closed": "Mod-Einstellungen geschlossen.",
   "modsettings.eliza_sessions": "Eliza-Sitzungen",
   "modsettings.read_bootup": "Boot-Text vorlesen",
