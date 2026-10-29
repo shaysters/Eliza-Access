@@ -1,8 +1,10 @@
-# Eliza Access 0.9.2
+# Eliza Access 1.0.0
 
-Run **ElizaAccessInstaller.exe** (or the one you already have) to update. Close the game first.
+Run **ElizaAccessInstaller.exe** (or the one you already have) to install or update. Close the game first. The full guide, with every key, is in the README on the GitHub page, and also comes in the download as ElizaAccess-README.html and ElizaAccess-README.md.
 
-## Changes
+## Changes since 0.9.2
 
-- New setting at the top of the F5 mod settings menu: **Read voiced dialogue aloud** (off by default). When on, lines that have voice acting are also read by your screen reader and shown in braille, including the lines Evelyn says after you pick a reply. Useful for braille users and for playing in a language other than English.
-- J and L (or the right stick) now read the full description straight after the name and position. Press any key to cut it short; K still reads the description again on its own.
+- Everything the mod reads now also goes to your braille display, if your screen reader has one connected.
+- The mod settings menu works on a controller: Back (View) opens and closes it, A turns a setting on or off, B goes back.
+- The mod tells you on the title screen when a newer version is available, right after "Scene loading." You can turn this off in the settings: "Announce available updates at launch".
+- The README has been rewritten for players: installing, every key and controller button in one table, settings and troubleshooting.
