@@ -87,6 +87,17 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // matching option gets the "(Proxy Response)" suffix.
         private string? _proxyText;
 
+        // Up/Down at either end of the list doesn't move the game's
+        // focus (it clamps), but the press still stops speech through
+        // InputInterrupter, so mashing past the end left the player in
+        // silence. After a press we give the game a moment to move the
+        // focus; if it didn't, re-read the current option.
+        private readonly KeyEdge _kbUp   = new KeyEdge(Keyboard.VK_UP);
+        private readonly KeyEdge _kbDown = new KeyEdge(Keyboard.VK_DOWN);
+        private int _bumpCheckAt;      // TickCount to check at; 0 = none
+        private int _bumpFocusIdx;
+        private const int BumpCheckMs = 150;
+
         // Deferred-announce state. The choice struct can land just
         // before another sub speaks something that should precede the
         // prompt — typically a texting overlay's incoming message
@@ -201,6 +212,9 @@ namespace ElizaAccess.Views.WorldScreenSubs
             _lastSelectedIdx = -1;
             _texts = null;
             _proxyText = null;
+            _bumpCheckAt = 0;
+            _kbUp.Reset();
+            _kbDown.Reset();
 
             object? ss = GetScriptState();
             if (ss == null || _getChoiceStructMethod == null) return;
@@ -433,55 +447,41 @@ namespace ElizaAccess.Views.WorldScreenSubs
         {
             DrainPendingAnnouncement();
 
+            // Keep the edges' held state current every tick, even while
+            // the announcement is still deferred.
+            bool navPressed = _kbUp.Pressed() | _kbDown.Pressed();
+
             if (_texts == null || _texts.Length == 0) return;
             if (_focusField == null || _selectedField == null) return;
             if (_maybeIntHasValue == null || _maybeIntGetValue == null) return;
 
-            int focusIdx = ReadMaybeInt(_focusField);
-            if (focusIdx >= 0 && focusIdx < _texts.Length && focusIdx != _lastFocusedIdx)
-            {
-                _lastFocusedIdx = focusIdx;
-                string label = CleanLabel(_texts.GetValue(focusIdx)?.ToString());
-                if (!string.IsNullOrWhiteSpace(label))
-                {
-                    // The Eliza panel's "Proxy Response" tracks
-                    // currentStep.method_46().gclass23_0[0] from the engine
-                    // side; we resolved that text in OnEnter as _proxyText.
-                    // The struct ChoiceSubView reads via ScriptState has the
-                    // same options in a different order, so we string-match
-                    // rather than rely on a fixed index.
-                    //
-                    // The proxy concept ONLY exists during a therapy
-                    // session — the Eliza panel that labels one option as
-                    // her recommended response is the in-session UI.
-                    // Outside sessions (regular dialogue choices) every
-                    // option is just an option, no "off-script" framing.
-                    // SessionState.IsActive is the cross-observer signal
-                    // SessionSubView keeps in sync.
-                    bool isProxy = SessionState.IsActive
-                                   && _proxyText != null
-                                   && string.Equals(label, _proxyText, StringComparison.Ordinal);
+            // The option is read after the prompt and instruction, so
+            // hold it back while those are still deferred.
+            bool announcing = _pendingInstruction == null;
 
-                    // Format via ButtonElement so the announcement
-                    // matches every other button focus across the
-                    // mod: "{label}, Button". When this option is
-                    // the one the Eliza panel marked as her
-                    // recommended response, prefix with "Proxy
-                    // Response" — the marker must land BEFORE the
-                    // response text, not after, because the player
-                    // makes story-relevant decisions based on
-                    // whether the option is Eliza's recommendation
-                    // and we can't risk the prefix being missed
-                    // mid-utterance.
-                    string body = new ButtonElement(label).ResolveFocusText();
-                    string announce = isProxy ? Loc.Fmt("choice.proxy_response", body) : body;
-                    Speech.Speak(announce);
+            int focusIdx = ReadMaybeInt(_focusField);
+
+            int now = Environment.TickCount;
+            if (navPressed && focusIdx >= 0)
+            {
+                _bumpCheckAt  = now + BumpCheckMs;
+                _bumpFocusIdx = focusIdx;
+            }
+
+            if (announcing && focusIdx >= 0 && focusIdx < _texts.Length && focusIdx != _lastFocusedIdx)
+            {
+                _bumpCheckAt = 0;
+                _lastFocusedIdx = focusIdx;
+                AnnounceFocus(focusIdx);
+            }
+            else if (_bumpCheckAt != 0 && now - _bumpCheckAt >= 0)
+            {
+                _bumpCheckAt = 0;
+                if (announcing && focusIdx == _bumpFocusIdx && focusIdx == _lastFocusedIdx)
+                {
+                    Log($"[ChoiceSubView] end of list — re-reading [{focusIdx}]");
+                    AnnounceFocus(focusIdx);
                 }
-                bool matchedProxyText = _proxyText != null && label == _proxyText;
-                Log($"[ChoiceSubView] focus → [{focusIdx}] \"{label}\"" +
-                    (matchedProxyText
-                        ? (SessionState.IsActive ? " (proxy)" : " (proxy-text matched but no session — marker suppressed)")
-                        : ""));
             }
 
             int selIdx = ReadMaybeInt(_selectedField);
@@ -498,6 +498,52 @@ namespace ElizaAccess.Views.WorldScreenSubs
             }
         }
 
+        private void AnnounceFocus(int focusIdx)
+        {
+            if (_texts == null) return;
+            string label = CleanLabel(_texts.GetValue(focusIdx)?.ToString());
+            if (!string.IsNullOrWhiteSpace(label))
+            {
+                // The Eliza panel's "Proxy Response" tracks
+                // currentStep.method_46().gclass23_0[0] from the engine
+                // side; we resolved that text in OnEnter as _proxyText.
+                // The struct ChoiceSubView reads via ScriptState has the
+                // same options in a different order, so we string-match
+                // rather than rely on a fixed index.
+                //
+                // The proxy concept ONLY exists during a therapy
+                // session — the Eliza panel that labels one option as
+                // her recommended response is the in-session UI.
+                // Outside sessions (regular dialogue choices) every
+                // option is just an option, no "off-script" framing.
+                // SessionState.IsActive is the cross-observer signal
+                // SessionSubView keeps in sync.
+                bool isProxy = SessionState.IsActive
+                               && _proxyText != null
+                               && string.Equals(label, _proxyText, StringComparison.Ordinal);
+
+                // Format via ButtonElement so the announcement
+                // matches every other button focus across the
+                // mod: "{label}, Button". When this option is
+                // the one the Eliza panel marked as her
+                // recommended response, prefix with "Proxy
+                // Response" — the marker must land BEFORE the
+                // response text, not after, because the player
+                // makes story-relevant decisions based on
+                // whether the option is Eliza's recommendation
+                // and we can't risk the prefix being missed
+                // mid-utterance.
+                string body = new ButtonElement(label).ResolveFocusText();
+                string announce = isProxy ? Loc.Fmt("choice.proxy_response", body) : body;
+                Speech.Speak(announce);
+            }
+            bool matchedProxyText = _proxyText != null && label == _proxyText;
+            Log($"[ChoiceSubView] focus → [{focusIdx}] \"{label}\"" +
+                (matchedProxyText
+                    ? (SessionState.IsActive ? " (proxy)" : " (proxy-text matched but no session — marker suppressed)")
+                    : ""));
+        }
+
         public override void OnLeave()
         {
             _texts = null;
@@ -506,6 +552,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
             _pendingPrompt      = null;
             _pendingInstruction = null;
             _pendingGraceUntil  = 0;
+            _bumpCheckAt        = 0;
         }
 
         // ── Reflection helpers ─────────────────────────────────────────

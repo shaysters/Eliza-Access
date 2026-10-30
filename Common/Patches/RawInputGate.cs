@@ -74,7 +74,7 @@ namespace ElizaAccess.Common.Patches
         // static float fields holding the engine's reference resolution
         // — 3840 (width), 2160 (height), 2400 (letterbox height). Those
         // three values together are a unique fingerprint.
-        private static Type? FindInputHelperType()
+        internal static Type? FindInputHelperType()
         {
             foreach (Type t in Nagoya.Types)
             {
