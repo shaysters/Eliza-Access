@@ -42,6 +42,18 @@ namespace ElizaAccess.Common
         private bool _active;
         private bool _inputSuppressed;
 
+        // Closing happens on the poll thread the moment the key goes
+        // down, but the game reads that keydown from its own event queue
+        // on its next frame. Unblocking at once let the game see the
+        // Escape (or B) that closed the menu and open its pause menu,
+        // whenever its frame landed after our poll. So the game stays
+        // blocked until the closing key is released and a few frames
+        // have passed. Key repeat while it's held counts as presses
+        // too, which this also covers.
+        private bool _releasePending;
+        private int  _closedAtTick;
+        private const int ReleaseGraceMs = 100;
+
         // Navigation: trail of (parentSubmenu, parentIndex) frames so
         // backing out of a drilled submenu restores focus to the entry
         // we came from. Top of stack is the IMMEDIATE parent; current
@@ -162,7 +174,11 @@ namespace ElizaAccess.Common
                 return;
             }
 
-            if (!_active) return;
+            if (!_active)
+            {
+                if (_releasePending) TryReleaseAfterClose();
+                return;
+            }
 
             // While the menu is open, drain every other key edge each
             // poll so the engine's still-pressed state doesn't leak
@@ -184,6 +200,7 @@ namespace ElizaAccess.Common
         private void Open()
         {
             _active = true;
+            _releasePending = false;
             _current = _root;
             _trail.Clear();
             _navIdx = 0;
@@ -211,12 +228,25 @@ namespace ElizaAccess.Common
         private void Close()
         {
             _active = false;
-            ReleaseGameInput();
+            // The mod's own views can have their keys back now: their
+            // edges tracked the held key all along, so it won't fire.
             KeyEdge.SetGlobalSuppress(false);
-            Patches.RawInputGate.Blocking = false;
+            _releasePending = true;
+            _closedAtTick = Environment.TickCount;
+            TryReleaseAfterClose();
             ModConfig.Save();
             _log("[ModSettings] closed (saved)");
             _speech.Speak(Loc.Get("modsettings.closed"));
+        }
+
+        private void TryReleaseAfterClose()
+        {
+            if (Environment.TickCount - _closedAtTick < ReleaseGraceMs) return;
+            if (_kbEscape.IsHeld || _kbF5.IsHeld) return;
+            _releasePending = false;
+            ReleaseGameInput();
+            Patches.RawInputGate.Blocking = false;
+            _log("[ModSettings] game input released");
         }
 
         // ── Navigation + activation ───────────────────────────────────
