@@ -25,7 +25,7 @@ namespace ElizaAccess.Common.Patches
         // smethod_10(Key) — runtime name from the obfuscated decompile.
         // Adds key to gclass110.hashSet_0 (game state) + local hashSet_0
         // (mod buffer that gets removed next frame via ExceptWith).
-        private const string KeyInjectorName = "#=qFUYVuIZ0M2$Wp19bOV5LwQ==";
+        private const string KeyInjectorName = "#=q1k5xuCNIBd9ZWRwHOHAUaQ==";
 
         [HarmonyTargetMethod]
         internal static MethodBase? Target()

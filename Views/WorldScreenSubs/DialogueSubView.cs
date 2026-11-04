@@ -10,14 +10,14 @@ namespace ElizaAccess.Views.WorldScreenSubs
     /// speaker changes, just "text" while the same speaker continues.
     ///
     /// Source:
-    /// <c>WorldScreen.#=qp1KryaWTbmfwRg3FYGc8Yi43QkgZg3K3P3sSd2qfGu8=</c>
+    /// <c>WorldScreen.#=qb8WgVgWWH7aKMHRy534eO3zMo0h_sM920$cgZO4hgWE=</c>
     /// holds <c>Maybe&lt;DialogueLine&gt;</c> — the event currently being
     /// rendered. Set at WorldScreen.cs:3200, cleared at :3023/:3117/:3609/:3662.
     ///
     /// DialogueLine sub-fields (verified from decompile):
-    ///   <c>#=q0opeQa51ufYxr7JOKJ$S5A==</c>  ScriptCharacter speaker
-    ///   <c>#=qtyrJpA5pn9a39IUBdZVt5A==</c>  LocalizedText text wrapper
-    ///   <c>#=q3jq43jt35t2Okh_SWk9dBQ==</c>  Maybe&lt;Sound&gt; voice clip
+    ///   <c>#=qrQP1Nd4_EdBbSJb3IWqr9g==</c>  ScriptCharacter speaker
+    ///   <c>#=q9854Y97Q3kl_vSNiVazWDQ==</c>  LocalizedText text wrapper
+    ///   <c>#=qlcsSM5ci3ZmHcMv8jFqAzA==</c>  Maybe&lt;Sound&gt; voice clip
     /// LocalizedText.GetText() → string is reflected by signature (first
     /// 0-arg public method returning string). The speaker is read from
     /// ScriptCharacter.firstName — what the dialogue box displays.
@@ -40,13 +40,13 @@ namespace ElizaAccess.Views.WorldScreenSubs
     internal sealed class DialogueSubView : SubView
     {
         // ── Obfuscated names (stable across Eazfuscator 3.3 builds) ────
-        private const string DialogueLineFieldName  = "#=qp1KryaWTbmfwRg3FYGc8Yi43QkgZg3K3P3sSd2qfGu8=";
-        private const string DlSpeakerFieldName     = "#=q0opeQa51ufYxr7JOKJ$S5A==";
-        private const string DlTextObjFieldName     = "#=qtyrJpA5pn9a39IUBdZVt5A==";
-        private const string DlSoundFieldName       = "#=q3jq43jt35t2Okh_SWk9dBQ==";
+        private const string DialogueLineFieldName  = "#=qb8WgVgWWH7aKMHRy534eO3zMo0h_sM920$cgZO4hgWE=";
+        private const string DlSpeakerFieldName     = "#=qrQP1Nd4_EdBbSJb3IWqr9g==";
+        private const string DlTextObjFieldName     = "#=q9854Y97Q3kl_vSNiVazWDQ==";
+        private const string DlSoundFieldName       = "#=qlcsSM5ci3ZmHcMv8jFqAzA==";
         // ScriptCharacter.firstName (gclass23_0) and LocalizedText.ToString.
-        private const string CharFirstNameField        = "#=qVcZOuQei28m8v7C2MtsdYA==";
-        private const string LocalizedTextToStringName = "#=qTivbHO_rGrDAcTGXa1E4rg==";
+        private const string CharFirstNameField        = "#=qRCVVfHEfwjI6gO0__DKOzA==";
+        private const string LocalizedTextToStringName = "#=qsJzy3eMaJZxVcSjfk7qTJg==";
 
         // ── WorldScreen-level reflection (OnInit) ──────────────────────
         private FieldInfo?  _currentDialogueLineField;

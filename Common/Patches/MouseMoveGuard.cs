@@ -26,7 +26,7 @@ namespace ElizaAccess.Common.Patches
     [HarmonyPatch]
     internal static class MouseMoveGuard
     {
-        private const string PointerMovedName = "#=qKOIsulEdBaXB7CuZ2BGRjw==";
+        private const string PointerMovedName = "#=qimAAUHaByCOJcEvDc8fkRQ==";
 
         [HarmonyTargetMethod]
         internal static MethodBase? Target()

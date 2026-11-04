@@ -51,12 +51,12 @@ namespace ElizaAccess.Views
         public override string ScreenTypeName => "SolitaireScreen";
 
         // ── Obfuscated names ───────────────────────────────────────────
-        private const string SolGameStateField       = "#=qomC9fXAO44ewTlpgcgsp3w==";
-        private const string SolTableauArrayField    = "#=qpmUgHx13GLWdBV_PKwc4yg==";
-        private const string SolFoundationArrayField = "#=qdkaJzFh9FtMj$w385J3jgA==";
+        private const string SolGameStateField       = "#=qRYer_$PRw2LG8s6C6Ar$Mw==";
+        private const string SolTableauArrayField    = "#=qUkrvi7Pla989V$PiOWC7Fw==";
+        private const string SolFoundationArrayField = "#=qznv49bbS2fCbcU2VWYAmZA==";
         // GameState.genum24_0 — game phase (0=difficulty/1=dealing/2=playing/3=won).
-        private const string SolStateEnumField       = "#=qbv8bImizajLuSwCqTVbwvA==";
-        private const string SolScoreField           = "#=q43XiqMIj7Y6VnEbgN_9aWg==";
+        private const string SolStateEnumField       = "#=q8iVYQ1V_6rOx2AYBm5p4Ag==";
+        private const string SolScoreField           = "#=q$7lUxu$mtm6MngoTAo1TIg==";
         // SaveData.method_13() — returns the highest difficulty index
         // the player has won at (default -1). Used as the engine's gate
         // `flag4 = j <= method_13() + 1` for which difficulty cards
@@ -67,12 +67,12 @@ namespace ElizaAccess.Views
         // modal is open. The engine binds button 9 (our keyboard 2) to
         // FAKE_KEY_2 which sets this true during gameplay (flag2 =
         // phase != 0 && no card dragged).
-        private const string HowToPlayFlagField      = "#=q3pMpNnUvOmjkmB0Yp62luA==";
+        private const string HowToPlayFlagField      = "#=qaHqUlFkJvs5NR$NWNBMYPQ==";
 
         // Static HOW TO PLAY text drawn by the engine (SolitaireScreen.cs
         // gclass23_0[0..3]). Hardcoded so we don't need to reflect the
         // static LocalizedText array; if the player plays in a non-
-        // English locale we'd reflect via #=qAwVefAmijgEdhOcd_dMEmg==
+        // English locale we'd reflect via #=qhXXFI6KZif8i$F$OT9NEiQ==
         // and convert each LocalizedText to string.
         // Loc keys (not the text) so the paragraphs resolve in the
         // current game language at speak time rather than freezing to
@@ -84,22 +84,22 @@ namespace ElizaAccess.Views
             "solitaire.rule_3",
             "solitaire.rule_4",
         };
-        private const string ItemRankField           = "#=qpxM7EauMEb3FM9sNlLtUXg==";
+        private const string ItemRankField           = "#=qbJt2TbBOv5Q3rcJ6pyZGag==";
         // SolitaireItem.bool_3 — set true on collapsed/locked stacks.
         // NOT a face-up flag (V2 misname); every card always shows rank.
-        private const string ItemLockedStackField    = "#=q2KLR$Zlo48S7ovCPnvTIZA==";
-        private const string ItemChildMaybeField     = "#=qie4_qSKrDOP_kPglHh082Q==";
-        private const string ItemPositionField       = "#=qjrFOeygNue3EQRMm4FN_5A==";
-        private const string ItemGetTailMethod       = "#=qarU$Uic3qi0edQG2wiQ3qw==";
-        private const string MaybeHasValueName       = "#=qgvgNPArrY68Bug9C$7DmMg==";
-        private const string MaybeGetValueName       = "#=qE_kIMPOWNCxXDU2FQiQZEw==";
+        private const string ItemLockedStackField    = "#=qtCascSV85V8BwQBlVtRE$w==";
+        private const string ItemChildMaybeField     = "#=qhO4Zd3ALt0C2OcREgWM5qQ==";
+        private const string ItemPositionField       = "#=qhsvqVZbi6q0mqTSiLK5lBw==";
+        private const string ItemGetTailMethod       = "#=q86YyfglbFWa_WpS4hZCtQg==";
+        private const string MaybeHasValueName       = "#=qNJtN2awYHS9$m49fwgFIAQ==";
+        private const string MaybeGetValueName       = "#=qzKSBQuHxXcvGUu3NWei4NQ==";
         // VirtualInput.SetCursor(Vector2) — same private static helper
         // ElizaAppSubView uses to drive the engine's cursor for the
         // profile-tab grid. We call it on game start to put the cursor
         // on tableau pile 1; otherwise it stays at its phone-screen-
         // entry position (off the play area entirely, e.g. (0, 2400))
         // and the engine's D-pad navigation has nowhere to start from.
-        private const string SetCursorMethod         = "#=qT_SlnKGmQty0k3OLe9Ydng==";
+        private const string SetCursorMethod         = "#=qo45ZQIg4P0Iw$_Kg6NmFvA==";
 
         // Card body bounds match the engine's hotspot at
         // SolitaireScreen.cs:615 — Bounds2.WithSize(pos + (10, 10), (210, 366)).

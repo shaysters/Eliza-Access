@@ -14,7 +14,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
     /// hollow [neg]" → "hollow, negative"). Boot text and engine perf
     /// metrics are suppressed.
     ///
-    /// Source: <c>WorldScreen.#=q3oxmFZMlPPZ5w7PNNfq4Xw==</c> — a List&lt;string&gt;
+    /// Source: <c>WorldScreen.#=q3_QLQds8E2MKZKnNG2651Q==</c> — a List&lt;string&gt;
     /// the engine appends to over the course of a session. Items are
     /// strings; classification is by prefix (no engine-level category flag
     /// exists). Polling reads list[lastCount..count) each tick so we never
@@ -45,7 +45,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
     internal sealed class NarrationSubView : SubView
     {
         // ── Obfuscated names ───────────────────────────────────────────
-        private const string NarrationListFieldName = "#=q3oxmFZMlPPZ5w7PNNfq4Xw==";
+        private const string NarrationListFieldName = "#=q3_QLQds8E2MKZKnNG2651Q==";
 
         // ── WorldScreen-level reflection (OnInit) ──────────────────────
         private FieldInfo? _narrationListField;

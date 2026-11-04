@@ -88,7 +88,7 @@ Press **F5**, or **Back** (View) on a controller, anywhere in the game. Use Up a
   - Read phase changes
   - Read miscellaneous notifications and system events
 
-The mod's menus and announcements follow the game's language setting. It's translated into all ten of the game's languages.
+The mod's menus and announcements follow the game's language setting. It's translated into ten of the game's languages. Korean isn't translated yet, so in Korean the mod's own text is in English.
 
 ## Troubleshooting
 

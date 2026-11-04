@@ -43,25 +43,25 @@ namespace ElizaAccess.Views.WorldScreenSubs
     internal sealed class TransparencySubView : SubView
     {
         // ── Obfuscated names ───────────────────────────────────────────
-        private const string PhoneStateFieldName       = "#=qzY9KTcekY7cB9h8RuKFjKw==";
-        private const string TransparencyMaybeField    = "#=q_jj7ZK0kGqgOw$34jWXLPA==";
-        private const string PlayerAnswersField        = "#=q$$5T9P5y1c2ItVFX4ngYaVWZ8JLSrGDdr8OpdXz$Wmg=";
-        private const string ButtonFocusField          = "#=q1H88sBsBrbY_MiP4N038AUcH9VvuBxsKMfXDgSTtCcc=";
-        private const string ReadEmailsSet             = "#=q1Qd3ov4nl6CtJ_RmyGuTcswB1mz5bYEPoyIGvxxAoZ4=";
-        private const string ReadCharsSet              = "#=qn7MqpfvnPoCxnvTBaZkU_fq_41ZxSgLMhxJMywFuWVo=";
-        private const string TransparencyEmailsMethod  = "#=qlT3cYi$p0e2GwVUfwM$ZpWqDBmtdx01cDnuGa3xJVG0=";
-        private const string TransparencyChatsMethod   = "#=qZgd2CiTPtk7XHtkZLehK97OCgnLoGwT3R_ZjmbiiG68=";
-        private const string ScriptTransparencyChar    = "#=q5wd5DblUTkgorw0HqYia3w==";
-        private const string ScriptTransparencyState   = "#=qFmlWv$8rILVeNaJbwmEh2A==";
-        private const string CharNameField             = "#=qVcZOuQei28m8v7C2MtsdYA==";
-        private const string LocalizedTextToString     = "#=qTivbHO_rGrDAcTGXa1E4rg==";
+        private const string PhoneStateFieldName       = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
+        private const string TransparencyMaybeField    = "#=qCr0dAEEjVt1iKTYcEjk1mg==";
+        private const string PlayerAnswersField        = "#=q3vUSwZnLL3j6C4BD$MiKb9vcbLv2UXe4dfYQial$kcY=";
+        private const string ButtonFocusField          = "#=qIfSumgANoJs5csqV8jSnYhgtWjFFOnCzhKUZSwRZEmw=";
+        private const string ReadEmailsSet             = "#=qZsSxC$xFwtlfAJva6LLlMLt7vv0c2Lf7FWIl7Wlkuvg=";
+        private const string ReadCharsSet              = "#=qYElLwOILhspug4_Z52QwDmW$AxZs9LXj7oy96dgOtDg=";
+        private const string TransparencyEmailsMethod  = "#=q5XOXS_aLBUDaKFMTMcgWNPpXQ2hWKoyXkvpP_0pW7MQ=";
+        private const string TransparencyChatsMethod   = "#=qjpig1wQGeQkiporwEzRPJqcR754MSB7d9qStzfbBJxc=";
+        private const string ScriptTransparencyChar    = "#=q4TjAdhPscprfeq1vnw8_DQ==";
+        private const string ScriptTransparencyState   = "#=qxcw4AcNwvRdXVUtq2I00Og==";
+        private const string CharNameField             = "#=qRCVVfHEfwjI6gO0__DKOzA==";
+        private const string LocalizedTextToString     = "#=qsJzy3eMaJZxVcSjfk7qTJg==";
 
         // Maybe<T> method names — used directly because the signature-
         // based heuristic can't distinguish HasValue from GetValue when
         // T==bool (both return bool). SessionSubView resolves the same
         // way.
-        private const string MaybeHasValueName         = "#=qgvgNPArrY68Bug9C$7DmMg==";
-        private const string MaybeGetValueName         = "#=qE_kIMPOWNCxXDU2FQiQZEw==";
+        private const string MaybeHasValueName         = "#=qNJtN2awYHS9$m49fwgFIAQ==";
+        private const string MaybeGetValueName         = "#=qzKSBQuHxXcvGUu3NWei4NQ==";
 
         // ── Reflection (OnInit) ────────────────────────────────────────
         private FieldInfo?  _wsPhoneStateField;

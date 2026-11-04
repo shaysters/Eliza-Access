@@ -21,20 +21,20 @@ namespace ElizaAccess.Common.Patches
     /// before our patches were registered.
     ///
     /// Target: <c>VirtualInput.smethod_1(bool)</c> — obfuscated name
-    /// <c>#=qSG15X8Id1viyrV3biM_yQA==</c>. Body in the cleaned decompile is
+    /// <c>#=qUA8qYZnUecYfwYfVb54qyw==</c>. Body in the cleaned decompile is
     /// <c>bool_0 = bool_1;</c>.
     /// </summary>
     [HarmonyPatch]
     internal static class ControllerModeLock
     {
-        public const string SetterMethodName     = "#=qSG15X8Id1viyrV3biM_yQA==";
-        public const string IsActiveFieldName    = "#=qzm799gsV0Db7dGLcGmUPe$qFxrFW40n4IZ3jukcmtn0=";
+        public const string SetterMethodName     = "#=qUA8qYZnUecYfwYfVb54qyw==";
+        public const string IsActiveFieldName    = "#=q2cUOR$hLoLTddK2gSxL5ScbK_RV5gVxXLEdA4dVOPuU=";
 
         [HarmonyTargetMethod]
         internal static MethodBase? Target()
         {
             // AccessTools.Method silently returns null for obfuscated names
-            // like #=qSG15X8Id1viyrV3biM_yQA== on this runtime — use the same
+            // like #=qUA8qYZnUecYfwYfVb54qyw== on this runtime — use the same
             // explicit GetMethods iteration that AxisInjection / ButtonInjection
             // use successfully. Without this, the patch registers without error
             // but never hooks, so the game's mouse-motion-detected mode-switch

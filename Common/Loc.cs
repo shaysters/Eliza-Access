@@ -27,9 +27,9 @@ namespace ElizaAccess.Common
     {
         // Reflection chain to the current Language enum value (names
         // shared with SettingsView — stable across builds).
-        private const string SettingsFieldName    = "#=qcfPtknXZ5IEbjuOI2Z5gkg==";
-        private const string LanguageFieldName     = "#=qdiitE$xHgYx$UAbxCq7WdA==";
-        private const string ContainerGetValueName = "#=qUrHgFy5gmcMr7GPeyD2HtQ==";
+        private const string SettingsFieldName    = "#=qqdclGsBJ94b3KCYVUxJiiA==";
+        private const string LanguageFieldName     = "#=q5I46mHNtohy9YCqh$fRf9w==";
+        private const string ContainerGetValueName = "#=qLEdIOe0zzQIou6WqopDSkw==";
 
         private const string DefaultLanguage = "English";
         private const string ResourcePrefix  = "ElizaAccess.Localization.";

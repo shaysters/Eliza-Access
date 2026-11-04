@@ -40,21 +40,21 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         // parent depending on context. PhoneScreen path is the normal
         // phone open; WorldScreen path is the inline phone rendered
         // during Transparency Mode.
-        private const string PhoneScreenPhoneStateField = "#=qqzJofoxKCCizQVMcCRLhAA==";
-        private const string WorldScreenPhoneStateField = "#=qzY9KTcekY7cB9h8RuKFjKw==";
-        private const string ActiveAppFieldName        = "#=qS3nVDip0NyI_pzkywVHdyQ==";
+        private const string PhoneScreenPhoneStateField = "#=q0pBuHRnr$Gc8Quaue5UtLw==";
+        private const string WorldScreenPhoneStateField = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
+        private const string ActiveAppFieldName        = "#=qPchaqqvMkTQI5R3xY60obA==";
         private const string ChatAppTypeName           = "ChatApp";
-        private const string ChatSelectedCharField     = "#=qh8A1KwzBeaDlKgPpDZayD4J8XX4mtHZuhfyRHUzPK5o=";
-        private const string ChatSelectedIndexField    = "#=qbZKH8GYLVLdLXovHSphmN6YYB6bkM9m1irTiwdE_GoQ=";
-        private const string ChatHistoryMethodName     = "#=qZgd2CiTPtk7XHtkZLehK97OCgnLoGwT3R_ZjmbiiG68=";
-        private const string CharacterNameField        = "#=qVcZOuQei28m8v7C2MtsdYA==";
-        private const string LocalizedTextToStringName = "#=qTivbHO_rGrDAcTGXa1E4rg==";
-        private const string EntryTypeField            = "#=qaG2NfIrHQHsZSpfYKbj8jQ==";
-        private const string EntryTextField            = "#=qyUpzQtPynmEGvfYtNiwRrg==";
+        private const string ChatSelectedCharField     = "#=qlvYz1Sx5sR8EwW0y3O3v9X_6zzajI$Hgt8FFnp_Nsss=";
+        private const string ChatSelectedIndexField    = "#=qy1YHEv8Z4npnTyolHzVxrx6NjpUrx3bolocYUFl75ug=";
+        private const string ChatHistoryMethodName     = "#=qjpig1wQGeQkiporwEzRPJqcR754MSB7d9qStzfbBJxc=";
+        private const string CharacterNameField        = "#=qRCVVfHEfwjI6gO0__DKOzA==";
+        private const string LocalizedTextToStringName = "#=qsJzy3eMaJZxVcSjfk7qTJg==";
+        private const string EntryTypeField            = "#=ql8zXqNbRUpdu_m8Mn4E_xA==";
+        private const string EntryTextField            = "#=qnPIOwuW6XpMqQGcHecqZSQ==";
         // ChatApp.gclass45_1 — the open conversation's scroller.
         // PhoneState.method_10 — the phone owner's ScriptCharacter.
-        private const string OwnerCharMethodName       = "#=qRIcHaxHuMyXhtWXCNPkUnt$mTokvAQPYcxZ2vK0abnI=";
-        private const string ConvoScrollerField        = "#=qEP1zIByRl_j0OYx4rj3Nah_jGHnOPzI8wvonwKp1spI=";
+        private const string OwnerCharMethodName       = "#=qIP$9ZGq8VY4m7MeEWpslnxvA9KbiYpPCkJQmcmAZVxI=";
+        private const string ConvoScrollerField        = "#=qqTWYlBcklkw5anKfodDWs9kxZPEO3UE5zy$IIJWPPmE=";
 
         // Player character display name. The game hardcodes this in
         // GClass146.scriptCharacter_0 — the localized-text wrapper is

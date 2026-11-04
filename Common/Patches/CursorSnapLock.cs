@@ -43,7 +43,7 @@ namespace ElizaAccess.Common.Patches
     {
         // Same name SolitaireView / ExplorationSubView use for the
         // cursor setter (smethod_12 in the clean decompile).
-        private const string SetCursorMethodName = "#=qT_SlnKGmQty0k3OLe9Ydng==";
+        private const string SetCursorMethodName = "#=qo45ZQIg4P0Iw$_Kg6NmFvA==";
 
         private static MethodInfo? _setCursor;
         private static Type?       _tVector2;

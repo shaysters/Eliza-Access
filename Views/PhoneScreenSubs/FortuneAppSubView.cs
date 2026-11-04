@@ -25,12 +25,12 @@ namespace ElizaAccess.Views.PhoneScreenSubs
     internal sealed class FortuneAppSubView : SubView
     {
         // ── Obfuscated names ───────────────────────────────────────────
-        private const string PhoneStateFieldName    = "#=qqzJofoxKCCizQVMcCRLhAA==";
-        private const string ActiveAppFieldName     = "#=qS3nVDip0NyI_pzkywVHdyQ==";
+        private const string PhoneStateFieldName    = "#=q0pBuHRnr$Gc8Quaue5UtLw==";
+        private const string ActiveAppFieldName     = "#=qPchaqqvMkTQI5R3xY60obA==";
         private const string FortuneAppTypeName     = "FortuneApp";
         // PhoneState.extrasUnlocked — Maybe<int>; the int is the
         // fortune number (0-3).
-        private const string ExtrasUnlockedField    = "#=q9$zL1VcseCl_TCWvb5A1MJEamMGM6lrO_HZIzAOsDj0=";
+        private const string ExtrasUnlockedField    = "#=qvw7LhiEQNt9TNulEZb5DSSx_Yh7uaM_yivFKvuNEsdA=";
 
         // ── Reflection (OnInit) ────────────────────────────────────────
         private FieldInfo?  _phoneStateField;

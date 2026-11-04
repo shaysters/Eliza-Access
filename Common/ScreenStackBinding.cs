@@ -20,9 +20,9 @@ namespace ElizaAccess.Common
         // Stable across builds of Eazfuscator 3.3 — seen everywhere in the
         // decompile. Used as the preferred match; signature scan kicks in if
         // a future patch reroutes these.
-        private const string TopScreenMethodName    = "#=qkap7xaC_N$VSJ7PEQqI5a45r9coJ4ApeZ_LtXKShlgE=";
-        private const string MaybeHasValueMethodName = "#=qgvgNPArrY68Bug9C$7DmMg==";
-        private const string MaybeGetValueMethodName = "#=qE_kIMPOWNCxXDU2FQiQZEw==";
+        private const string TopScreenMethodName    = "#=q7EDrrPhMPb0zkbte2zgx7uyUnqb2J20Vi1JFFLJy5lc=";
+        private const string MaybeHasValueMethodName = "#=qNJtN2awYHS9$m49fwgFIAQ==";
+        private const string MaybeGetValueMethodName = "#=qzKSBQuHxXcvGUu3NWei4NQ==";
 
         private static MethodInfo? _topScreenMethod;
         private static MethodInfo? _maybeHasValue;

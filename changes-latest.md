@@ -1,8 +1,9 @@
-# Eliza Access 1.0.2
+# Eliza Access 1.0.3
 
 Run **ElizaAccessInstaller.exe** (or the one you already have) to install or update. Close the game first. The full guide, with every key, is in the README on the GitHub page, and also comes in the download as ElizaAccess-README.html and ElizaAccess-README.md.
 
-## Changes since 1.0.1
+## Changes since 1.0.2
 
-- Closing the mod settings with Escape (or B on a controller) no longer sometimes opens the game's pause menu as well.
-- The installer now removes files that old pre-installer versions of a mod left behind, and can install into another game folder (for example, switching from a demo to the full game). These are improvements to Loadstone, the installer Eliza Access uses.
+- Works with the latest Eliza update, which added Korean. Earlier versions of the mod stop at "Scene loading." on the updated game. This version needs the updated game.
+- Korean isn't translated in the mod yet, so in Korean its own text is in English.
+- Transparency Mode no longer announces stars. Agreeing or disagreeing was wrongly read as "Star 1: positive" or "negative", followed by "3 of 3 stars" at the end. The game has no stars there, so you now hear only your answers.

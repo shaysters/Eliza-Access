@@ -48,9 +48,9 @@ namespace ElizaAccess.Common.Patches
     internal static class KeyboardToController
     {
         // smethod_19(GEnum5) → float, axis value clamped [-1, +1]
-        private const string AxisMethodName   = "#=qyP0scakPlG2zN5$Ew4jiyQ==";
+        private const string AxisMethodName   = "#=qaRo72eaqRjHnaAFMdzlsBA==";
         // smethod_18(GEnum22) → bool, is this controller button currently held?
-        private const string ButtonMethodName = "#=qm4y1QIFADtUI4bz_xFjAQA==";
+        private const string ButtonMethodName = "#=qH40hVLLApVD0xke1rC5ZZw==";
 
         [HarmonyPatch]
         internal static class AxisInjection

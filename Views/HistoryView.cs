@@ -42,21 +42,21 @@ namespace ElizaAccess.Views
         // ── Obfuscated names ───────────────────────────────────────────
         // History entry (the GClassNN tagged-union of BeginChapter /
         // DialogueLine / ChangeLocation / etc.).
-        private const string EntryTypeName            = "#=q1muqt4iu1aIc3Rbuma0kRw==";
-        private const string EntryIsBeginChapter     = "#=qNgDO12XfsqxNn6fnFFEYNg==";
-        private const string EntryIsDialogueLine     = "#=qLHNTZiGg21EZGO6mWYZgkg==";
-        private const string EntryIsChangeLocation   = "#=q0W43iMQUSgvtVhz9ebfVNXa4ZOGmLNFkx4GcWpq3o2k=";
-        private const string EntryGetDialogueLine    = "#=qxntq2yBWxWAd$Mi7BRhsDQ==";
+        private const string EntryTypeName            = "#=q3Q7wmMbZnPljptR9HPTMhw==";
+        private const string EntryIsBeginChapter     = "#=qyoR2frHVYtA$QfeZEfOesQ==";
+        private const string EntryIsDialogueLine     = "#=qJis0edVH_tyHnj$q7sg4KQ==";
+        private const string EntryIsChangeLocation   = "#=qjjM4IdN1qDbeaekE3Uf904GUVI0nbGc_pIDw67ju7Vc=";
+        private const string EntryGetDialogueLine    = "#=qEU4Z9KeJjABbzLFWrJwC_A==";
 
-        private const string DialogueLineSpeakerField = "#=q0opeQa51ufYxr7JOKJ$S5A==";
-        private const string DialogueLineTextField    = "#=qtyrJpA5pn9a39IUBdZVt5A==";
-        private const string ScriptCharacterNameField = "#=qVcZOuQei28m8v7C2MtsdYA==";
+        private const string DialogueLineSpeakerField = "#=qrQP1Nd4_EdBbSJb3IWqr9g==";
+        private const string DialogueLineTextField    = "#=q9854Y97Q3kl_vSNiVazWDQ==";
+        private const string ScriptCharacterNameField = "#=qRCVVfHEfwjI6gO0__DKOzA==";
 
-        private const string HistoryListField        = "#=qs8WfAVpAvgpN3uS$ouSByQ==";
-        private const string ScrollerField           = "#=qHPFzw1no_xGjBzJqEvK88Q==";
-        private const string ScrollerMaxScrollPos    = "#=quAL7IZ33NpnwZJ2VYIJVeytYhk$3KNu_bGSWclHYG0s=";
-        private const string ScrollerSetPosition     = "#=qwp_MZlk8oypfEboUc0lURxGhlbj3CHrDYsyDG83oeJs=";
-        private const string ScrollCacheField        = "#=qQUvvA6SIp0Z4BhvuMmKuNTHGjoAP$HUJygZrv6FLde8=";
+        private const string HistoryListField        = "#=qoIOGWoEF1xjfsH6Qemejfw==";
+        private const string ScrollerField           = "#=qAaqAI2DD5bG3COEoXV7icQ==";
+        private const string ScrollerMaxScrollPos    = "#=qBs$VnFPoF4dC4eIx6YkOkStpfn1b_a5PY8$AvHHO6xo=";
+        private const string ScrollerSetPosition     = "#=qZPGytHMkGczMY96CYCoPj$VQJSu57xPbAILt8AzEmG8=";
+        private const string ScrollCacheField        = "#=q07B4cEL8yYT9OyLEyKv0viXaRTGt33y$$YcMdKVpZZM=";
 
         // ── Reflected handles ──────────────────────────────────────────
         private MethodInfo? _isDialogueLine;

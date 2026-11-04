@@ -24,18 +24,18 @@ namespace ElizaAccess.Common
         public enum Font { MailBody, Phone }
 
         // GClass7 (asset root) → smethod_1() → font set.
-        private const string AssetsTypeName      = "#=q0eFdIPqnyZ$RtGuEw$WGAw==";
-        private const string FontSetMethod       = "#=q8u8NUFKmJqRN8gCmiamZgg==";
-        private const string MailBodyFontMethod  = "#=qms93k$OQHMZuJGu5ORo0QQ==";  // method_8
-        private const string PhoneFontMethod     = "#=q8KAWdDHzWdBu8yhRLHBnCuwA7NONEfaj3xj3SPpmtvk=";  // method_13
+        private const string AssetsTypeName      = "#=qWvkVvDvbB7BHFXDwkU1VwQ==";
+        private const string FontSetMethod       = "#=qjAJkCr6X2FSHicm2H9L5XQ==";
+        private const string MailBodyFontMethod  = "#=q2qP8wiNXOPgFJN9oT3vWVA==";  // method_8
+        private const string PhoneFontMethod     = "#=qUkBSlGfZV7YBiJjXM5cqVA0vJ3ZakmzyQ$5gEIcCkbQ=";  // method_13
         // GClass105 — text/sprite drawing.
-        private const string DrawTypeName        = "#=qgvyw$0FrJv4yN4xJbBLpCQ==";
+        private const string DrawTypeName        = "#=qhfFwF51QIUKDDV1JOnMLdA==";
         // GClass127.dictionary_0 — inline email image textures by key.
-        private const string ImagesTypeName      = "#=qnJmdH_EZfDuvfXnEK99owQ==";
-        private const string ImagesField         = "#=qBflGY7afUFYFDbRpSvVMgg==";
-        private const string TextureHeightMethod = "#=q0hg7w3619$VUeF8FnzMX0w==";  // Texture.method_2
+        private const string ImagesTypeName      = "#=qMxHcivVdeejTrCOxlZNVCQ==";
+        private const string ImagesField         = "#=qEuo9NFwHGMLbr1eJl2ajDA==";
+        private const string TextureHeightMethod = "#=qqEQBzW50uvGEFaIXECbpDg==";  // Texture.method_2
         // GClass45 scroller — method_9 (set position, clamped).
-        private const string ScrollSetMethod     = "#=qwp_MZlk8oypfEboUc0lURxGhlbj3CHrDYsyDG83oeJs=";
+        private const string ScrollSetMethod     = "#=qZPGytHMkGczMY96CYCoPj$VQJSu57xPbAILt8AzEmG8=";
 
         private static bool        _resolved;
         private static MethodInfo? _fontSet;

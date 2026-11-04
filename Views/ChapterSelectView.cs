@@ -39,13 +39,13 @@ namespace ElizaAccess.Views
     /// </summary>
     internal sealed class ChapterSelectView : ScreenView
     {
-        public const string ChapterScreenTypeName = "#=qFl48jjBw3vFdtWuUxajLBTzFpr1CdBJlHbB2kXThQ_g=";
+        public const string ChapterScreenTypeName = "#=qmCcnvjtyD2x6xplhVJ6q8ecfSa70mIcoHboLtDkQrFU=";
         public override string ScreenTypeName => ChapterScreenTypeName;
 
         // ── Obfuscated names ───────────────────────────────────────────
-        private const string ChapterListFieldName     = "#=quyrSMHzYcHaS8LqTCt4RPQ==";
-        private const string SelectedChapterFieldName = "#=q7lzP40mUNdqKFcR3$xAuM0yXs50nOGvqe4n$4GIvECE=";
-        private const string ItemTitleFieldName       = "#=qXdTSmQTKX9qsN3s$h8kf5w==";
+        private const string ChapterListFieldName     = "#=qvX0QL$IaXsqh83Vm_14tSg==";
+        private const string SelectedChapterFieldName = "#=qZ03y2cYBeuO2Xg_l2ei4Rok78BT0jDtB8vLfEJoAIZo=";
+        private const string ItemTitleFieldName       = "#=qKy62AlIkzm2RGp46oyUsvg==";
 
         // ── Reflected handles ──────────────────────────────────────────
         private FieldInfo? _chapterListField;     // List<List<EpisodeItem>>

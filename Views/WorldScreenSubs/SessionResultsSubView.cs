@@ -38,7 +38,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
     {
         // ── Obfuscated names ───────────────────────────────────────────
         // WorldScreen.phoneState_0 — same field TextingOverlaySubView uses.
-        private const string PhoneStateFieldName = "#=qzY9KTcekY7cB9h8RuKFjKw==";
+        private const string PhoneStateFieldName = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
 
         // ── Activation (EndTherapy cast) ───────────────────────────────
         private MethodInfo? _currentStepMethod;

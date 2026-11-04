@@ -19,13 +19,13 @@ namespace ElizaAccess.Common.Patches
         // smethod_12(Vector2) — runtime name from the obfuscated decompile.
         // Writes vector2_4 then calls smethod_5 to update dictionary_1.
         // This is the canonical "snap the cursor to here" entry point.
-        private const string CursorSetterName = "#=qT_SlnKGmQty0k3OLe9Ydng==";
+        private const string CursorSetterName = "#=qo45ZQIg4P0Iw$_Kg6NmFvA==";
 
         [HarmonyTargetMethod]
         internal static MethodBase? Target()
         {
             // AccessTools.Method silently returns null for obfuscated names
-            // like #=qT_SlnKGmQty0k3OLe9Ydng== on this runtime — explicit
+            // like #=qo45ZQIg4P0Iw$_Kg6NmFvA== on this runtime — explicit
             // GetMethods iteration is what the working patches use.
             Type? tVI = Nagoya.FindType("VirtualInput");
             if (tVI == null) return null;

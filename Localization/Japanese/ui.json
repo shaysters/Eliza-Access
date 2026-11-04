@@ -195,8 +195,6 @@
   "notification.open_phone": "Tab キーまたは Y ボタンを押して携帯電話を開きます。",
 
   "session.results_title": "セッション結果。",
-  "session.ended_stars": "セッション終了。3つ中 {0} つの星。",
-  "session.results_stars": "セッション結果: 3つ中 {0} つの星。",
   "session.results.achievement": "{0}、経験値 プラス{1}。",
   "session.results.total_xp": "獲得した経験値の合計: {0}。",
   "session.results.rating": "クライアントの評価: 5つ中 {0} つ星。",

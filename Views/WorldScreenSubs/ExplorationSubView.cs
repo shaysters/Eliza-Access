@@ -72,10 +72,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // Path-A reflection for the session-label feed (see SessionLabel
         // region below). Independent of the path-B currentStep traversal
         // used for activation + entry enumeration.
-        private const string ScriptStateMethodName        = "#=qMDFlLtHz0Ua9czODgxkx3p6mGjdLqbVep4UBRuPqjUQ=";
-        private const string GetExplorationDataMethodName = "#=qhhWPJ8fBX7pe_LsaBPuzWXxKbAdt7hQ53WXUyMRPlrU=";
-        private const string SessionDataFieldName         = "#=q1V5SAz4ePyBSHfbO4e$BSw==";
-        private const string SessionLabelFieldName        = "#=qKfr2g1SCaWvhyqxZtYgZag==";
+        private const string ScriptStateMethodName        = "#=qsFHbcfUEeantG2Ws52cy$AT84IfoXEVVx0I2PuC$r74=";
+        private const string GetExplorationDataMethodName = "#=qwmfA4XEaTPR9pMDlDqA3r8HLXx3iD5c_tFaD0AeozTM=";
+        private const string SessionDataFieldName         = "#=q4fG9H_iVUFIKrky0hQrUXg==";
+        private const string SessionLabelFieldName        = "#=q5z1pVWHd3nls9r0BDAJE_w==";
         private MethodInfo? _scriptStateMethod;
         private MethodInfo? _getExplorationDataMethod;
         private FieldInfo?  _sessionDataField;
@@ -118,7 +118,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // Cursor setter + Vector2 ctor (for snapping the engine cursor
         // to the focused nav item). Same shape as SolitaireView's
         // bootstrap-cursor plumbing.
-        private const string SetCursorMethodName = "#=qT_SlnKGmQty0k3OLe9Ydng==";
+        private const string SetCursorMethodName = "#=qo45ZQIg4P0Iw$_Kg6NmFvA==";
         private MethodInfo? _setCursorMethod;
         private Type?       _tVector2;
 

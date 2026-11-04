@@ -39,25 +39,25 @@ namespace ElizaAccess.Views.WorldScreenSubs
     {
         // ── Obfuscated names ───────────────────────────────────────────
         // WorldScreen.int_2 — pre-session step counter (0..12).
-        private const string StepCounterField        = "#=qLiYh_JyVLMUMVyHdkPr$qw==";
+        private const string StepCounterField        = "#=q40QXfvR1MfDSPoY0UtZMAg==";
         // WorldScreen.method_0() → current ScriptEvent (GClass10).
-        private const string ScriptEventMethod       = "#=qMDFlLtHz0Ua9czODgxkx3p6mGjdLqbVep4UBRuPqjUQ=";
+        private const string ScriptEventMethod       = "#=qsFHbcfUEeantG2Ws52cy$AT84IfoXEVVx0I2PuC$r74=";
         // GClass10.method_25() → bool, is this event a ShowElizaApp.
-        private const string IsShowElizaAppMethod    = "#=q66wGW8bX1eJblqmtQvZv6Q==";
+        private const string IsShowElizaAppMethod    = "#=qwU8bh6ZJo7eiC4pnGvaQHQ==";
         // GClass10.method_61() → GStruct8 carrying IntroNotOutro.
-        private const string ScriptEventStructMethod = "#=qzvMZ1g6Zmj65Hinxd$3FdA==";
+        private const string ScriptEventStructMethod = "#=qygWyqRZaLngipVK3AoW7Jg==";
         // GStruct8.bool_0 — true = intake (pre-session), false = outro.
-        private const string IntroNotOutroField      = "#=qCOwOWSGvwQXGhYcFuLvWTQ==";
+        private const string IntroNotOutroField      = "#=q$nPjmr4bAc5Wxh771bBKcw==";
 
         // GClass146 (static script-globals) — the player character lives
         // here, used by step 2's name-confirmation form.
-        private const string ScriptGlobalsType       = "#=qUorh3bf3QXO$XxEBRj6$yIR8KAwd6emPaiKysEv1CLs=";
-        private const string PlayerCharField         = "#=qgz5Q1RTXWFwDloYkUt1$4w==";
+        private const string ScriptGlobalsType       = "#=qlbQTQap7qu_6mx1P8CjyR0MGvcRlVva2FQLS5V3etnY=";
+        private const string PlayerCharField         = "#=qT5V$dc2sh5DVmpPghtk95A==";
 
         // ScriptCharacter name fields + LocalizedText.ToString.
-        private const string CharFirstNameField      = "#=qVcZOuQei28m8v7C2MtsdYA==";
-        private const string CharLastNameField       = "#=q0XfuGfoz9CcWkzQ03CuAxw==";
-        private const string LocalizedToStringMethod = "#=qTivbHO_rGrDAcTGXa1E4rg==";
+        private const string CharFirstNameField      = "#=qRCVVfHEfwjI6gO0__DKOzA==";
+        private const string CharLastNameField       = "#=qb5ndPNsbG_9YShfWWW1ZoA==";
+        private const string LocalizedToStringMethod = "#=qsJzy3eMaJZxVcSjfk7qTJg==";
 
         // ── Reflected handles ──────────────────────────────────────────
         private FieldInfo?  _stepField;

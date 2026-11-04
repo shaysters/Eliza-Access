@@ -21,14 +21,14 @@ namespace ElizaAccess.Common
     internal static class Localizer
     {
         // Stable across the shipped build.
-        private const string DecodeKeyClassName    = "#=q_9PuZzcJ_nq6MSqjSWnROZsVu6ji3l9QYNSPCJND$Xo=";
-        private const string DecodeKeyMethodName   = "#=qkAu3PJ8V40C$xoElphddWg==";
-        private const string LocalizerClassName    = "#=qvPVxzUse4V5ZHJvWow5MkA==";
-        private const string LocalizerMethodName   = "#=qlH_leo7ESGaR6Lc4hZ87NQ==";
+        private const string DecodeKeyClassName    = "#=qZdRtwylTaejMMCD3bjmW2xhXYFGcLzdSpS10AIbb5eg=";
+        private const string DecodeKeyMethodName   = "#=q3riQgK833hoS2y2rKnqikg==";
+        private const string LocalizerClassName    = "#=q$q_5RIWNSfdbsTA5NIdJHA==";
+        private const string LocalizerMethodName   = "#=qjChrmrpZYENaTOkSMVghpQ==";
 
         // A well-known live key used to validate signature-based fallback.
-        // 1497494027 → "Continue" (TitleScreen Continue button).
-        private const int ProbeKey = 1497494027;
+        // 407423898 → "Continue" (TitleScreen Continue button).
+        private const int ProbeKey = 407423898;
 
         private static MethodInfo? _decodeKey;   // (int) → string
         private static MethodInfo? _localize;    // (string strKey, string fallback) → LocString

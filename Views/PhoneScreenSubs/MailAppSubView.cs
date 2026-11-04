@@ -51,22 +51,22 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         // parent depending on context. PhoneScreen path is the normal
         // phone open; WorldScreen path is the inline phone rendered
         // during Transparency Mode.
-        private const string PhoneScreenPhoneStateField  = "#=qqzJofoxKCCizQVMcCRLhAA==";
-        private const string WorldScreenPhoneStateField  = "#=qzY9KTcekY7cB9h8RuKFjKw==";
-        private const string ActiveAppFieldName      = "#=qS3nVDip0NyI_pzkywVHdyQ==";
+        private const string PhoneScreenPhoneStateField  = "#=q0pBuHRnr$Gc8Quaue5UtLw==";
+        private const string WorldScreenPhoneStateField  = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
+        private const string ActiveAppFieldName      = "#=qPchaqqvMkTQI5R3xY60obA==";
         private const string MailAppTypeName         = "MailApp";
-        private const string MailSelectedEmailField  = "#=qian4VYkQdN2Gl8MtFU6iLA==";
-        private const string MailSelectedIndexField  = "#=qvEcx8F3PLa8ko3qy8VwAEDEGT5guS5DJbYzpRgXIZKU=";
+        private const string MailSelectedEmailField  = "#=q5EhCsN5nM2ZbIrNqBzemTw==";
+        private const string MailSelectedIndexField  = "#=qIkWD8qVet99cXDt83JqcIc97nxLIrRNFIJ8ieErFGsc=";
         // PhoneState.inbox() — note the SINGLE trailing '=' (PhoneState.cs:216).
-        private const string InboxMethodName         = "#=qlT3cYi$p0e2GwVUfwM$ZpWqDBmtdx01cDnuGa3xJVG0=";
+        private const string InboxMethodName         = "#=q5XOXS_aLBUDaKFMTMcgWNPpXQ2hWKoyXkvpP_0pW7MQ=";
         private const string ScriptEmailTypeName     = "ScriptEmail";
-        private const string EmailSenderField        = "#=qqyehqnoGNtxinWDp6xth0w==";
-        private const string EmailSubjectField       = "#=qdlh3n2uNGIux6bl0e6K7uA==";
-        private const string EmailBodyField          = "#=qj9q0554wTUaB3Ay8iPJ80g==";
+        private const string EmailSenderField        = "#=qmVAVbWJ59NfGKnw$Xjo$Dg==";
+        private const string EmailSubjectField       = "#=qqpyT7wghto4FIq0bdFvWJw==";
+        private const string EmailBodyField          = "#=qI4XR$ol$YpIQ5Z2cNJhjuw==";
         private const string EmailPlaceholderField   = "#=q6jB6zTsQ0W9G3bubWwlN3ph0MHOJjGshAIKC8O5xXg4==";
-        private const string EmailDateField          = "#=qwg$KVuFrMweHKbfK0W5mdA==";
+        private const string EmailDateField          = "#=q5W6okUR0m3ZwkcfsFwL9lg==";
         // MailApp.gclass45_1 — the open email's scroller.
-        private const string MailDetailScrollerField = "#=qmmCbYzQqQ67EuOxzae6jEd69lWgFfTkewugBiKzlN48=";
+        private const string MailDetailScrollerField = "#=qGm1TpGjsHTRd26EGGZUUy735QjNshTcVOacGLChkrmg=";
 
         // ── Reflection (OnInit) ────────────────────────────────────────
         private FieldInfo?  _detailScrollerField;

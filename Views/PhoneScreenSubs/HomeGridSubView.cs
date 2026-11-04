@@ -43,18 +43,18 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         // for the normal phone, WorldScreen for the inline phone
         // rendered during Transparency Mode (which uses different XY
         // offsets — see HomeOffsetX/Y constructor parameters below).
-        private const string PhoneScreenPhoneStateField = "#=qqzJofoxKCCizQVMcCRLhAA==";
-        private const string WorldScreenPhoneStateField = "#=qzY9KTcekY7cB9h8RuKFjKw==";
+        private const string PhoneScreenPhoneStateField = "#=q0pBuHRnr$Gc8Quaue5UtLw==";
+        private const string WorldScreenPhoneStateField = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
         // PhoneState.maybe_4 — Maybe<ScriptTransparency>. When set, the
         // home grid renders a different per-variant layout (PhoneScreen.
         // cs:477-506). The variant is identified by
         // ScriptTransparency.string_0.
-        private const string TransparencyMaybeField     = "#=q_jj7ZK0kGqgOw$34jWXLPA==";
-        private const string TransparencyStringField    = "#=qzTlRyAmYw3NooOj_3AHcpQ==";
-        private const string ActiveAppFieldName     = "#=qS3nVDip0NyI_pzkywVHdyQ==";
-        private const string ExtrasUnlockedField    = "#=q9$zL1VcseCl_TCWvb5A1MJEamMGM6lrO_HZIzAOsDj0=";
-        private const string InputHelperTypeName    = "#=q$vgfL9f_YZ3eGAQMSYsnbQ==";
-        private const string GetMousePosMethodName  = "#=qIhUnQ9sjXk9RKnq7Qfok0Crz9qvI1xhg$$SuphTVVlU=";
+        private const string TransparencyMaybeField     = "#=qCr0dAEEjVt1iKTYcEjk1mg==";
+        private const string TransparencyStringField    = "#=qReZc3Ds$5a02RTFPDWW6OA==";
+        private const string ActiveAppFieldName     = "#=qPchaqqvMkTQI5R3xY60obA==";
+        private const string ExtrasUnlockedField    = "#=qvw7LhiEQNt9TNulEZb5DSSx_Yh7uaM_yivFKvuNEsdA=";
+        private const string InputHelperTypeName    = "#=qZmyOiskuo4UAN0drqfshjw==";
+        private const string GetMousePosMethodName  = "#=qiLR6c6wtxRA4Hnq3NkmNyKUsJYRTIhJTTlOWxQQUpLA=";
 
         // FakeAppScreen slot loc-keys from PhoneScreen.cs no-therapy mode
         // rendering (lines 540-561 in the decompile). Resolved once at

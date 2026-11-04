@@ -26,11 +26,11 @@ namespace ElizaAccess.Views.WorldScreenSubs
     internal sealed class ChapterTitleSubView : SubView
     {
         // WorldScreen.method_0() → current ScriptEvent (GClass10).
-        private const string ScriptEventMethod   = "#=qMDFlLtHz0Ua9czODgxkx3p6mGjdLqbVep4UBRuPqjUQ=";
+        private const string ScriptEventMethod   = "#=qsFHbcfUEeantG2Ws52cy$AT84IfoXEVVx0I2PuC$r74=";
         // WorldScreen.phoneState_0 (same field ChatAppSubView reads).
-        private const string PhoneStateField     = "#=qzY9KTcekY7cB9h8RuKFjKw==";
+        private const string PhoneStateField     = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
         // PhoneState.int_0 — current chapter index, 0-based.
-        private const string ChapterIndexField   = "#=qlSSqADYiwqAiTqbJgR43gaP_RGb3N92I4fqYfUGCImA=";
+        private const string ChapterIndexField   = "#=qM3G6W26yDtyCX8dgOs_l8$rX4joSFALo037wwut3tI8=";
 
         // GClass10.Enum0: BeginChapter = 0, ShowChapterTitle = 1.
         private const int ShowChapterTitleEnumValue = 1;

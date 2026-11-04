@@ -32,18 +32,18 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // ── Known obfuscated names (stable across Eazfuscator 3.3 builds) ──
 
         // WorldScreen → scriptState (instance method, no args)
-        private const string ScriptStateMethodName     = "#=qMDFlLtHz0Ua9czODgxkx3p6mGjdLqbVep4UBRuPqjUQ=";
+        private const string ScriptStateMethodName     = "#=qsFHbcfUEeantG2Ws52cy$AT84IfoXEVVx0I2PuC$r74=";
         // WorldScreen instance Maybe<int> fields
-        private const string FocusFieldName            = "#=qecXjHwt7O3QmYuKRQR8K76k8P6OpQs1D_aUc0pPRHSI=";
-        private const string SelectedFieldName         = "#=qSRxAQlsYhVzt0wtGhTkkYFN5lTrj1YnmZH8S4ZLUsLc=";
+        private const string FocusFieldName            = "#=qSiYhJmT8oJiEyrwr0fIjA10cabYJWXIUHibtIUO37us=";
+        private const string SelectedFieldName         = "#=qUEMtPj7OhYOo$pzYXUKit6EIZWWfcgvxwsOMbslpKi0=";
         // ScriptState instance methods
-        private const string HasDialogChoiceMethodName = "#=qHdn5kuJb7Vh9G1Lb1wKV$XKOqRnoF0nNbyDAmmMXEFI=";
+        private const string HasDialogChoiceMethodName = "#=qfZ7hexeLskULUV2YJeV1dEnD6QUQIf0BJZhqzR7z9Ik=";
         private const string GetChoiceStructMethodName = "#=qzBLNJTLl$d4xOaJLN1MS_21IligeMm3a52uWxaui3RI=";
         // ChoiceStruct instance fields
-        private const string ChoiceTextsFieldName      = "#=qJ8$dt4_UaFTF4xdDwdBNIA==";
-        private const string ChoicePromptFieldName     = "#=qE9wcDpgbiU24hpoqqnornA==";
+        private const string ChoiceTextsFieldName      = "#=qKBQeiaT$9K2fzhbCjS8PeA==";
+        private const string ChoicePromptFieldName     = "#=qIzuD8Ek7M6xTMeXJ7YFT_Q==";
         // Maybe<string>.GetValue (disambiguates from ToString — both return string)
-        private const string MaybeStrGetValueMethodName = "#=qE_kIMPOWNCxXDU2FQiQZEw==";
+        private const string MaybeStrGetValueMethodName = "#=qzKSBQuHxXcvGUu3NWei4NQ==";
 
         // ── WorldScreen-level reflection (resolved in OnInit) ──────────
         private MethodInfo? _scriptStateMethod;

@@ -77,9 +77,9 @@ namespace ElizaAccess.Views
         // Slider labels resolved via Localizer at OnAdded; fall back to
         // English defaults if localization is unavailable for any reason.
         // Int keys are stable across game versions, source-confirmed.
-        private const int SliderKeyEffect = 1497425061;
-        private const int SliderKeyVoice  = 1497425033;
-        private const int SliderKeyMusic  = 1497425052;
+        private const int SliderKeyEffect = 407494089;
+        private const int SliderKeyVoice  = 407494077;
+        private const int SliderKeyMusic  = 407494062;
         private string _slider1Label = "Effect Volume";
         private string _slider2Label = "Voice Volume";
         private string _slider3Label = "Music Volume";
@@ -94,27 +94,27 @@ namespace ElizaAccess.Views
         private string _registeredLocLanguage = "";
 
         // ── Obfuscated names (stable across builds, source-confirmed) ──
-        private const string GameLogicSettingsFieldName = "#=qcfPtknXZ5IEbjuOI2Z5gkg==";
-        private const string Slider1FieldName           = "#=q4xHdzlejwhe8f$eszO6QHA==";
-        private const string Slider2FieldName           = "#=qg$Z5mft8MMGgLwSLackT7g==";
-        private const string Slider3FieldName           = "#=qqbawg6zSsxldbaEW4G21kA==";
-        private const string LanguageFieldName          = "#=qdiitE$xHgYx$UAbxCq7WdA==";
-        private const string ContainerGetValueName      = "#=qUrHgFy5gmcMr7GPeyD2HtQ==";
+        private const string GameLogicSettingsFieldName = "#=qqdclGsBJ94b3KCYVUxJiiA==";
+        private const string Slider1FieldName           = "#=qLc2MsXr6hcF3cCfvKqy5Bg==";
+        private const string Slider2FieldName           = "#=qdS0EbMfl_b2pSxBP7_dZ1w==";
+        private const string Slider3FieldName           = "#=qh6fe85g1KrI8TLQcqBdy_w==";
+        private const string LanguageFieldName          = "#=q5I46mHNtohy9YCqh$fRf9w==";
+        private const string ContainerGetValueName      = "#=qLEdIOe0zzQIou6WqopDSkw==";
         // Identified from DumpContainerFields output 2026-05-19 —
         // values flipped in lockstep with the corresponding UI
         // toggles. DisplayQualityLow is the "Low (2K)" boolean
         // (true ⇔ Low selected) — the V2 observer mis-labeled this
         // as "Fullscreen On/Off" which is why the legacy speech for
         // it was always wrong.
-        private const string DisplayModeFieldName        = "#=qX860a9WMvosyts7FKM7SzcFPsAo9cV5NZhgZjmiRh4Q=";
-        private const string DisplayQualityLowFieldName  = "#=qp95Mai6PxZvKLgcbhs1732U$dX8fBNO$qnbvs79Xqr8=";
-        private const string AutoAdvanceEnabledFieldName = "#=qOUzr4VuNW2sB6dR0$g7BaB433U4BkIRFN6YsLVRguj0=";
-        private const string AutoAdvanceModeFieldName    = "#=q9CnWdnB4Rqi5fZcdfyKAXnTD6Gxb7OqI203gJNqBf_w=";
+        private const string DisplayModeFieldName        = "#=qMiKgSeOkLPBxImLMaYFEDOl5uXIaRW2kHhWljWMrdLo=";
+        private const string DisplayQualityLowFieldName  = "#=qeRkRUGpb_s7RzlciH$hVmnYJmOvn_iAxsge9iiTsHQw=";
+        private const string AutoAdvanceEnabledFieldName = "#=qTU0r_KyeKmXWSNdPinn0CbfBj1a09f$Difyp2OukH_s=";
+        private const string AutoAdvanceModeFieldName    = "#=qHu9Ibaj6JgNddubMGrE9Xd6OqCIfLvRu4liozXpp$nk=";
         // Window Size width/height (Container<int>) — confirmed from
         // DumpContainerFields output: 3840/2160 in fullscreen,
         // 3200/1800 in windowed.
-        private const string WindowWidthFieldName        = "#=qTRh7GI6bJni3uI$8LHzuzw==";
-        private const string WindowHeightFieldName       = "#=qvb1pN2Rp3o_9MTHGqX$Qkw==";
+        private const string WindowWidthFieldName        = "#=qnN$DpwWrxH$9YpQFeRs6Mg==";
+        private const string WindowHeightFieldName       = "#=qcpNdXdxSD43OzvzgGd9_BA==";
 
         protected override void OnAdded(object screen)
         {

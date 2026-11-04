@@ -168,8 +168,8 @@ namespace ElizaAccess.Common
 
         // VirtualInputHotspot.vector2_0 (snap point the engine moves the
         // controller cursor to) and VirtualInput.SetCursor(Vector2).
-        private const string HotspotCenterField = "#=q3L3_c1bsKCjNb4hkOQx8vg==";
-        private const string SetCursorMethod    = "#=qT_SlnKGmQty0k3OLe9Ydng==";
+        private const string HotspotCenterField = "#=qV45MhxMO1bq8xGZEIt0vLw==";
+        private const string SetCursorMethod    = "#=qo45ZQIg4P0Iw$_Kg6NmFvA==";
         private static bool        _moveResolved;
         private static FieldInfo?  _hotspotCenterField;
         private static MethodInfo? _setCursor;
@@ -209,7 +209,7 @@ namespace ElizaAccess.Common
         }
 
         // PhoneScreen.vector2_2 — the phone's on-screen size.
-        private const string PhoneSizeField = "#=q2N_S4MJ2CIwFAxov_uuTdA==";
+        private const string PhoneSizeField = "#=qQdiP96BjDoq50Q3uxW065g==";
         private static bool          _phoneSizeResolved;
         private static object?       _phoneSize;
         private static PropertyInfo? _boundsSizeProp;

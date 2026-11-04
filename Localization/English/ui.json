@@ -195,8 +195,6 @@
   "notification.open_phone": "Press Tab or Y button to open phone.",
 
   "session.results_title": "Session Results.",
-  "session.ended_stars": "Session ended. {0} of 3 stars.",
-  "session.results_stars": "Session results: {0} of 3 stars.",
   "session.results.achievement": "{0}, plus {1} experience.",
   "session.results.total_xp": "Total experience gained: {0}.",
   "session.results.rating": "Client rating: {0} of 5 stars.",

@@ -51,7 +51,7 @@ namespace ElizaAccess.Common.Patches
     {
         // smethod_9(float) — public per-frame input update.
         // Obfuscated name from eliza_decompiled/VirtualInput.cs line 250.
-        public const string UpdateMethodName = "#=q0uUQRvV_8kdh$RIvH0qOkQ==";
+        public const string UpdateMethodName = "#=qcus4zw1yS6KltAlhvp8Agg==";
 
         [HarmonyTargetMethod]
         internal static MethodBase? Target()

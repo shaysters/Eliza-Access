@@ -44,12 +44,12 @@ namespace ElizaAccess.Views.WorldScreenSubs
     internal sealed class TextingOverlaySubView : SubView
     {
         // ── Obfuscated names ───────────────────────────────────────────
-        private const string PhoneStateFieldName       = "#=qzY9KTcekY7cB9h8RuKFjKw==";
-        private const string ChatHistoryMethodName     = "#=qZgd2CiTPtk7XHtkZLehK97OCgnLoGwT3R_ZjmbiiG68=";
-        private const string CharacterNameField        = "#=qVcZOuQei28m8v7C2MtsdYA==";
-        private const string LocalizedTextToStringName = "#=qTivbHO_rGrDAcTGXa1E4rg==";
-        private const string EntryTypeField            = "#=qaG2NfIrHQHsZSpfYKbj8jQ==";
-        private const string EntryTextField            = "#=qyUpzQtPynmEGvfYtNiwRrg==";
+        private const string PhoneStateFieldName       = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
+        private const string ChatHistoryMethodName     = "#=qjpig1wQGeQkiporwEzRPJqcR754MSB7d9qStzfbBJxc=";
+        private const string CharacterNameField        = "#=qRCVVfHEfwjI6gO0__DKOzA==";
+        private const string LocalizedTextToStringName = "#=qsJzy3eMaJZxVcSjfk7qTJg==";
+        private const string EntryTypeField            = "#=ql8zXqNbRUpdu_m8Mn4E_xA==";
+        private const string EntryTextField            = "#=qnPIOwuW6XpMqQGcHecqZSQ==";
 
         // Player character display name. The game hardcodes this in
         // GClass146.scriptCharacter_0 — the localized-text wrapper is

@@ -143,7 +143,7 @@ namespace ElizaAccess.Common
             if (tGameLogic == null) return false;
 
             _gameLogicSingletonField = tGameLogic.GetField(
-                "#=qdf_jbonLPSi33E8HSVNUxQ==", BindingFlags.Public | BindingFlags.Static);
+                "#=qvRwww6t42W6jI4Ih8ken0A==", BindingFlags.Public | BindingFlags.Static);
             // Fallback: a public static field on GameLogic whose type is GameLogic itself.
             if (_gameLogicSingletonField == null)
             {
@@ -155,21 +155,21 @@ namespace ElizaAccess.Common
             if (_gameLogicSingletonField == null) return false;
 
             _inputStatePcField = tGameLogic.GetField(
-                "#=qf6BrebAAA9YjisjqQc7fysXu7TMZu24B85quJVU6Ydw=",
+                "#=qvgeDDWktd88_b3BH$nlxk8cbXWW9ZaCYX5NQxXrU3PM=",
                 BindingFlags.Public | BindingFlags.Instance);
             if (_inputStatePcField == null) return false;
 
             Type tInputState = _inputStatePcField.FieldType;
             _inputPcMouseStateField = tInputState.GetField(
-                "#=qME7OCa1eZpa3gEuQvVI$gg==", BindingFlags.Public | BindingFlags.Instance);
+                "#=qrtyYT9QfJKslUio04yYohg==", BindingFlags.Public | BindingFlags.Instance);
             if (_inputPcMouseStateField == null) return false;
 
             Type tMouseState = _inputPcMouseStateField.FieldType;
             _mouseHeldField = tMouseState.GetField(
-                "#=qAATWroPPnIB8_GqCkK8a2Ihq7al0QWf$194bfUxpGjg=",
+                "#=qmR8s4qfu0hCsKcAwGs70Z0V2wreilV6wdJOnU8L75dA=",
                 BindingFlags.Public | BindingFlags.Instance);
             _mousePrevHeldField = tMouseState.GetField(
-                "#=q$ip1cdZgxyG0zMf9dSrxDdKNlu559s9vQdNwupcruVk=",
+                "#=qP5wH$4xLTg5PrHy6oZNmLFIE4PIY2gb2B8bdUdwwX$I=",
                 BindingFlags.Public | BindingFlags.Instance);
             if (_mouseHeldField == null || _mousePrevHeldField == null)
             {

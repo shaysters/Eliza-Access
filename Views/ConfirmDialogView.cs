@@ -43,7 +43,7 @@ namespace ElizaAccess.Views
         // de4dot only renames during decompile, the loaded DLL has the
         // original. Confirmed via V2TitleMenuObserver.FindConfirmDialogFields
         // which resolves the same hash.
-        public const string DialogTypeName = "#=qhDLHR1qQRJ30X6EUdNn6j5l46hBcbdoyLdI4gLHOajM=";
+        public const string DialogTypeName = "#=q66RCLoCYrVjyasSoKDN9P5AHfaQBGGhcfpsXmTp7nJ8=";
         public override string ScreenTypeName => DialogTypeName;
 
         private string? _questionText;

@@ -43,39 +43,39 @@ namespace ElizaAccess.Views.PhoneScreenSubs
     internal sealed class ElizaAppSubView : SubView
     {
         // ── Obfuscated names ───────────────────────────────────────────
-        private const string PhoneScreenPhoneStateField = "#=qqzJofoxKCCizQVMcCRLhAA==";
-        private const string WorldScreenPhoneStateField = "#=qzY9KTcekY7cB9h8RuKFjKw==";
-        private const string ActiveAppFieldName         = "#=qS3nVDip0NyI_pzkywVHdyQ==";
+        private const string PhoneScreenPhoneStateField = "#=q0pBuHRnr$Gc8Quaue5UtLw==";
+        private const string WorldScreenPhoneStateField = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
+        private const string ActiveAppFieldName         = "#=qPchaqqvMkTQI5R3xY60obA==";
         private const string ElizaAppTypeName           = "ElizaApp";
-        private const string ElizaTabField              = "#=q3MnqVLLCtnEcSUr7fqQtQQ==";
-        private const string ElizaSelectedEmailField    = "#=qbYlytfAZ0Ogw23um81BgMw==";
-        private const string ElizaSelectedIndexField    = "#=q4yGblOWKvfzO2$xbKtr7yR7XmI3405kT02R2gcah2eU=";
-        private const string ElizaHoveredAchField       = "#=q30BMtiujWVmTMFZl0G6yhA==";
+        private const string ElizaTabField              = "#=qZjXf3fb3e4XgRdS8Vy7FyA==";
+        private const string ElizaSelectedEmailField    = "#=qgRv2v00c7bUwoy1LQcckOg==";
+        private const string ElizaSelectedIndexField    = "#=qys7vpsI1GcHZb_bgZSUQOcb_IWVM4yuaP7poU6I3hw0=";
+        private const string ElizaHoveredAchField       = "#=qgrA9BmDcRwPQh$mYMMnuYg==";
         // ElizaApp.gclass45_1 — the open Skandha message's scroller.
-        private const string ElizaDetailScrollerField   = "#=qQFX8EzbxmCg$Pk_6FJW51yXvYYYq0guN07fr5Kh8r68=";
-        private const string AchievementNameField       = "#=qHsTjiFKVEKoKYH35a5ldKQ==";
-        private const string AchievementDescField       = "#=qjQW7__BYNjGboD17ww2YCQ==";
+        private const string ElizaDetailScrollerField   = "#=q_$ggaMrDiXFMn5kmV3y05oLF4FwS9$1tN8pWDgWVXtE=";
+        private const string AchievementNameField       = "#=qz9LHs989cffJzHGwrGnNxQ==";
+        private const string AchievementDescField       = "#=qdiya3tj2kwoTcCK3epW6Mg==";
         // PhoneState members. The Eliza inbox is a different IEnumerable
         // from MailApp's; sessionsHolder is the List<TherapySession>
         // directly (not wrapped in a method).
-        private const string ElizaInboxMethod           = "#=qO2JDPsXCIY$Ba6KxZIfYEkaBCVGn1qU5XJQREYgM8oc=";
-        private const string SessionsHolderField        = "#=qbKHlo689MZLcwopVAqFTlfmVi1PcGmOEIM9Sf8iXAXw=";
+        private const string ElizaInboxMethod           = "#=qXmubAqVWCzyuVeVWWd0YqFaiG55nhsZpfLEL9gw5hZA=";
+        private const string SessionsHolderField        = "#=qMboYkvsXmvmTq5xBhHGXoNSpjsPmUGHPsQZetCBwz5g=";
         // PhoneState.TherapySession nested-class fields.
         private const string TherapyEntryNestedType     = "TherapySession";
-        private const string TherapyEntryCharField      = "#=qLFu0a0kAeGPfR7pdByCKRg==";
-        private const string TherapyEntryDateField      = "#=quD4fi0rzKP0G3eXdUIydwA==";
-        private const string TherapyEntryProgressField  = "#=qRjgOIUotpixwH_ebqFNRQQ==";
+        private const string TherapyEntryCharField      = "#=qkeYpVY94ep5BzKAGLfITCw==";
+        private const string TherapyEntryDateField      = "#=qbIZWjg4y8GIxiEtDbhw54Q==";
+        private const string TherapyEntryProgressField  = "#=qCe1i$pnpZ3qYZGGgSwnOcA==";
         // ScriptCharacter name plumbing (shared with ChatAppSubView /
         // TextingOverlaySubView constants).
-        private const string CharacterNameField         = "#=qVcZOuQei28m8v7C2MtsdYA==";
-        private const string CharacterLastNameField     = "#=q0XfuGfoz9CcWkzQ03CuAxw==";
-        private const string LocalizedTextToStringName  = "#=qTivbHO_rGrDAcTGXa1E4rg==";
+        private const string CharacterNameField         = "#=qRCVVfHEfwjI6gO0__DKOzA==";
+        private const string CharacterLastNameField     = "#=qb5ndPNsbG_9YShfWWW1ZoA==";
+        private const string LocalizedTextToStringName  = "#=qsJzy3eMaJZxVcSjfk7qTJg==";
         // ScriptEmail fields for the inbox.
-        private const string EmailSenderField           = "#=qqyehqnoGNtxinWDp6xth0w==";
-        private const string EmailSubjectField          = "#=qdlh3n2uNGIux6bl0e6K7uA==";
-        private const string EmailBodyField             = "#=qj9q0554wTUaB3Ay8iPJ80g==";
+        private const string EmailSenderField           = "#=qmVAVbWJ59NfGKnw$Xjo$Dg==";
+        private const string EmailSubjectField          = "#=qqpyT7wghto4FIq0bdFvWJw==";
+        private const string EmailBodyField             = "#=qI4XR$ol$YpIQ5Z2cNJhjuw==";
         private const string EmailPlaceholderField      = "#=q6jB6zTsQ0W9G3bubWwlN3ph0MHOJjGshAIKC8O5xXg4==";
-        private const string EmailDateField             = "#=qwg$KVuFrMweHKbfK0W5mdA==";
+        private const string EmailDateField             = "#=q5W6okUR0m3ZwkcfsFwL9lg==";
         // Achievement registry (used by our own profile-tab grid
         // navigation — the engine only supports mouse hover here).
         // The static class holds 15 individual achievement instances
@@ -88,18 +88,18 @@ namespace ElizaAccess.Views.PhoneScreenSubs
         // input-sequence buffer used by VirtualInput, not the
         // achievements — symptom was GetType() on array elements
         // returning an enum with only value__:Int32.
-        private const string AchievementRegistryType    = "#=q7ufzlbSTfFsdflJfuP6ZYA==";
-        private const string AchievementArrayField      = "#=q$e5LeN7pfGdSK29KEpXw9A==";
-        private const string UnlockedAchievementsField  = "#=qD5GEXV97kYKjlT2S96NGdA==";
+        private const string AchievementRegistryType    = "#=qBbOA9Lo2Ex6o7qkkp7TwhQ==";
+        private const string AchievementArrayField      = "#=q678rFsGYUqktNRQlBk1q6A==";
+        private const string UnlockedAchievementsField  = "#=qalL5tKiAbtNwnvHJS1syxA==";
         // VirtualInput.SetCursor(Vector2) — private static. Same
         // method V2ChapterObserver uses for keyboard-driven episode
         // selection (InjectEpisodeClick).
         private const string VirtualInputType           = "VirtualInput";
-        private const string SetCursorMethod            = "#=qT_SlnKGmQty0k3OLe9Ydng==";
+        private const string SetCursorMethod            = "#=qo45ZQIg4P0Iw$_Kg6NmFvA==";
         // Maybe<T> methods — direct names so Maybe<int> doesn't trip up
         // signature matching.
-        private const string MaybeHasValueName          = "#=qgvgNPArrY68Bug9C$7DmMg==";
-        private const string MaybeGetValueName          = "#=qE_kIMPOWNCxXDU2FQiQZEw==";
+        private const string MaybeHasValueName          = "#=qNJtN2awYHS9$m49fwgFIAQ==";
+        private const string MaybeGetValueName          = "#=qzKSBQuHxXcvGUu3NWei4NQ==";
 
         // ── Reflection ─────────────────────────────────────────────────
         private FieldInfo?  _phoneStateField;

@@ -40,22 +40,22 @@ namespace ElizaAccess.Common
         }
 
         // ScriptLocation.string_0
-        private const string LocationNameField  = "#=qt7Iq3iBTpDcAV6YkO1EKrw==";
+        private const string LocationNameField  = "#=qzb_QOYNSle32mCddWVaB4w==";
         // ScriptCharacter fields
-        private const string CharNameField      = "#=qxj3t6IMbrKOzd_pj75PR_g==";
-        private const string CharVisualField    = "#=qUV$_qeZplB770Mv8WMzXBg==";
-        private const string CharVariantsField  = "#=qF54fjgEvBqv8GyHaV__dDIYmWlR_6F6ydpP_ZQGxW$A=";
-        private const string CharRightField     = "#=qJN7K0xPBkJJqBABCnMk73jRXx4xh71cTAku7HJk6t$4=";   // bool_2
-        private const string CharCenterField    = "#=qMutsCu4vvHerGutuwy0X9zVRew2FGl$11eOihgaP0dc=";   // bool_4
+        private const string CharNameField      = "#=qT3L4KMsDAb9_ytJ3Xhwf1g==";
+        private const string CharVisualField    = "#=qpflTHQBcM9p2K1q6sCLk5g==";
+        private const string CharVariantsField  = "#=qn3oQXYAi0giEF_X3otacP7OgRAsKHPeVQ$nt_gsrKdk=";
+        private const string CharRightField     = "#=q5aqQZCoPJYBZyavK0ZKFNvq$TGNBYlmbZbAt2DalC18=";   // bool_2
+        private const string CharCenterField    = "#=qt2kBiUEfPBpKM7jgJo9cyZD6dRao7CiWXIf6_17G20Q=";   // bool_4
         // CharacterState (nested in WorldScreen)
-        private const string StateCharField     = "#=qpm1wqrHg_I_n5h_NOKLeGQ==";
-        private const string StateFadingOut     = "#=qVXbqFHnfb_cLYofKJOIF7Q==";  // bool_1
+        private const string StateCharField     = "#=qT63dSqAWAhJc0oiqsZAGKA==";
+        private const string StateFadingOut     = "#=qyNiLF3Ay6sQ4iV_bH9r7hw==";  // bool_1
         // Texture.vector2_2 (draw offset) and Texture.method_1 (width)
-        private const string TextureOffsetField = "#=qJO4KWdPZobZnwIQAYxT$LA==";
-        private const string TextureWidthMethod = "#=qJRcvbVTCItFcbbiz4XVd0Q==";
+        private const string TextureOffsetField = "#=qG$HphiBchc2TexH746sbnQ==";
+        private const string TextureWidthMethod = "#=qcMpNSgV27WJOH2NilDgO2w==";
         // Maybe<T>.HasValue / GetValue
-        private const string MaybeHasValue      = "#=qgvgNPArrY68Bug9C$7DmMg==";
-        private const string MaybeGetValue      = "#=qE_kIMPOWNCxXDU2FQiQZEw==";
+        private const string MaybeHasValue      = "#=qNJtN2awYHS9$m49fwgFIAQ==";
+        private const string MaybeGetValue      = "#=qzKSBQuHxXcvGUu3NWei4NQ==";
 
         // Slot geometry from WorldScreen.method_13 (screen is 3840 wide).
         private const float LeftSlotX       = 432f;

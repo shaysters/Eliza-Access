@@ -7,32 +7,19 @@ using ElizaAccess.Common;
 namespace ElizaAccess.Views.WorldScreenSubs
 {
     /// <summary>
-    /// Therapy-session lifecycle: announces session start/end (with the
-    /// patient's name), the live 3-star rating as it shifts during the
-    /// session, and the final summary from PhoneState's session-history
-    /// list.
+    /// Therapy-session lifecycle: tracks session start/end (with the
+    /// patient's name) and announces the final summary from PhoneState's
+    /// session-history list.
     ///
-    /// Star semantics (WorldScreen.cs:3760, 3777 — Maybe&lt;bool&gt;[3]):
-    ///   Maybe.None        = not yet evaluated this session
-    ///   Maybe.Some(true)  = good outcome on that dimension
-    ///   Maybe.Some(false) = bad outcome on that dimension
-    /// The three dimensions are character-specific (each ScriptTransparency
-    /// picks what the patient cares about), so we use generic "Star 1/2/3"
-    /// labels.
-    ///
-    /// Three intertwined session signals are tracked because the game uses
-    /// two distinct session shapes:
+    /// Two signals are tracked:
     /// - <b>Formal sessions</b>: PhoneState.therapySession Maybe&lt;ScriptTransparency&gt;
-    ///   is set for the duration. Start/end via HasValue transition.
-    /// - <b>Shadow sessions</b>: the first-chapter Darren-style scenes
-    ///   update the stars array WITHOUT ever setting PhoneState.therapySession.
-    ///   Detected from the star array directly: any non-None star starts;
-    ///   all-None again ends.
-    /// - <b>Sessions list growth</b>: every completed session (formal OR
-    ///   shadow) appends an entry to PhoneState.sessions[] (verified
-    ///   WorldScreen.cs:3492-3509). This is the most reliable end signal —
-    ///   reads back the same character + rating that the post-session
-    ///   results screen displays on screen.
+    ///   is set for the duration (Transparency Mode). Start/end via
+    ///   HasValue transition.
+    /// - <b>Sessions list growth</b>: every completed session appends an
+    ///   entry to PhoneState.sessions[] (verified WorldScreen.cs:3492-3509).
+    ///   This is the most reliable end signal — reads back the same
+    ///   character + rating that the post-session results screen displays
+    ///   on screen.
     ///
     /// On session start we snapshot all int-valued no-arg getters on
     /// SaveData; on end we diff and log the non-zero deltas so the user
@@ -47,21 +34,20 @@ namespace ElizaAccess.Views.WorldScreenSubs
     internal sealed class SessionSubView : SubView
     {
         // ── Obfuscated names (stable across builds) ────────────────────
-        private const string PhoneStateFieldName        = "#=qzY9KTcekY7cB9h8RuKFjKw==";
-        private const string StarsArrayFieldName        = "#=q$$5T9P5y1c2ItVFX4ngYaVWZ8JLSrGDdr8OpdXz$Wmg=";
-        private const string TherapySessionFieldName    = "#=q_jj7ZK0kGqgOw$34jWXLPA==";
-        private const string SessionsListFieldName      = "#=qbKHlo689MZLcwopVAqFTlfmVi1PcGmOEIM9Sf8iXAXw=";
-        private const string TherapyEntryCharField      = "#=qLFu0a0kAeGPfR7pdByCKRg==";
-        private const string TherapyEntryProgressField  = "#=qRjgOIUotpixwH_ebqFNRQQ==";
+        private const string PhoneStateFieldName        = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
+        private const string TherapySessionFieldName    = "#=qCr0dAEEjVt1iKTYcEjk1mg==";
+        private const string SessionsListFieldName      = "#=qMboYkvsXmvmTq5xBhHGXoNSpjsPmUGHPsQZetCBwz5g=";
+        private const string TherapyEntryCharField      = "#=qkeYpVY94ep5BzKAGLfITCw==";
+        private const string TherapyEntryProgressField  = "#=qCe1i$pnpZ3qYZGGgSwnOcA==";
         private const string TherapyEntryNestedTypeName = "TherapySession";
-        private const string TransparencyCharField      = "#=q5wd5DblUTkgorw0HqYia3w==";
-        private const string CharacterNameField         = "#=qVcZOuQei28m8v7C2MtsdYA==";
-        private const string LocalizedTextToStringName  = "#=qTivbHO_rGrDAcTGXa1E4rg==";
-        private const string GameLogicInstanceField     = "#=qdf_jbonLPSi33E8HSVNUxQ==";
-        private const string GameLogicSaveDataField     = "#=qS1Z20vlzJ0bmCV7BUDCMGg==";
+        private const string TransparencyCharField      = "#=q4TjAdhPscprfeq1vnw8_DQ==";
+        private const string CharacterNameField         = "#=qRCVVfHEfwjI6gO0__DKOzA==";
+        private const string LocalizedTextToStringName  = "#=qsJzy3eMaJZxVcSjfk7qTJg==";
+        private const string GameLogicInstanceField     = "#=qvRwww6t42W6jI4Ih8ken0A==";
+        private const string GameLogicSaveDataField     = "#=q$Ym0T3iY98wD_$htXdfigA==";
 
-        private const string MaybeHasValueName = "#=qgvgNPArrY68Bug9C$7DmMg==";
-        private const string MaybeGetValueName = "#=qE_kIMPOWNCxXDU2FQiQZEw==";
+        private const string MaybeHasValueName = "#=qNJtN2awYHS9$m49fwgFIAQ==";
+        private const string MaybeGetValueName = "#=qzKSBQuHxXcvGUu3NWei4NQ==";
 
         // PhoneState.maybe_4 — Maybe<ScriptTransparency>. Set at
         // WorldScreen.cs:3702 when a ShowTransparency script event
@@ -70,7 +56,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // Transparency Mode so we can gate NarrationSub off — the
         // survey UI covers the AR display, so the bootloader /
         // sentiment-analyzer history isn't visible and shouldn't read.
-        private const string TransparencyMaybeField = "#=q_jj7ZK0kGqgOw$34jWXLPA==";
+        private const string TransparencyMaybeField = "#=qCr0dAEEjVt1iKTYcEjk1mg==";
 
         // PhoneState.maybe_0 — Maybe<IPhoneApp>. Set when the player
         // taps an app on the phone home grid; cleared when the app
@@ -79,11 +65,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // (the inline phone consumes Key.ESCAPE for app-back; if we
         // also drove button 7 → FAKE_KEY_4, WorldScreen.method_12
         // would open the escape menu on the same press).
-        private const string ActiveAppMaybeField = "#=qS3nVDip0NyI_pzkywVHdyQ==";
+        private const string ActiveAppMaybeField = "#=qPchaqqvMkTQI5R3xY60obA==";
 
         // ── WorldScreen / PhoneState reflection ────────────────────────
         private FieldInfo?  _wsPhoneStateField;
-        private FieldInfo?  _wsStarsArrayField;
         private FieldInfo?  _phoneStateTherapyField;
         private FieldInfo?  _phoneStateSessionsField;
         private FieldInfo?  _therapyEntryCharField;
@@ -91,8 +76,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
         private FieldInfo?  _scriptTransparencyCharField;
         private MethodInfo? _maybeTherapyHasValue;
         private MethodInfo? _maybeTherapyGetValue;
-        private MethodInfo? _maybeBoolHasValue;
-        private MethodInfo? _maybeBoolGetValue;
         private MethodInfo? _therapyProgressHasValue;
         private MethodInfo? _therapyProgressGetValue;
         private FieldInfo?  _charNameField;
@@ -138,36 +121,11 @@ namespace ElizaAccess.Views.WorldScreenSubs
         // ── Per-activation state ───────────────────────────────────────
         private bool        _sessionActive;
         private string      _sessionCharName = "";
-        // null = not-yet-rated; true/false = rating
-        private bool?[]     _prevStars = new bool?[3];
         private Dictionary<string, int> _saveDataSnapshot = new Dictionary<string, int>();
-
-        // Shadow-session state — first-chapter sessions where the formal
-        // therapySession field never flips (Darren etc.). We snapshot the
-        // latest non-null stars during the run so we can report them when
-        // all three return to null (session-results screen has finished).
-        private bool    _shadowSessionActive;
-        private bool?[] _shadowFinalStars = new bool?[3];
-        // Shadow detection requires stars to have been all-None since
-        // the last real session ended. Without this, the same poll
-        // that flips _sessionActive=false (in OnSessionEnd) sees stars
-        // STILL set from the just-finished session and starts a
-        // spurious shadow that never ends (stars don't auto-clear
-        // until the next session begins), leaving SessionState.IsActive
-        // permanently true — which then leaks into the proxy-response
-        // marker, narration gating, etc. Starts armed so the intro/
-        // tutorial flow (no formal session field, stars-only) still
-        // fires correctly.
-        private bool    _shadowArmed = true;
 
         // -1 = not yet primed; first poll captures whatever the savegame
         // already contains so historical entries don't replay.
         private int _lastSessionsCount = -1;
-
-        // Diagnostic — log once when ANY star first becomes non-None so we
-        // can confirm shadow sessions trip the array even when
-        // therapySession.HasValue() stays false.
-        private bool _seenAnyStar;
 
         public override void OnInit()
         {
@@ -177,8 +135,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
             _wsPhoneStateField = tWS.GetField(PhoneStateFieldName, instAll);
-            _wsStarsArrayField = tWS.GetField(StarsArrayFieldName, instAll);
-            Log($"[SessionSub] phoneStateField={Tag(_wsPhoneStateField)} starsArrayField={Tag(_wsStarsArrayField)}");
+            Log($"[SessionSub] phoneStateField={Tag(_wsPhoneStateField)}");
 
             if (_wsPhoneStateField != null)
             {
@@ -234,13 +191,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
                         }
                     }
                 }
-            }
-
-            // Maybe<bool> reflection — derive type from the stars array element type.
-            if (_wsStarsArrayField != null && _wsStarsArrayField.FieldType.IsArray)
-            {
-                Type elemType = _wsStarsArrayField.FieldType.GetElementType()!;
-                ResolveMaybeMethods(elemType, out _maybeBoolHasValue, out _maybeBoolGetValue);
             }
 
             // Maybe<ScriptCharacter> fields on WorldScreen. The engine has
@@ -320,7 +270,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 $"transparencyChar={Tag(_scriptTransparencyCharField)} " +
                 $"transparencyMaybe={Tag(_phoneStateTransparencyField)} " +
                 $"maybeTherapy.Has={_maybeTherapyHasValue != null} Get={_maybeTherapyGetValue != null} " +
-                $"maybeBool.Has={_maybeBoolHasValue != null} Get={_maybeBoolGetValue != null} " +
                 $"maybeTransp.Has={_maybeTransparencyHasValue != null} " +
                 $"saveDataIntGetters={_saveDataIntGetters.Length}");
         }
@@ -395,15 +344,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         public override void OnUpdate()
         {
-            // Star polling runs unconditionally. The pre-migration
-            // V2SessionObserver gated star reading on phoneState +
-            // therapyMaybe being readable, but in the intro shadow session
-            // (Darren, no formal therapySession field) one of those reads
-            // was returning null and short-circuiting the whole observer —
-            // which is why the session ended silent. Stars come straight
-            // off WorldScreen so they don't depend on PhoneState at all.
-            PollStarChanges();
-
             if (_wsPhoneStateField == null) return;
             object? phoneState;
             try { phoneState = _wsPhoneStateField.GetValue(Parent); }
@@ -418,8 +358,8 @@ namespace ElizaAccess.Views.WorldScreenSubs
                 return;
             }
 
-            // Sessions-list growth is the most reliable end signal for both
-            // formal and shadow sessions — fires on every completed session
+            // Sessions-list growth is the most reliable end signal for
+            // every session type — fires on every completed session
             // regardless of how the therapy field transitioned.
             PollSessionsListGrowth(phoneState);
 
@@ -457,9 +397,7 @@ namespace ElizaAccess.Views.WorldScreenSubs
             // chat-partner ScriptCharacter during text conversations —
             // a different in-game UI that shouldn't trigger session-
             // mode behaviors.
-            SessionState.IsActive = IsTherapyCharacterSet()
-                                    || _sessionActive
-                                    || _shadowSessionActive;
+            SessionState.IsActive = IsTherapyCharacterSet() || _sessionActive;
         }
 
         private bool IsTherapyCharacterSet()
@@ -496,7 +434,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
         {
             _sessionActive    = true;
             _sessionCharName  = "";
-            _prevStars        = new bool?[3];
             _saveDataSnapshot = SnapshotSaveData();
 
             try
@@ -523,17 +460,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         private void OnSessionEnd()
         {
-            // Read final star tally — still set on the WorldScreen instance
-            // until the next session resets it.
-            int good = 0, bad = 0, none = 0;
-            bool?[] finalStars = ReadStars();
-            for (int i = 0; i < 3; i++)
-            {
-                if (finalStars[i] == true)  good++;
-                else if (finalStars[i] == false) bad++;
-                else none++;
-            }
-
             // Diff SaveData; logged only, used to map obfuscated counter
             // names to human labels through test play.
             var post = SnapshotSaveData();
@@ -544,78 +470,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
                     deltas.Add($"{kv.Key.Substring(0, Math.Min(8, kv.Key.Length))}={kv.Value - old:+0;-0}");
             }
 
-            Speech.Speak(Loc.Fmt("session.ended_stars", good));
-            Log($"[SessionSub] end: good={good} bad={bad} unrated={none} deltas=[{string.Join(", ", deltas)}]");
+            Log($"[SessionSub] end: deltas=[{string.Join(", ", deltas)}]");
 
             _sessionActive = false;
             _saveDataSnapshot.Clear();
-            // Disarm shadow detection until stars first go all-None.
-            // The stars on the engine instance still hold this session's
-            // final tally; without disarming, PollStarChanges on the
-            // very next poll mistakes them for a new shadow session.
-            _shadowArmed = false;
-        }
-
-        // ── Star changes (live per-rating updates + shadow detection) ──
-
-        private void PollStarChanges()
-        {
-            bool?[] stars = ReadStars();
-
-            if (!_seenAnyStar)
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    if (stars[i] != null)
-                    {
-                        _seenAnyStar = true;
-                        Log($"[SessionSub] first star activity: stars=[{Fmt(stars[0])},{Fmt(stars[1])},{Fmt(stars[2])}] sessionActive={_sessionActive}");
-                        break;
-                    }
-                }
-            }
-
-            // Shadow-session detection — fires only when no formal session
-            // is active. First non-None star starts the shadow session;
-            // all-None again ends it (results screen has finished its run).
-            if (!_sessionActive)
-            {
-                bool anyActive = stars[0] != null || stars[1] != null || stars[2] != null;
-                if (!anyActive) _shadowArmed = true;
-                if (anyActive && !_shadowSessionActive && _shadowArmed)
-                {
-                    _shadowSessionActive = true;
-                    Log("[SessionSub] shadow session started (first star activated, no therapy session field).");
-                }
-                else if (!anyActive && _shadowSessionActive)
-                {
-                    _shadowSessionActive = false;
-                    int good = 0, bad = 0;
-                    for (int i = 0; i < 3; i++)
-                    {
-                        if (_shadowFinalStars[i] == true)  good++;
-                        else if (_shadowFinalStars[i] == false) bad++;
-                    }
-                    Speech.Speak(Loc.Fmt("session.results_stars", good));
-                    Log($"[SessionSub] shadow ended. good={good} bad={bad} stars=[{Fmt(_shadowFinalStars[0])},{Fmt(_shadowFinalStars[1])},{Fmt(_shadowFinalStars[2])}]");
-                    _shadowFinalStars = new bool?[3];
-                }
-                // Always remember the latest non-null stars in case all
-                // three flip to null on the same poll as a star resolves.
-                if (anyActive)
-                    for (int i = 0; i < 3; i++) if (stars[i] != null) _shadowFinalStars[i] = stars[i];
-            }
-
-            for (int i = 0; i < 3; i++)
-            {
-                if (stars[i] == _prevStars[i]) continue;
-                _prevStars[i] = stars[i];
-                string what = stars[i] == true  ? $"Star {i + 1}: positive."
-                            : stars[i] == false ? $"Star {i + 1}: negative."
-                            :                     $"Star {i + 1}: cleared.";
-                Speech.Speak(what);
-                Log($"[SessionSub] {what}");
-            }
         }
 
         // ── Sessions-list growth (post-session results announcement) ───
@@ -688,28 +546,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
 
         // ── Reads ──────────────────────────────────────────────────────
 
-        private bool?[] ReadStars()
-        {
-            var result = new bool?[3];
-            if (_wsStarsArrayField == null) return result;
-            try
-            {
-                if (!(_wsStarsArrayField.GetValue(Parent) is Array arr)) return result;
-                int n = Math.Min(3, arr.Length);
-                for (int i = 0; i < n; i++)
-                {
-                    object? maybe = arr.GetValue(i);
-                    if (maybe == null) continue;
-                    if (_maybeBoolHasValue == null) continue;
-                    if (!(bool)_maybeBoolHasValue.Invoke(maybe, null)!) continue;
-                    if (_maybeBoolGetValue == null) continue;
-                    if (_maybeBoolGetValue.Invoke(maybe, null) is bool b) result[i] = b;
-                }
-            }
-            catch { }
-            return result;
-        }
-
         private Dictionary<string, int> SnapshotSaveData()
         {
             var snap = new Dictionary<string, int>();
@@ -758,7 +594,6 @@ namespace ElizaAccess.Views.WorldScreenSubs
             getValue = maybeType.GetMethod(MaybeGetValueName, bf, null, Type.EmptyTypes, null);
         }
 
-        private static string Fmt(bool? b) => b == null ? "none" : (b.Value ? "good" : "bad");
         private static string Tag(object? x) => x != null ? "[found]" : "NOT FOUND";
     }
 }

@@ -9,17 +9,17 @@ namespace ElizaAccess.Views.WorldScreenSubs
     /// updates) anchored to the buzz moment, not the timer-start.
     ///
     /// Source:
-    /// - <c>WorldScreen.#=qzY9KTcekY7cB9h8RuKFjKw==</c> → PhoneState
-    /// - <c>PhoneState.#=qeOiz_yr1fidK5lpLDxNCVQnNOarDeTGq78GN1GUIgs4=</c>
+    /// - <c>WorldScreen.#=q2pLuamZTCy6SsIMCZ5Ln6g==</c> → PhoneState
+    /// - <c>PhoneState.#=qcR8ySo6zDIi$XBf29QGGr4zfPAcgGZnP$1tR5JCduuA=</c>
     ///   → <c>Maybe&lt;float&gt;</c> countdown timer. From PhoneState.cs:190-203:
     ///   timer is set to a random small value, counts down to zero, then
     ///   <c>newEmails.Clear()</c> + buzz fire together. We anchor speech to
     ///   the HasValue → Empty transition (the buzz moment).
     ///
     /// Label resolution priority (verified from save-dialog phase 2):
-    ///   1. <c>PhoneState.#=qbGcuhhAwDd_FceaChl9DHg==</c> HashSet&lt;ScriptEmail&gt;
+    ///   1. <c>PhoneState.#=qSsQYvQ3kOaeJEZORaUP4yA==</c> HashSet&lt;ScriptEmail&gt;
     ///      non-empty → "New mail."
-    ///   2. <c>PhoneState.#=q_jj7ZK0kGqgOw$34jWXLPA==</c>
+    ///   2. <c>PhoneState.#=qCr0dAEEjVt1iKTYcEjk1mg==</c>
     ///      Maybe&lt;ScriptTransparency&gt; HasValue → "Message from Eliza."
     ///      (therapy session active context; followed by "Update received.")
     ///   3. Fallback → "Notification."
@@ -35,10 +35,10 @@ namespace ElizaAccess.Views.WorldScreenSubs
     internal sealed class NotificationSubView : SubView
     {
         // ── Obfuscated names (stable across builds) ────────────────────
-        private const string PhoneStateFieldName     = "#=qzY9KTcekY7cB9h8RuKFjKw==";
-        private const string NotifTimerFieldName     = "#=qeOiz_yr1fidK5lpLDxNCVQnNOarDeTGq78GN1GUIgs4=";
-        private const string NewEmailsFieldName      = "#=qbGcuhhAwDd_FceaChl9DHg==";
-        private const string TherapySessionFieldName = "#=q_jj7ZK0kGqgOw$34jWXLPA==";
+        private const string PhoneStateFieldName     = "#=q2pLuamZTCy6SsIMCZ5Ln6g==";
+        private const string NotifTimerFieldName     = "#=qcR8ySo6zDIi$XBf29QGGr4zfPAcgGZnP$1tR5JCduuA=";
+        private const string NewEmailsFieldName      = "#=qSsQYvQ3kOaeJEZORaUP4yA==";
+        private const string TherapySessionFieldName = "#=qCr0dAEEjVt1iKTYcEjk1mg==";
 
         // ── WorldScreen-level reflection (OnInit) ──────────────────────
         private FieldInfo? _phoneStateField;
