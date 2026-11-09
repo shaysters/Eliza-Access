@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using ElizaAccess.Common;
@@ -45,7 +46,7 @@ namespace ElizaAccess
         // prism_backend_speak.
         private bool _outputSupported = true;
 
-        // When Stop() was last called, in Environment.TickCount.
+        // When Stop() was last called, as a Stopwatch timestamp.
         // Speak() blocks the remainder of StopSettleMs before
         // dispatching, so the in-flight stop has time to reach the
         // backend transport before a queue request lands on top of
@@ -57,8 +58,14 @@ namespace ElizaAccess
         // Only the first speak in a burst pays the delay; subsequent
         // ones land outside the settle window and dispatch
         // immediately, chaining cleanly behind the first.
-        private int _lastStopTick = int.MinValue / 2;
-        private const int StopSettleMs = 25;
+        //
+        // The stop and speak calls themselves take well under 1 ms,
+        // so a few ms is plenty. It was 25 ms timed with
+        // Environment.TickCount, whose ~15 ms granularity made the
+        // actual wait anywhere from 0 to 26 ms on every keypress;
+        // Stopwatch keeps it a steady 5.
+        private long _lastStopTimestamp = long.MinValue / 2;
+        private const double StopSettleMs = 5;
 
         // Logger plumbed in by Main so we land in the same log file as
         // every other [Speech] / [Main] / [...] line instead of the
@@ -173,11 +180,11 @@ namespace ElizaAccess
             // Stop-settle delay: if Stop was called within the last
             // StopSettleMs, sleep the remainder so the in-flight
             // flush has time to propagate before we queue. See
-            // _lastStopTick docs above for the full rationale.
-            int sinceStop = Environment.TickCount - _lastStopTick;
+            // _lastStopTimestamp docs above for the full rationale.
+            double sinceStop = (Stopwatch.GetTimestamp() - _lastStopTimestamp) * 1000.0 / Stopwatch.Frequency;
             if (sinceStop >= 0 && sinceStop < StopSettleMs)
             {
-                Thread.Sleep(StopSettleMs - sinceStop);
+                Thread.Sleep((int)Math.Ceiling(StopSettleMs - sinceStop));
             }
 
             IntPtr p = PrismNative.Utf8Alloc(text);
@@ -217,7 +224,7 @@ namespace ElizaAccess
         public void Stop()
         {
             if (_backend == IntPtr.Zero) return;
-            _lastStopTick = Environment.TickCount;
+            _lastStopTimestamp = Stopwatch.GetTimestamp();
             try { PrismNative.prism_backend_stop(_backend); }
             catch { }
         }

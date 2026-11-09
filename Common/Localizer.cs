@@ -107,19 +107,25 @@ namespace ElizaAccess.Common
 
         private static void ResolveDecodeKey()
         {
-            // Preferred: exact class + method by known names.
+            // Preferred: exact class + method by known names. The decoder
+            // is internal, so NonPublic is required; with Public alone this
+            // never matched and every launch fell through to the scan below.
             Type? tDecode = Nagoya.FindType(DecodeKeyClassName);
             if (tDecode != null)
             {
                 _decodeKey = tDecode.GetMethod(
                     DecodeKeyMethodName,
-                    BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly,
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly,
                     null, new[] { typeof(int) }, null);
                 if (_decodeKey != null) return;
             }
 
             // Fallback: scan every type for a static (int) → string method that
-            // returns a non-empty value for our probe key.
+            // decodes our probe key. Several game methods map an int to some
+            // string, and the scan order follows the obfuscated type order,
+            // which changes between game builds — the 2026-11 build put a
+            // method first that just formats the number, so every label read
+            // as digits. Accept only a result that isn't the number itself.
             foreach (Type t in Nagoya.Types)
             {
                 MethodInfo[] methods;
@@ -137,7 +143,8 @@ namespace ElizaAccess.Common
                         m.ReturnType != typeof(string)) continue;
                     try
                     {
-                        if (m.Invoke(null, new object[] { ProbeKey }) is string s && s.Length > 0)
+                        if (m.Invoke(null, new object[] { ProbeKey }) is string s && s.Length > 0
+                            && !IsAllDigits(s))
                         {
                             _decodeKey = m;
                             return;
@@ -146,6 +153,13 @@ namespace ElizaAccess.Common
                     catch { }
                 }
             }
+        }
+
+        private static bool IsAllDigits(string s)
+        {
+            foreach (char c in s)
+                if (c < '0' || c > '9') return false;
+            return true;
         }
 
         private static void ResolveLocalize()

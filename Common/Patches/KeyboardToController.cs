@@ -80,6 +80,42 @@ namespace ElizaAccess.Common.Patches
             /// skip our keyboard injection too. The view will read the
             /// keyboard itself via <see cref="KeyEdge"/>.
             /// </summary>
+            // The game's cursor nav (smethod_9) starts a repeat timer when
+            // it moves: 0.4 s before the first repeat, 0.1 s after. The
+            // timer only clears on a frame where both axes read zero, so
+            // releasing Down and pressing Up (or tapping Down twice)
+            // within one frame looks like one continuous hold, and the
+            // new press waits out the rest of the 0.4 s. Each fresh
+            // keyboard direction clears the timer so it moves at once,
+            // the same as a press after a gap. The timer is the only
+            // static Maybe<float> on VirtualInput.
+            private static readonly float[] _lastKb = new float[2];
+            private static FieldInfo? _repeatTimerField;
+            private static bool _repeatTimerResolved;
+
+            private static void ResetRepeatTimer()
+            {
+                if (!_repeatTimerResolved)
+                {
+                    _repeatTimerResolved = true;
+                    Type? tVI = Nagoya.FindType("VirtualInput");
+                    if (tVI == null) return;
+                    FieldInfo? found = null;
+                    foreach (FieldInfo f in tVI.GetFields(BindingFlags.NonPublic | BindingFlags.Static))
+                    {
+                        Type ft = f.FieldType;
+                        if (!ft.IsGenericType || ft.Name != "Maybe`1"
+                            || ft.GetGenericArguments()[0] != typeof(float)) continue;
+                        if (found != null) return; // ambiguous: leave the game's timing alone
+                        found = f;
+                    }
+                    _repeatTimerField = found;
+                }
+                if (_repeatTimerField == null) return;
+                try { _repeatTimerField.SetValue(null, Activator.CreateInstance(_repeatTimerField.FieldType)); }
+                catch { }
+            }
+
             [HarmonyPostfix]
             private static void Postfix(object __0, ref float __result)
             {
@@ -108,6 +144,12 @@ namespace ElizaAccess.Common.Patches
                 {
                     if (Keyboard.IsHeld(Keyboard.VK_UP))    kb -= 1f;
                     if (Keyboard.IsHeld(Keyboard.VK_DOWN))  kb += 1f;
+                }
+
+                if (axis == 0 || axis == 1)
+                {
+                    if (kb != 0f && kb != _lastKb[axis]) ResetRepeatTimer();
+                    _lastKb[axis] = kb;
                 }
 
                 if (kb == 0f) return;
