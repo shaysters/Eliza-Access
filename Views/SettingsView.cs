@@ -247,6 +247,7 @@ namespace ElizaAccess.Views
             { "Hungarian",  "Magyar"    },
             { "Portuguese", "Português" },
             { "Russian",    "Русский"   },
+            { "Korean",     "한국어"    },
         };
 
         private void RegisterWindowSizeRadios(RowContainer row)

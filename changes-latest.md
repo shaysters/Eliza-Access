@@ -1,9 +1,9 @@
-# Eliza Access 1.0.3
+# Eliza Access 1.0.4
 
 Run **ElizaAccessInstaller.exe** (or the one you already have) to install or update. Close the game first. The full guide, with every key, is in the README on the GitHub page, and also comes in the download as ElizaAccess-README.html and ElizaAccess-README.md.
 
-## Changes since 1.0.2
+## Changes since 1.0.3
 
-- Works with the latest Eliza update, which added Korean. Earlier versions of the mod stop at "Scene loading." on the updated game. This version needs the updated game.
-- Korean isn't translated in the mod yet, so in Korean its own text is in English.
-- Transparency Mode no longer announces stars. Agreeing or disagreeing was wrongly read as "Star 1: positive" or "negative", followed by "3 of 3 stars" at the end. The game has no stars there, so you now hear only your answers.
+- Korean: the mod's menus and announcements are now translated into Korean, and the Settings language list names the new Korean option.
+- The descriptions of scenes, characters, text-message pictures and email images (J, K and L, and the line when someone arrives) are now translated into every language the game supports. Before, they were English in every language. Character and place names follow the game's own translation.
+- These translations haven't been checked by native speakers yet. If something sounds wrong in your language, please tell us on Discord.
